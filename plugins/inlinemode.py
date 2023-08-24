@@ -15,16 +15,10 @@ from pyrogram.types import (
 )
 from utils import is_user_exist,get_search_results,Media,is_group_exist,add_user,is_subscribed
 from info import filters,OWNER_ID,CHANNELS,AUTH_CHANNEL
-BOT = {}
-
 @Bot0.on_inline_query(filters.inline)
 async def give_filter(client, query):
-
-    nyva=BOT.get("username")
-    if not nyva:
-        botusername=await client.get_me()
-        nyva=botusername.username
-        BOT["username"]=nyva
+    botusername=await client.get_me()
+    nyva=botusername.username
     group_id= await db.is_bot_exist(nyva)
     hjkl = f'{group_id}##{query.from_user.id}'  
     userdetails1= await is_user_exist(hjkl,nyva)
