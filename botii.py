@@ -174,5 +174,5 @@ BOT0=None
 for i in [Bot,Bot1,Bot2]:
     Bot0=i
 async def main():
-    app=[Bot(),Bot1(),Bot2(),Bot3()]
+    app=[Bot(),Bot1(),Bot2()]
     await compose(app)
