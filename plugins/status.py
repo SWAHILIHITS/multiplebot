@@ -30,9 +30,7 @@ async def handle_admin_status(bot, cmd):
                     else:
                         abn=await get_file_details(user['file_id'])
                         for file in abn:
-                            abc=f"{file.text.split('.dd#.')[0]} mda wake wa kuipakua umeisha"  
-                    await db.delete_acc(user['id'])
-                    continue 
+                            abc=f"{file.text.split('.dd#.')[0]} mda wake wa kuipakua umeisha" 
                     if nyva ==abc2["bot_link"]:
                         hjkl=f'{user["db_name"]}##{user["user_id"]}'
                         if not await is_user_exist(hjkl,nyva):
