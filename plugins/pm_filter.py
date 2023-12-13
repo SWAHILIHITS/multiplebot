@@ -92,10 +92,11 @@ async def rrecussive(client, message):
     botusername=await client.get_me()
     nyva=botusername.username
     group_id= await db.is_bot_exist(nyva)
-    a=False
+    acb=False
     await message.reply_text("olready implemented")
-    while a==False:
+    while acb==False:
         await asyncio.sleep(14400)
+        a=3
         for grp in await is_group_exist("group",nyva):
             try:
                 grp_id = int(grp.id.split("##")[1])
@@ -126,7 +127,8 @@ async def rrecussive(client, message):
                             disable_notification=True,
                             reply_markup=reply_markup
                         )
-                    await asyncio.sleep(2)
+                    a+=1
+                    await asyncio.sleep(a)
             except Exception as e :
                 #hjkl1 = f'{group_id}##{message.chat.id}'
                 #await User.collection.update_one({'_id':hjkl1})
@@ -134,6 +136,7 @@ async def rrecussive(client, message):
         await asyncio.sleep(3600)
         data1=await is_group_exist("channel",nyva)
         ict=0
+        a=3
         user_id3= await db.is_bot_exist(nyva)
         documents=await get_filter_result(int(user_id3))
         try:
@@ -169,6 +172,8 @@ async def rrecussive(client, message):
                             caption = reply_text,
                             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
+                        a+=1
+                        await asyncio.sleep(a)
                     except Exception as err:
                         await message.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")                    
             else:
@@ -181,6 +186,8 @@ async def rrecussive(client, message):
                             caption = reply_text,
                             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
+                        a+=1
+                        await asyncio.sleep(a)
                     except:
                         pass     
         await asyncio.sleep(14400)
