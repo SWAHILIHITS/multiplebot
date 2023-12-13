@@ -157,6 +157,8 @@ async def rrecussive(client, message):
             elif acs!= "x":
                 continue
             ict+=1
+            if ict==3:
+                break
             if msg_type == 'Photo':   
                 for data2 in abz:
                     try:
@@ -180,9 +182,7 @@ async def rrecussive(client, message):
                             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                     except:
-                        pass
-                if ict==2:
-                    break
+                        pass     
         await asyncio.sleep(14400)
         for grp in await is_group_exist("group",nyva):
             try:
