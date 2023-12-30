@@ -28,6 +28,7 @@ async def handle_admin_status(bot, cmd):
                         abc2=await db.get_db_status( int(user['db_name']) )
                     except:
                         await db.delete_acc(user['id'])
+                        continue
                     if user['file_id'].startswith('g_'):
                         abc=f"{abc2[user['file_id']].split('#@')[0]} kimeisha"
                     else:
