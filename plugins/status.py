@@ -24,7 +24,7 @@ async def handle_admin_status(bot, cmd):
             all_users =await db.get_all_acc()
             async for user in all_users:  
                 if user["ban_status"]["ban_duration"] <= (datetime.now() - datetime.fromisoformat(user["ban_status"]["banned_on"])).days:
-                    abc2=await db.get_db_status( user['db_name'] )
+                    abc2=await db.get_db_status( int(user['db_name']) )
                     if user['file_id'].startswith('g_'):
                         abc=f"{abc2[user['file_id']].split('#@')[0]} kimeisha"
                     else:
