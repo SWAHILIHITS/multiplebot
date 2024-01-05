@@ -46,6 +46,7 @@ async def grouop2(client, message):
             if abb == "hrm46":
                 continue
             else:
+                print("hi")
                 strid = str(uuid.uuid4())
                 file.reply=file.reply.replace( message.command[3] ,message.command[4])
                 file.reply=file.reply.replace("hrm45",message.command[4])
