@@ -33,7 +33,7 @@ async def grouop2(client, message):
         return
     else:
         filter = {'text': regex}
-    filter['group_id'] = int(message.command[1])}
+    filter['group_id'] = int(message.command[1])
     filter["type"]="Photo"
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
