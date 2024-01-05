@@ -33,9 +33,9 @@ async def grouop22(client, message):
             ab =len(file.reply)-450
             await message.reply_text(
                 f"{file.reply}")
-            #await Media.collection.update_one({'_id':file.id},{'$set':{'reply':file.reply[0:500] + file.reply[ab:len(file.reply)]})
+            #await Media.collection.update_one({'_id':file.id},{'$set':{'reply': file.reply[0:500] + file.reply[ab:len(file.reply)]})
             await message.reply_text(
-                f"{len(file.reply)}")
+                f"{file.reply[0:500] + file.reply[ab:len(file.reply)]}")
 """@Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
