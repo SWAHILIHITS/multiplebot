@@ -49,7 +49,7 @@ async def grouop2(client, message):
                 strid = str(uuid.uuid4())
                 file.reply=file.reply.replace("Mrlovebite_Tz","Franecemasmovies2013")
                 file.reply=file.reply.replace("hrm45","Franecemasmovies2013")
-                await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,'')
+                await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,file.grp)
         
 @Bot0.on_callback_query()
 async def cb_handler(client, query):
