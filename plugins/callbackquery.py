@@ -20,30 +20,21 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-"""@Bot0.on_message( filters.command('renamee') & filters.private)
+@Bot0.on_message( filters.command('renamee') & filters.private)
 async def grouop22(client, message):
-    if len(message.command) != 3:
-        await message.reply_text(
-            f"tuma /rename 1234kb 1234kw")
-        return 
-    raw_pattern = r'\b' + message.command[1] + r'.*'
-    try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except Exception as e :
-        print(e)
-        return
-    else:
-        filter = {'text': regex}
-    filter['group_id'] = int(message.command[2])
+    filter = {'group_id': regex}
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     await message.reply_text(
             f"total found {total_results}")
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
-        await Media.collection.update_one({'_id':file.id},{'$set':{'text':file.text.replace( message.command[1] , message.command[2])}})
+        if len(file.reply)>=900:
+            await message.reply_text(
+                f"len{file.reply}")
+        #await Media.collection.update_one({'_id':file.id},{'$set':{'text':file.text.replace( message.command[1] , message.command[2])}})
             
-@Bot0.on_message( filters.command('rename') & filters.private)
+"""@Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
         await message.reply_text(
