@@ -180,6 +180,7 @@ async def start_msg_admins(client, message):
                             abx.append(file.grp)
                         elif file.grp not in abx:
                             abx.append(file.grp)
+                    cpt=f_caption
                     if abx==[]:
                         reply_markup = None
                         caption=f"{f_caption }\n\n.Samahani kuna mteja alikuwa anaomba uweke movie hii..Kisha baada ya kuweka bonyeza done ili tumtaarifu kuwa ushaiweka"
@@ -218,22 +219,40 @@ async def start_msg_admins(client, message):
                             InlineKeyboardButton(f"📡{abx[1]}p", callback_data =f"3hdmuv##{abx[1]} {file_id}"),
                             InlineKeyboardButton(f"📡{abx[2]}p", callback_data =f"3hdmuv##{abx[2]} {file_id}")
                         ]])
-                    if msg_type =="Photo":
-                        await client.send_photo(
-                            chat_id=cmd.from_user.id,
-                            photo=files.file,
-                            caption= f_caption,
-                            reply_markup = reply_markup
-                        )
+                    try
+                        if msg_type =="Photo":
+                            await client.send_photo(
+                                chat_id=cmd.from_user.id,
+                                photo=files.file,
+                                caption= f_caption,
+                                reply_markup = reply_markup
+                            )
                         
-                    else:
-                        await client.send_cached_media(
+                        else:
+                            await client.send_cached_media(
                                 chat_id=cmd.from_user.id,
                                 file_id=files.file,
                                 caption= f_caption ,
                                 reply_markup=reply_markup
-                        )
-                    return
+                            )
+                        return
+                    except:
+                        if msg_type =="Photo":
+                            await client.send_photo(
+                                chat_id=cmd.from_user.id,
+                                photo=files.file,
+                                caption= cpt,
+                                reply_markup = reply_markup
+                            )
+                        
+                        else:
+                            await client.send_cached_media(
+                                chat_id=cmd.from_user.id,
+                                file_id=files.file,
+                                caption= cpt,
+                                reply_markup=reply_markup
+                            )
+                        return
                 elif strg.lower()=="ms":
                     abdata = ""
                     btn3 = None
