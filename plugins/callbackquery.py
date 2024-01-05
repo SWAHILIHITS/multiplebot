@@ -26,14 +26,31 @@ async def grouop2(client, message):
         await message.reply_text(
             f"tuma /rename 1234 1234")
         return 
-    filter = {'group_id': int(message.command[1])}
+    raw_pattern = r'\b' + message.command[1] + r'.*'
+    try:
+        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
+    except:
+        return
+    else:
+        filter = {'text': regex}
+    filter['group_id'] = int(message.command[1])}
+    filter["type"]="Photo"
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
-        reply=file.reply.replace("@hrm45","@Mrlovebite_Tz")
-        await Media.collection.update_one({'_id':file.id},{'$set':{'reply':reply}})
-            
+        if "data" in file.descp :
+            continue 
+        elif len(file.descp.split(".dd#."))>=3:
+            abb = await save_file( file.text.split(".dd#")[0] + ".dd#." + message.command[2], 'reply_text', [], 'fileid', 'msg_type', 'strid',int(message.command[2]),'descp',"chec",'normal')
+            if abb == "hrm46":
+                continue
+            else:
+                strid = str(uuid.uuid4())
+                file.reply=file.reply.replace("Mrlovebite_Tz","Franecemasmovies2013")
+                file.reply=file.reply.replace("hrm45","Franecemasmovies2013")
+                await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,'')
+        
 @Bot0.on_callback_query()
 async def cb_handler(client, query):
     clicked = query.from_user.id
