@@ -20,7 +20,7 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-@Bot0.on_message( filters.command('renamee') & filters.private)
+"""@Bot0.on_message( filters.command('renamee') & filters.private)
 async def grouop22(client, message):
     filter = {'group_id': int(message.command[1])}
     total_results = await Media.count_documents(filter)
@@ -36,7 +36,7 @@ async def grouop22(client, message):
             await Media.collection.update_one({'_id':file.id},{'$set':{'reply': file.reply[0:500] + file.reply[ab:len(file.reply)]}})
             await message.reply_text(
                 f"{file.reply[0:500] + file.reply[ab:len(file.reply)]}")
-"""@Bot0.on_message( filters.command('rename') & filters.private)
+@Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
         await message.reply_text(
