@@ -219,40 +219,22 @@ async def start_msg_admins(client, message):
                             InlineKeyboardButton(f"📡{abx[1]}p", callback_data =f"3hdmuv##{abx[1]} {file_id}"),
                             InlineKeyboardButton(f"📡{abx[2]}p", callback_data =f"3hdmuv##{abx[2]} {file_id}")
                         ]])
-                    try:
-                        if msg_type =="Photo":
-                            await client.send_photo(
-                                chat_id=cmd.from_user.id,
-                                photo=files.file,
-                                caption= f_caption,
-                                reply_markup = reply_markup
-                            )
+                    if msg_type =="Photo":
+                        await client.send_photo(
+                            chat_id=cmd.from_user.id,
+                            photo=files.file,
+                            caption= f_caption,
+                            reply_markup = reply_markup
+                        )
                         
-                        else:
-                            await client.send_cached_media(
-                                chat_id=cmd.from_user.id,
-                                file_id=files.file,
-                                caption= f_caption ,
-                                reply_markup=reply_markup
-                            )
-                        return
-                    except:
-                        if msg_type =="Photo":
-                            await client.send_photo(
-                                chat_id=cmd.from_user.id,
-                                photo=files.file,
-                                caption= cpt,
-                                reply_markup = reply_markup
-                            )
-                        
-                        else:
-                            await client.send_cached_media(
-                                chat_id=cmd.from_user.id,
-                                file_id=files.file,
-                                caption= cpt,
-                                reply_markup=reply_markup
-                            )
-                        return
+                    else:
+                        await client.send_cached_media(
+                            chat_id=cmd.from_user.id,
+                            file_id=files.file,
+                            caption= f_caption ,
+                            reply_markup=reply_markup
+                        )
+                    return
                 elif strg.lower()=="ms":
                     abdata = ""
                     btn3 = None
