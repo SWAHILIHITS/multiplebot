@@ -143,6 +143,10 @@ async def new_filtervip(client, message):
     else:
         await message.reply('Not Supported..!')
         return
+    if len(reply_text)>950:
+        await message.reply_text(
+            f"Samahani hii caption n kubwa tafadhali ipunguze kisha add tena kama hujui jinsi ya kuedit muulize msimiz wang @hrm45")
+        return
     usr = await db.get_db_status(message.from_user.id)
     x = 0
     p=[]
