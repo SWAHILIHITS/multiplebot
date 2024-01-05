@@ -40,6 +40,7 @@ async def grouop2(client, message):
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
         if "data" in file.descp :
+            print("hi")
             continue 
         elif len(file.descp.split(".dd#."))>=3:
             abb = await save_file( file.text.split(".dd#")[0] + ".dd#." + message.command[2], 'reply_text', [], 'fileid', 'msg_type', 'strid',int(message.command[2]),'descp',"chec",'normal')
