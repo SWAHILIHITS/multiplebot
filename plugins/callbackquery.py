@@ -29,8 +29,8 @@ async def grouop22(client, message):
             f"total found {total_results}")
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
-        if len(file.reply)>=950:
-            ab =len(file.reply)-450
+        if len(file.reply)>950:
+            ab =len(file.reply)-451
             await message.reply_text(
                 f"{file.reply}")
             await Media.collection.update_one({'_id':file.id},{'$set':{'reply': file.reply[0:500] + file.reply[ab:len(file.reply)]}})
