@@ -1,5 +1,5 @@
 from info import filters,CHANNELS,OWNER_ID
-import uuid    
+import uuid
 import time,re,os,asyncio
 from plugins.base_command import btn22
 from pyrogram.errors import ChatAdminRequired
@@ -29,7 +29,8 @@ async def grouop2(client, message):
     raw_pattern = r'\b' + message.command[1] + r'.*'
     try:
         regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except:
+    except Exception as e :
+        print(e)
         return
     else:
         filter = {'text': regex}
