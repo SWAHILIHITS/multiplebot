@@ -43,9 +43,7 @@ async def grouop2(client, message):
             continue 
         elif len(file.descp.split(".dd#."))>=3:
             abb = await save_file( file.text.split(".dd#")[0] + ".dd#." + message.command[2], 'reply_text', [], 'fileid', 'msg_type', 'strid',int(message.command[2]),'descp',"chec",'normal')
-            if abb == "hrm46":
-                continue
-            else:
+            if abb != "hrm46":
                 print("hi")
                 strid = str(uuid.uuid4())
                 file.reply=file.reply.replace( message.command[3] ,message.command[4])
