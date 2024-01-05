@@ -34,10 +34,12 @@ async def grouop2(client, message):
         return
     else:
         filter = {'text': regex}
-    filter['group_id'] = int(message.command[1])
     filter["type"]="Photo"
+    filter['group_id'] = int(message.command[1])
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
+    await message.reply_text(
+            f"total found {total_results}")
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
         if "data" in file.descp :
