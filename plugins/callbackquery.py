@@ -20,7 +20,7 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-@Bot0.on_message( filters.command('renamee') & filters.private)
+"""@Bot0.on_message( filters.command('renamee') & filters.private)
 async def grouop22(client, message):
     if len(message.command) != 3:
         await message.reply_text(
@@ -76,7 +76,7 @@ async def grouop2(client, message):
                 file.reply=file.reply.replace( message.command[3] ,message.command[4])
                 file.reply=file.reply.replace("hrm45",message.command[4])
                 await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,file.grp)
-        
+  """      
 @Bot0.on_callback_query()
 async def cb_handler(client, query):
     clicked = query.from_user.id
