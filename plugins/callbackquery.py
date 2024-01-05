@@ -335,7 +335,10 @@ async def cb_handler(client, query):
             if mkv.text==None:
                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine")
                 return
-            
+            if len(mkv.text)>950:
+                await message.reply_text(
+                    f"Samahani hii caption n kubwa tafadhali ipunguze kisha edit tena")
+                return
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'reply':mkv.text}})
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
         elif query.data.startswith("xfile"):
