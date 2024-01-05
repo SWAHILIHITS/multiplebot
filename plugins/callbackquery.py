@@ -22,7 +22,7 @@ async def group2(client, message):
         ) 
 @Bot0.on_message( filters.command('renamee') & filters.private)
 async def grouop22(client, message):
-    filter = {'group_id': regex}
+    filter = {'group_id': message.command[1]}
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     await message.reply_text(
