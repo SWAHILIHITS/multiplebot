@@ -219,7 +219,7 @@ async def start_msg_admins(client, message):
                             InlineKeyboardButton(f"📡{abx[1]}p", callback_data =f"3hdmuv##{abx[1]} {file_id}"),
                             InlineKeyboardButton(f"📡{abx[2]}p", callback_data =f"3hdmuv##{abx[2]} {file_id}")
                         ]])
-                    try
+                    try:
                         if msg_type =="Photo":
                             await client.send_photo(
                                 chat_id=cmd.from_user.id,
