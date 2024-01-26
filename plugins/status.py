@@ -11,7 +11,7 @@ async def handle_admin_status(bot, cmd):
         nyva=botusername.username  
         nyva=str(nyva)
         while a=='start':
-            asyncio.sleep(7200)
+            asyncio.sleep(18000)
             all_user =await db.get_all_users()
             async for user in all_user:
                 ban_status = await db.get_ban_status(user['id'])
