@@ -106,7 +106,6 @@ async def start_msg_admins(client, message):
         except:
             pass
         return
-    
     if usr_cmdall1.startswith("/start mwongozo"):
         abx=await client.send_message(
                 chat_id=cmd.from_user.id,
