@@ -634,7 +634,7 @@ async def cb_handler(client, query):
             details = await db.get_db_status(group_id)
             data1 = details[msg2]
             data2 = data1.split("#@")[0]
-            p1,p2,p4=details['p0'].split(" ",2)
+            p1=details['p0']
             mda = details['muda']
             ts = await client.get_users(group_id)
             dbname = details['db_name']
