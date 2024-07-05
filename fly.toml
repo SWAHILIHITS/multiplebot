@@ -3,7 +3,8 @@ primary_region = "ams"
 
 [build]
   builder = "paketobuildpacks/builder:full"
-
+[build.args]
+  BP_CPYTHON_VERSION = "3.12.4"
 [env]
   PORT = "8080"
 
