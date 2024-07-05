@@ -1,7 +1,7 @@
 requests
 telegraph 
-pysqlite
-pyrogram~=2.0.35
+pysqlite3
+pyrogram~=2.50.35
 tgcrypto==1.2.3
 pymongo[srv]==3.12.3
 motor==2.5.1
