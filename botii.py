@@ -173,6 +173,8 @@ class Bot9(Client):
 BOT0=None
 for i in [Bot2]:
     Bot0=i
-async def main():
-    app=[Bot2()]
-    await compose(app)
+app=Bot2()
+app.run()
+#async def main():
+    #app=[Bot2()]
+    #await compose(app)
