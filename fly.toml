@@ -1,6 +1,6 @@
 app = "dell-lingering-wind-6066"
 primary_region = "ams"
-
+ 
 [build]
   builder = "paketobuildpacks/builder:full"
   buildpacks = ["paketo-buildpacks/python"]
