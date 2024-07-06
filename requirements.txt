@@ -1,5 +1,5 @@
 requests
-telegraph 
+telegraph  
 pyrogram == 2.0.106
 tgcrypto==1.2.3
 pymongo[srv]==3.12.3
