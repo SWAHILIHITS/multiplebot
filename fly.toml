@@ -1,5 +1,5 @@
 app = "dell-lingering-wind-6066"
-primary_region = "ams"
+primary_region = "jnb"
  
 [build]
   builder = "paketobuildpacks/builder:full"
