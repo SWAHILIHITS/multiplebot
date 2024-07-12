@@ -1,6 +1,11 @@
 app = "dell-lingering-wind-6066"
 primary_region = "jnb"
- 
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+[mounts]
+  source = "myapp_data"
+  destination = "/data"
 [build]
   builder = "paketobuildpacks/builder:full"
   buildpacks = ["paketo-buildpacks/python"]
@@ -8,10 +13,6 @@ primary_region = "jnb"
   BP_CPYTHON_VERSION = "3.8.17"
 [env]
   PORT = "8080"
-  
-kill_signal = "SIGINT"
-kill_timeout = 5
-processes = []
 
 [http_service]
   internal_port = 8080
