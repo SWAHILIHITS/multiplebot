@@ -174,7 +174,8 @@ BOT0=None
 for i in [Bot2]:
     Bot0=i
 app=Bot2()
-app.run()
 #async def main():
     #app=[Bot2()]
     #await compose(app)
+async def main():
+    app.run()
