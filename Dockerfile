@@ -4,4 +4,4 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD python3 botii.py
+CMD python3 bot.py
