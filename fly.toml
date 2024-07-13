@@ -1,4 +1,4 @@
-app = "dell-lingering-wind-6066"
+app = "system32-weathered-pond-6898"
 primary_region = "jnb"
 kill_signal = "SIGINT"
 kill_timeout = 5
