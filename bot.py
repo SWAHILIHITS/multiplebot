@@ -1,4 +1,3 @@
 from botii import main
 import asyncio
-#asyncio.run(main())
-main()
+asyncio.run(main())
