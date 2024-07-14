@@ -171,8 +171,8 @@ class Bot9(Client):
     async def stop(self, *args):
         await super().stop()
 BOT0=None
-for i in [Bot2,Bot]:
+for i in [Bot2,Bot,Bot1]:
     Bot0=i
 async def main():
-    app=[Bot2(),Bot()]
+    app=[Bot2(),Bot(),Bot1()]
     await compose(app)
