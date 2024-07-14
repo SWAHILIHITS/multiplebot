@@ -8,8 +8,8 @@ processes = []
   source = "myapp_data"
   destination = "/data"
 [build]
-  builder = "paketobuildpacks/builder:full"
-  buildpacks = ["paketo-buildpacks/python"]
+  dockerfile = './Dockerfile'
+
 [build.args]
   BP_CPYTHON_VERSION = "3.8.17"
 [env]
