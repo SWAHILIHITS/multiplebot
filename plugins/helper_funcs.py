@@ -66,8 +66,8 @@ async def upload_photo(message):
         await message.reply_photo(dl_loc)
         await msg.edit_text(t_e)
         link = False
-    else:
-        link = f'https://telegra.ph{response[0]}'
+    else
+        link = url
         await msg.delete()
     finally:
         os.remove(dl_loc)
