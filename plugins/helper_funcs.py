@@ -45,12 +45,12 @@ async def upload_photo(message):
     _T_LIMIT = 5242880
     if not (bool(message.photo) and bool(message.photo.file_size <= _T_LIMIT)):
         await msg.edit("<i>Sorry this Photo is not supported..</i>")
-        """return False
+        return False
     dl_loc = await message.download()
     try:
         response = upload_file(dl_loc)
     except Exception as t_e:
-        await msg.edit_text(t_e)
+        await msg.edit_text(t_e + "hi")
         link = False
     else:
         link = f'https://telegra.ph{response[0]}'
@@ -58,7 +58,7 @@ async def upload_photo(message):
     finally:
         os.remove(dl_loc)
 
-    return  link"""
+    return  link
 def remove_md(text):
     lists = {
         '__' : ['<u>','</u>'],
