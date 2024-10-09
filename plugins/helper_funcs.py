@@ -1,6 +1,6 @@
 import re
 import os
-import uuid
+import uuid,requests,base64
 from typing import List
 from telegraph import upload_file
 from pyrogram.types import InlineKeyboardButton
@@ -48,7 +48,19 @@ async def upload_photo(message):
         return False
     dl_loc = await message.download()
     try:
-        response = upload_file(dl_loc)
+        #response = upload_file(dl_loc)
+
+# Set API endpoint and headers
+        url = "https://api.imgur.com/3/image"
+        headers = {"Authorization": "Client-ID 5caba95f470ff04"}
+        with open(dl_loc, "rb") as file:
+            data = file.read()
+            base64_data = base64.b64encode(data)
+
+        # Upload image to Imgur and get URL
+        response = requests.post(url, headers=headers, data={"image": base64_data})
+        url = response.json()["data"]["link"]
+        await msg.edit_text(url)
     except Exception as t_e:
         t_e =str(t_e) + "hi"
         await message.reply_photo(dl_loc)
