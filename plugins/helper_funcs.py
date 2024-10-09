@@ -66,7 +66,7 @@ async def upload_photo(message):
         await message.reply_photo(dl_loc)
         await msg.edit_text(t_e)
         link = False
-    else
+    else:
         link = url
         await msg.delete()
     finally:
