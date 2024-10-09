@@ -51,6 +51,7 @@ async def upload_photo(message):
         response = upload_file(dl_loc)
     except Exception as t_e:
         t_e =str(t_e) + "hi"
+        await message.reply_photo(dl_loc)
         await msg.edit_text(t_e)
         link = False
     else:
