@@ -42,7 +42,7 @@ def replace_href(text):
  
 async def upload_photo(message):
     msg = await message.reply_text("<code>Please wait..</code>")
-    _T_LIMIT = 5242880
+    """_T_LIMIT = 5242880
     if not (bool(message.photo) and bool(message.photo.file_size <= _T_LIMIT)):
         await msg.edit("<i>Sorry this Photo is not supported..</i>")
         return False
@@ -58,7 +58,7 @@ async def upload_photo(message):
     finally:
         os.remove(dl_loc)
 
-    return  link
+    return  link"""
 def remove_md(text):
     lists = {
         '__' : ['<u>','</u>'],
