@@ -50,7 +50,7 @@ async def upload_photo(message):
     try:
         response = upload_file(dl_loc)
     except Exception as t_e:
-        await msg.edit_text(t_e + "hi")
+        await msg.edit_text(t_e)
         link = False
     else:
         link = f'https://telegra.ph{response[0]}'
