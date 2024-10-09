@@ -42,10 +42,10 @@ def replace_href(text):
  
 async def upload_photo(message):
     msg = await message.reply_text("<code>Please wait..</code>")
-    """_T_LIMIT = 5242880
+    _T_LIMIT = 5242880
     if not (bool(message.photo) and bool(message.photo.file_size <= _T_LIMIT)):
         await msg.edit("<i>Sorry this Photo is not supported..</i>")
-        return False
+        """return False
     dl_loc = await message.download()
     try:
         response = upload_file(dl_loc)
