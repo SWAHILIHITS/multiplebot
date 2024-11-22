@@ -3,7 +3,7 @@ primary_region = "ams"
 swap_size_mb = 512
 kill_signal = "SIGINT"
 kill_timeout = 5
-processes = []
+processes = [] 
 [mounts]
   source = "myapp_data"
   destination = "/data"
