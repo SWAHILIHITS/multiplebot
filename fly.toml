@@ -1,4 +1,4 @@
-app = "dell-lingering-brook-354"
+app = "multiplebot"
 primary_region = "ams"
 swap_size_mb = 512
 kill_signal = "SIGINT"
