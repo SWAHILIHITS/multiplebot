@@ -29,7 +29,7 @@ async def grouop242(client, message):
             f"total found {total_results}")
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
-        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,fime.descp,file.price,file.grp)
+        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,file.price,file.grp)
 """@Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
