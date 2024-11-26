@@ -3,7 +3,6 @@ import time
 from info import DB2  
 
 class Database:
-
     def __init__(self, db1):
         self.db1 = db1
         self.col = self.db1.admins
