@@ -30,7 +30,7 @@ async def grouop242(client, message):
     cursor.sort('text', 1)
     for file in await cursor.to_list(length=int(total_results)):
         ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp)
-"""
+
 @Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
@@ -64,6 +64,7 @@ async def grouop2(client, message):
                 file.reply=file.reply.replace( message.command[3] ,message.command[4])
                 file.reply=file.reply.replace("hrm45",message.command[4])
                 await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,file.grp) 
+"""
 @Bot0.on_callback_query()
 async def cb_handler(client, query):
     clicked = query.from_user.id
