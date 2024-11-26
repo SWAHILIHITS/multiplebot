@@ -21,8 +21,8 @@ async def group2(client, message):
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
 @Bot0.on_message( filters.command('renamee') & filters.private)
-async def grouop22(client, message):
-    filter = {'group_id': int(message.command[1])}
+async def grouop242(client, message):
+    filter = {'group_id': message.from_user.id}
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     await message.reply_text(
