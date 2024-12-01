@@ -589,12 +589,12 @@ async def cb_handler(client, query):
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
-            p1 = details["p0"].format(prc=int(prc2)/19)
+            p1 = details["p0"].format(prc=int(int(prc2)/19))
             mda = details["muda"]
             ts = await client.get_users(group_id)
             await query.message.delete()
             await client.send_message(chat_id=query.from_user.id,
-                text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nPAYMENT SECTION \n🦋Tafadhali lipia\n\n**Tsh {prc2}** kwa mteja wa TANZANIA\n\n**Ksh {int(prc2)/19}** Kwa wateja wa KENYA\n\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
+                text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nPAYMENT SECTION \n🦋Tafadhali lipia\n\n**Tsh {prc2}** kwa mteja wa TANZANIA\n\n**Ksh {int(int(prc2)/19)}** Kwa wateja wa KENYA\n\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                 reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##tsh {fileid}")]]),
             )
             
