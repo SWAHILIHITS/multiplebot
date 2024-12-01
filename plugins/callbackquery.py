@@ -525,9 +525,6 @@ async def cb_handler(client, query):
             await db.update_db(query.from_user.id,ghi,ab)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 
-        elif query.data == "kenya":
-            await query.answer('Tunaifanyia kaz huduma hii msijali')
-            
         elif query.data.startswith("tzn"):
             fileid = query.data.split(" ",1)[1]
             filedetails = await get_file_details(fileid)
@@ -536,12 +533,7 @@ async def cb_handler(client, query):
                 group_id = files.group_id
                 id3 = files.file
                 type1 = files.type
-            if query.data.split(" ")[0].split("##")[1]=="tsh":
-                kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
-            elif query.data.split(" ")[0].split("##")[1]=="ksh":
-                await query.answer("Huduma hii badoo ipo kwny matengenezo ",show_alert=True)
-                kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
-                return
+            kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id)
@@ -569,7 +561,7 @@ async def cb_handler(client, query):
             details = await db.get_db_status(msg1)
             data1= details[msg2]
             data2= data1.split("#@")[1]
-            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\n{data1.split('#@')[0]}\n {data1.split('#@')[2]}\n Tafadhali bonyeza kitufe hapo chini kuweza kulipia muda utakao weza kupata huduma hii",
+            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{data1.split('#@')[0]}\n {data1.split('#@')[2]}\n Tafadhali bonyeza kitufe hapo chini kuweza kulipia muda utakao weza kupata huduma hii",
                     reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 tsh {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 tsh {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 tsh {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 tsh {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 tsh {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##tsh {fileid}")]])
                 )
         elif query.data.startswith("wiik2"):
@@ -597,12 +589,12 @@ async def cb_handler(client, query):
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
-            p1 = details["p0"]
+            p1 = details["p0"].formate(prc=float(prc2)/21)
             mda = details["muda"]
             ts = await client.get_users(group_id)
             await query.message.delete()
             await client.send_message(chat_id=query.from_user.id,
-                text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\n{details["db_name"].upper}\nPAYMENT SECTION \n🦋Tafadhali lipia Tsh **{prc2}**\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
+                text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nPAYMENT SECTION \n🦋Tafadhali lipia\n **Tsh {prc2}** kwa mteja wa TANZANIA\n**Ksh {float(prc2)/21} Kwa wateja wa KENYA\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                 reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##tsh {fileid}")]]),
             )
             
