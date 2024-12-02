@@ -571,9 +571,10 @@ async def cb_handler(client, query):
             details = await db.get_db_status(msg1)
             data1= details[msg2]
             data2= data1.split("#@")[1]
+            fileid1=fileid
             fileid=fileiid
             await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{data1.split('#@')[0]}\n {data1.split('#@')[2]}\n Tafadhali bonyeza kitufe hapo chini kuweza kulipia muda utakao weza kupata huduma hii",
-                    reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 tsh {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 tsh {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 tsh {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 tsh {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 tsh {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##{cvz} {fileid}")]])
+                    reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 tsh {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 tsh {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 tsh {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 tsh {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 tsh {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##{cvz} {fileid1}")]])
                 )
         elif query.data.startswith("wiik2"):
             await query.answer()
@@ -589,6 +590,7 @@ async def cb_handler(client, query):
                 prc2 = files.price
                 name = files.text.split('.dd#.',1)[0]
                 grp = files.grp
+            fileid1=fileid
             fileid=fileiid
             details = await db.get_db_status(group_id)
             data1 = details[msg2]
@@ -612,12 +614,12 @@ async def cb_handler(client, query):
             if cvx=="z":
                 await client.send_message(chat_id=query.from_user.id,
                     text = f'z🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Tsh {prc2}** kwa mteja wa TANZANIA\n\n**Ksh {int(int(prc2)/19)}** Kwa wateja wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
-                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid}")]]),
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
             elif cvx == "k":
                 await client.send_message(chat_id=query.from_user.id,
                     text = f'k🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Tsh {prc2}** kwa mteja wa TANZANIA\n\n**Ksh {int(int(prc2)/19)}** Kwa wateja wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
-                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid}")]]),
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )     
         elif query.data.startswith("malipo"):
             await query.answer()
@@ -632,6 +634,7 @@ async def cb_handler(client, query):
                 group_id = files.group_id
                 prc2 = files.price
                 name = files.text.split('.dd#.',1)[0]
+            fileid1=fileid
             fileid=fileiid
             if tme=="wk0":
                 tme1= "Siku 1"
@@ -708,12 +711,12 @@ async def cb_handler(client, query):
                 if cvx == "z":
                     await client.send_message(chat_id = query.from_user.id,
                         text = f'zNMELAZIMIKA KUKURUDISHA HAPA \n**(tafadhali Fanya kwa usahihi kama unavyo ambiwa kama huwez omba msaada usaidiwe)**\n🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\n{details["db_name"].upper}\n🦋PAYMENT SECTION \n🦋Tafadhali lipia Tsh **{prc2}**\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
-                        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid}")]]),
+                        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                     )
                 elif cvx == "k":
                     await client.send_message(chat_id = query.from_user.id,
                         text = f'kNMELAZIMIKA KUKURUDISHA HAPA \n**(tafadhali Fanya kwa usahihi kama unavyo ambiwa kama huwez omba msaada usaidiwe)**\n🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\n{details["db_name"].upper}\n🦋PAYMENT SECTION \n🦋Tafadhali lipia Tsh **{prc2}**\nKUFUATA MUONGOZO WA KULIPIA MOVIES SOMA MAELEZO YA MTANDAO WAKO: \n\n{p1}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
-                        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid}")]]),
+                        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                     )
                 
             
