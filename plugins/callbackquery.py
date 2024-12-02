@@ -535,10 +535,10 @@ async def cb_handler(client, query):
                 type1 = files.type
             if query.data.split(" ")[0].split("##")[1]=="tsh":
                 kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
-                fileid=fileid + "##tsh"
+                fileid=fileid + "##z"
             elif query.data.split(" ")[0].split("##")[1]=="ksh":
                 kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
-                fileid=fileid + "##ksh"
+                fileid=fileid + "##k"
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id)
