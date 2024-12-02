@@ -533,7 +533,12 @@ async def cb_handler(client, query):
                 group_id = files.group_id
                 id3 = files.file
                 type1 = files.type
-            kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
+            if query.data.split(" ")[0].split("##")[1]=="tsh":
+                kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
+                fileid=fileid + "##tsh"
+            elif query.data.split(" ")[0].split("##")[1]=="ksh":
+                kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
+                fileid=fileid + "##ksh"
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id)
@@ -553,6 +558,7 @@ async def cb_handler(client, query):
         elif query.data.startswith("wik"):
             await query.answer()
             msgg1,fileid,msg2=query.data.split(" ") 
+            fileid =fileid.split("##")[0]
             filedetails = await get_file_details(fileid)
             await query.message.delete()
             for files in filedetails:
@@ -567,6 +573,7 @@ async def cb_handler(client, query):
         elif query.data.startswith("wiik2"):
             await query.answer()
             fileid,msg2,prc1,tme = query.data.split(" ")[1].split(".")
+            fileid =fileid.split("##")[0]
             filedetails = await get_file_details(fileid)
 
             for files in filedetails:
@@ -601,6 +608,7 @@ async def cb_handler(client, query):
         elif query.data.startswith("malipo"):
             await query.answer()
             fileid,msg2,prc1,tme = query.data.split(" ")[1].split(".")
+            fileid =fileid.split("##")[0]
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
@@ -694,6 +702,7 @@ async def cb_handler(client, query):
         elif query.data.startswith("rq"):
             msg,msg1,data3 = query.data.split(" ")         
             fileid,msg2,prc1,tme = data3.split("@#")[0].split(".")
+            fileid =fileid.split("##")[0]
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
@@ -730,6 +739,7 @@ async def cb_handler(client, query):
             nyva=str(nyva)
             msg,msg1,data3 = query.data.split(" ")         
             fileid,msg2,prc1,tme = data3.split("@#")[0].split(".")
+            fileid =fileid.split("##")[0]
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
