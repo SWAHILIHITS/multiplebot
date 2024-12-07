@@ -471,7 +471,7 @@ async def cb_handler(client, query):
                 
         elif query.data == "xba":
             await query.answer('Mtandao pendwa ndio bora')
-            mkv1 = await client.send_message(chat_id = query.from_user.id,text='⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nTafadhali Tuma namba ya maelezo yako yamalipo ',disable_web_page_preview = True)
+            mkv1 = await client.send_message(chat_id = query.from_user.id,text='⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nTafadhali Tuma namba ya maelezo yako yamalipo ya wateja wa Tanzania sehemu ya bei weka {prc} mfano Tsh {prc} ',disable_web_page_preview = True)
             a=False  
             b=time.time()
             id1=mkv1.id+1
@@ -492,7 +492,28 @@ async def cb_handler(client, query):
             if mkv.text==None :
                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine anza upya kubonyez btn")
                 return
-            ghi=f'p0 {mkv.text}'
+            mkv1 = await client.send_message(chat_id = query.from_user.id,text='⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nTafadhali Tuma namba ya maelezo yako yamalipo ya wateja wa Kenya sehemu ya bei weka {prc} mfano ksh {prc}',disable_web_page_preview = True)
+            a=False  
+            b=time.time()
+            id1=mkv1.id+1
+            while a==False:
+                try:
+                    mkv2= await client.get_messages("me",id1)
+                    if mkv2.text!=None:
+                        a=True
+                    
+                    if (time.time()-b)>200:
+                        mkv3 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                        return
+                    if mkv2.from_user.id != query.from_user.id :
+                        a=False
+                        id1=id1+1
+                except:
+                    a=False 
+            if mkv2.text==None :
+                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine anza upya kubonyez btn")
+                return
+            ghi=f'p0 {mkv.text}####{mkv2.text}'
             ab = await db.get_db_status(query.from_user.id)
             await db.update_db(query.from_user.id,ghi,ab)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
