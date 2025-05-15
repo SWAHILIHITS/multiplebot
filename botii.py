@@ -63,7 +63,7 @@ class Bot3(Client):
         super().__init__(
             name='SESSION3' ,
             api_id= 20670303,
-            api_hash= "826ddb9f18248500206bb77675798229" ,
+            api_hash= "7226808333:AAFvrTLxmJzoeeHs5LXJH2sGY_McSVhx_Zo" ,
             bot_token="6584474313:AAFPHy1fTQn8e4LtWE-QRBPT3Uq6wR5mUj4",
             workers=50,
             plugins={"root": "plugins"},
