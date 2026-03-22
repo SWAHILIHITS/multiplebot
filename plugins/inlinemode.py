@@ -25,9 +25,10 @@ async def give_filter(client, query):
     db_sts =await db.get_db_status(group_id)
     ban = await db.get_ban_status(group_id) 
     gd1 = db_sts['user_link']
-    offset = int(query.offset or 0)
+    offset = int(query.offset or 0) 
     documents, next_offset = await get_search_results(text,
                                               group_id = group_id,
+                                              nyva = nyva,
                                               max_results=10,
                                               offset=offset)
     results = []
@@ -43,6 +44,8 @@ async def give_filter(client, query):
         msg_type = document.type
         descp = document.descp.split('.dd#.')[1]
         acs = document.descp.split('.dd#.')[0]
+        nyvaa = document.nyva
+        lks = document.lks
         if button =="[]":
             reply_markup = None
         else:
@@ -69,7 +72,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua',
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue
@@ -91,7 +94,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua' or "",          
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue

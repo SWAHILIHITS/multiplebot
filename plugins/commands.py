@@ -33,6 +33,9 @@ async def new_filtervip(client, message):
     botusername=await client.get_me()
     nyva=botusername.username  
     nyva=str(nyva)
+    if nyva=='Movietzbot':
+        await message.reply_text("tafadhali huyu n main robot huwez add movie", quote=True)
+        return
     status= await db.is_admin_exist(message.from_user.id,nyva)
     if not status:
         return
@@ -49,7 +52,7 @@ async def new_filtervip(client, message):
     ab = f'{args[1].lower()}'
     msg_type = 'Text'
     ab1="fggh"
-    abb = await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"chec",'normal')
+    abb = await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"chec",'normal',nyva,0)
     if abb == "hrm46":
         abb = await client.send_message(text=f'Kuna movie au series yenye jina kama hili kama unataka hili lichukue mbadala wa movie au series iliyopita **tuma neno y** au **tuma n** ili uanze upya ubadalishe jina maana robot haruhusu majina ya movie/series  yanayo fanana unaweza kuweka hata . ili kuonyesha utofauti na jina la kwanza',chat_id = message.from_user.id)
         a,b = funask()
@@ -69,7 +72,7 @@ async def new_filtervip(client, message):
                 a=False
         ab1=mkv.text.lower()
     if ab1=="y":
-        ab= await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal')
+        ab= await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal',nyva,0)
     elif ab1 !='n' and ab1 !='y' and ab1 != 'fggh':
         await client.send_message(text=f'tafadhali anza upya tuma kama ulivyoelekezwa',chat_id = message.from_user.id)
         return
@@ -278,7 +281,7 @@ async def new_filtervip(client, message):
         if not mkvl.text:
             mkvl.text=msg_type
         descp = f'x.dd#.{mkv2.text}.dd#.{mkvl.text}.dd#.s'
-        await save_file(text, reply_text, [], fileid, msg_type, strid,user_id,descp,ab1,ab2)
+        await save_file(text, reply_text, [], fileid, msg_type, strid,user_id,descp,ab1,ab2,nyva,0)
     elif mkv.text.lower()=='h':
         mkv22 = await client.send_message(text='naomba untumie maelezo kidogo mfano imetafsiriwa singo',chat_id = message.from_user.id)
         a,b = funask()
@@ -321,7 +324,7 @@ async def new_filtervip(client, message):
             elif mkvl1.text.lower()=='s':
                 ab33='ms'
             descp = f'x.dd#.{mkv1.text}.dd#.data.dd#.{ab33}'
-            await save_file(text, reply_text, [], fileid, msg_type, strid ,user_id,descp,ab1,ab2)
+            await save_file(text, reply_text, [], fileid, msg_type, strid ,user_id,descp,ab1,ab2,nyva,0)
             if ab33=='m':
                 reply_markup=InlineKeyboardMarkup([[
                         InlineKeyboardButton(f"📡360p", callback_data =f"3hmuv##360 { strid }"),
@@ -366,7 +369,7 @@ async def new_filtervip(client, message):
                             photo = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                     except Exception as err:
                         await message.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")                    
@@ -385,7 +388,7 @@ async def new_filtervip(client, message):
                             file_id = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                     except:
                         pass
@@ -455,7 +458,7 @@ async def new_filter(client, message):
     text = text.strip()
     msg_type = 'Text'
     ab1="fggh"
-    abb = await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"chec",'normal')
+    abb = await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"chec",'normal',nyva,0)
     if abb == "hrm46":
         abb = await client.send_message(text=f'Kuna movie au series yenye jina kama hili kama unataka hili lichukue mbadala wa movie au series iliyopita **tuma neno y** au **tuma n** ili uanze upya ubadalishe jina maana robot haruhusu majina ya movie/series  yanayo fanana unaweza kuweka hata . ili kuonyesha utofauti na jina la kwanza',chat_id = message.from_user.id)
         a,b = funask()
@@ -475,7 +478,7 @@ async def new_filter(client, message):
                 a=False
         ab1=mkv.text.lower()
     if ab1=="y":
-        ab= await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal')
+        ab= await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal',nyva,0)
     elif ab1 !='n' and ab1 !='y' and ab1 != 'fggh':
         await client.send_message(text=f'tafadhali anza upya tuma kama ulivyoelekezwa',chat_id = message.from_user.id)
         return
@@ -711,7 +714,7 @@ async def new_filter(client, message):
             pass
         return
 
-    await save_file(text, reply_text, btn, fileid, msg_type, strid,user_id,descp,alert,grp1)
+    await save_file(text, reply_text, btn, fileid, msg_type, strid,user_id,descp,alert,grp1,nyva,0)
     text = text.split('.dd#.',1)[0]
     reply_markup = InlineKeyboardMarkup(
         [
@@ -744,12 +747,12 @@ async def del_filter(client, message):
     text=f'{text1}.dd#.{message.from_user.id}'
     query = text.lower()
     filter={'text': query}
-    details = await  get_filter_results(query,message.from_user.id)
+    details = await  get_filter_results(query,message.from_user.id,nyva)
     filter['group_id'] = message.from_user.id
     found =await Media.count_documents(filter)
     if int(found) ==1:
         for dt in details:
-            for ad in await  get_filter_results(dt.id,message.from_user.id):
+            for ad in await  get_filter_results(dt.id,message.from_user.id,nyva):
                 await Media.collection.delete_one({'_id':ad.id})
             await Media.collection.delete_one(filter)
             await message.reply_text(
@@ -770,7 +773,8 @@ async def get_all(client, message):
     text = f'{message.from_user.id}'
     filter={'text':text}
     filter["group_id"]=message.from_user.id
-    texts = await get_filter_results(text,message.from_user.id)
+    filter['nyva']=nyva
+    texts = await get_filter_results(text,message.from_user.id,nyva)
     count = await Media.count_documents(filter)
     if count:
         filterlist = f"<b>Bot have total {count} filters</b>\n\n"
@@ -905,13 +909,13 @@ async def ban(c,m):
             f"Use this command to add access to any user from the bot.\n\n"
             f"Usage:\n\n"
             f"`/add_admin admin_id duration_in days jina_la_bot`\n\n"
-            f"Eg: `/add_admin 1234567 28 bandolako2021bot.`\n"
+            f"Eg: `/add_admin 1234567 28 Movietzbot`\n"
             f"This will add user with id `1234567` for `28` days for the reason `ofa siku 3 zaidi`.",
             quote=True
         )
         return
     
-    if nyva=="Bandolako2021bot":
+    if nyva=="Movietzbot":
         user_id = int(m.command[1])
         ban_duration = int(m.command[2])
         username1 = m.command[3]
@@ -976,7 +980,7 @@ async def get_statuss(bot,message):
         async for user in await db.get_user(message.from_user.id):
             salio =user['ban_status']
             salio = datetime.fromisoformat(salio['banned_on'])+timedelta(days=salio['ban_duration'])+timedelta(hours=3)
-        filters = await get_filter_results('',message.from_user.id)
+        filters = await get_filter_results('',message.from_user.id,nyva)
         filters_no = 0
         text = 0
         photo = 0

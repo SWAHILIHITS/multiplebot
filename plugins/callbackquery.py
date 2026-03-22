@@ -3,7 +3,7 @@ import uuid
 import time,re,os,asyncio
 from plugins.base_command import btn22
 from pyrogram.errors import ChatAdminRequired
-from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user
+from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like
 from botii  import Bot0
 import requests
 from plugins.database import db
@@ -280,7 +280,14 @@ async def cb_handler(client, query):
             ghi=f'{mkv.text}'
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'price':ghi}})
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
-        
+        elif query.data.startswith("xlks"):
+            id3=query.data.split(" ")[1]
+            nyvaa=query.data.split(" ")[2]
+            await add_likes('{query.data.split(" ")[1]}##{query.from_user.id}')
+            filter = {'file_id':id3}
+            lks = await Like.count_documents(filter)
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
         elif query.data.startswith("xtext"):
             await query.answer('wait please')
             a=False

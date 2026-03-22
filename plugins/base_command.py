@@ -172,7 +172,7 @@ async def start_msg_admins(client, message):
             strg=files.descp.split('.dd#.')[3]
             if filedetails:
                 if strg.lower() == 'm':
-                    filez=await get_filter_results( file_id ,group_id)
+                    filez=await get_filter_results( file_id ,group_id,nyva)
                     abx=[]
                     for file in (filez):
                         if abx==[]:
@@ -237,7 +237,7 @@ async def start_msg_admins(client, message):
                 elif strg.lower()=="ms":
                     abdata = ""
                     btn3 = None
-                    filez=await get_filter_results( file_id ,group_id)
+                    filez=await get_filter_results( file_id ,group_id,nyva)
                     for file in reversed(filez):
                         btn3=[]
                         abtext=file.grp.split("##")[0]
@@ -475,7 +475,7 @@ async def cb_handler(client, query):
                 return     
             await query.answer("hi")
             await query.message.delete()
-            details4 =await get_filter_results(fileid,group_id)
+            details4 =await get_filter_results(fileid,group_id,nyva)
             for document in details4:
                 if document.grp == frmt:
                     await client.send_cached_media(
@@ -493,7 +493,7 @@ async def cb_handler(client, query):
             strid = fileid
             dta='start'
             icount = 0
-            details4 =await get_filter_results(fileid,group_id)
+            details4 =await get_filter_results(fileid,group_id,nyva)
             for document in details4:
                 if document.grp == frmt:
                     await client.send_cached_media(
@@ -539,7 +539,7 @@ async def cb_handler(client, query):
                             caption = media.caption,
                         )
                         media.caption = f'{media.caption}\n🌟 @{nyva} 'if media.caption else f'🌟 @{nyva}'
-                        await save_file(f'+{icount}.{strid}.{stridm.split("-")[1]}', media.caption, [], media.file_id, media.file_type, stridm,query.from_user.id,'d.dd#.data',0,f'{frmt}')
+                        await save_file(f'+{icount}.{strid}.{stridm.split("-")[1]}', media.caption, [], media.file_id, media.file_type, stridm,query.from_user.id,'d.dd#.data',0,f'{frmt}',nyva,0)
                     except Exception as e :
                         await client .send_cached_media(
                             chat_id = query.from_user.id,
@@ -574,7 +574,7 @@ async def cb_handler(client, query):
             abdata = ""
             btn3=None
             file_id= query.data.split(" ")[1]
-            filez=await get_filter_results( file_id ,group_id)
+            filez=await get_filter_results( file_id ,group_id,nyva)
             for file in (filez):
                 btn3=[]
                 abtext=file.grp.split("##")[0]
@@ -639,7 +639,7 @@ async def cb_handler(client, query):
                 abdata = ""
                 ab1=ab1.split(" ")[1]
                 btn3=None
-                filez=await get_filter_results( ab2,user_details)
+                filez=await get_filter_results( ab2,user_details,nyva)
                 for file in (filez):
                     if (ab1 in file.grp) and "s10" not in file.grp:
                         btn3=[]
@@ -687,7 +687,7 @@ async def cb_handler(client, query):
                     ab1=ab1.split(" ")[1]
                     btn3=None
                     ab2=int(ab2)
-                    filez=await get_filter_results( ab3,user_details)
+                    filez=await get_filter_results( ab3,user_details,nyva)
                     for file in (filez): 
                         
                         if (f"{ab1}##{ab2}") in file.grp and "1000" not in file.grp:
@@ -763,7 +763,7 @@ async def cb_handler(client, query):
                     ab2=int(ab2)
                     ab4=int(ab4)
                     tme3=80
-                    filez=await get_filter_results( ab3,user_details)
+                    filez=await get_filter_results( ab3,user_details,nyva)
                     await User.collection.update_one({'_id':f"{user_details}##{query.from_user.id}"},{'$set':{'tme':80}})
                     await query.message.delete()
                     sb7=0
@@ -904,7 +904,7 @@ Bonyeza button hapo chini kusoma hitimisho la huduma zetu """
                         ab1,ab2,ab3=ab.split('##')
                         dta='start'
                         icount = int(ab3)
-                        details4 =await get_filter_results(bb.split('##')[1],group_id )
+                        details4 =await get_filter_results(bb.split('##')[1],group_id,nyva)
                         for document in details4:
                             if ab==document.grp:
                                 await client.send_cached_media(

@@ -103,7 +103,7 @@ async def rrecussive(client, message):
                 url=f"https://t.me/{nyva}?start=mwongozohrm{grp_id}"
                 text=f"\n\n💥💥💥💥💥💥💥💥\nKWA WAGENI WOTE\nTunaomba msome muongozo ili mjue jinsi ya kupata huduma zetu\n\n**[GUSA HAPA]({url})** au bonyeza button hapo chini \n kisha bonyeza  neno START ili kuweza kupata muongozo na maelekezo ya huduma zetu.."
                 await client.send_message(chat_id=grp_id,text=f"{text}", disable_notification=True,reply_markup=InlineKeyboardMarkup( [[InlineKeyboardButton("🗓 BONYEZA HAPA",url=f"{url}")]]) )
-                for file in await get_random_details("normalrsv1",group_id):
+                for file in await get_random_details("normalrsv1",group_id,nyva):
                     if file.btn =="[]":
                         reply_markup = None
                     else:
@@ -138,7 +138,7 @@ async def rrecussive(client, message):
         ict=0
         a=3
         user_id3= await db.is_bot_exist(nyva)
-        documents=await get_filter_result(int(user_id3))
+        documents=await get_filter_result(int(user_id3),nyva)
         try:
             random.shuffle(documents)
         except:
@@ -150,6 +150,7 @@ async def rrecussive(client, message):
             reply_text = document.reply
             fileid = document.file
             msg_type = document.type
+            nyvaa= document.nyva
             abz=[]
             for dta1 in data1:
                 for data2 in ["auto"]:
@@ -170,7 +171,7 @@ async def rrecussive(client, message):
                             photo = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {strid} {nyvaa}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                         a+=1
                         await asyncio.sleep(a)
@@ -184,7 +185,7 @@ async def rrecussive(client, message):
                             file_id = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {strid} {nyvaa}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                         a+=1
                         await asyncio.sleep(a)
@@ -194,7 +195,7 @@ async def rrecussive(client, message):
         for grp in await is_group_exist("group",nyva):
             try:
                 grp_id = grp.id.split("##")[1]
-                for file in await get_random_details("normalrsv2",group_id):
+                for file in await get_random_details("normalrsv2",group_id,nyva):
                     if file.btn =="[]":
                         reply_markup = None
                     else:
@@ -248,7 +249,7 @@ async def group(client, message):
     if 2 < len(message.text) < 50:    
         btn = []
         searchi = message.text.lower()
-        files = await get_filter_results(searchi,user_id3)
+        files = await get_filter_results(searchi,user_id3,nyva)
         if len(files)==1:
             for document in files:
                 id3 = document.id
