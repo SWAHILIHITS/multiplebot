@@ -31,8 +31,6 @@ class Media(Document):
     descp = fields.StrField(required=True)
     price = fields.StrField(required=True)
     grp = fields.StrField(required=True)
-    lks= fields.IntField(required=True)
-    dts = fields.StrField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME
         
@@ -63,7 +61,7 @@ async def add_user(id,sts):
         else:
             logger.info("group is saved in database")
 
-async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,lks,dts):
+async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp):
     """Save file in database"""
     text = str(text).lower()
     fdata = {'text': text}
@@ -96,8 +94,6 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,lks,dts):
             descp=descp,
             price = str(prc),
             grp = grp
-            lks=lks
-            dts=dts
        )
     except ValidationError:
         logger.exception('Error occurred while saving file in database')
