@@ -13,11 +13,13 @@ import json
 from info import DB2, COLLECTION_NAME
 
 COLLECTION_NAME_2="groups"
+COLLECTION_NAME_3="likes"
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 instance = Instance.from_db(DB2)
 imdb=Instance.from_db(DB2)
+likes =Instance.from_db(DB2)
 
 @instance.register
 class Media(Document):
@@ -31,9 +33,16 @@ class Media(Document):
     descp = fields.StrField(required=True)
     price = fields.StrField(required=True)
     grp = fields.StrField(required=True)
+    nyva = fields.StrField(required=True)
+    lks = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME
-        
+@likes.register
+class Like(Document):
+    id = fields.StrField(attribute='_id')
+    file_id =fields.StrField(required=True)
+    class Meta:
+        collection_name = COLLECTION_NAME_3       
 @imdb.register
 class User(Document):
     id = fields.StrField(attribute='_id')
@@ -42,7 +51,31 @@ class User(Document):
     tme = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME_2
-        
+
+async def add_likes(id,id1):
+    try:
+        data = Like(
+            id = id,
+            file_id = id1,
+        )
+    except ValidationError:
+        logger.exception('Error occurred while saving group in database')
+    else:
+        try:
+            await data.commit()
+
+        except DuplicateKeyError:
+            logger.warning("already saved in database")
+            await Like.collection.delete_one({'_id':id})
+            filter = {'file_id':id1}
+            count = await Like.count_documents(filter)
+            await Media.collection.update_one({'_id':id1}, {'$set':{'lks':count}})
+        else:
+            logger.info("group is saved in database")
+            filter = {'file_id':id1}
+            count = await Like.count_documents(filter)
+            await Media.collection.update_one({'_id':id1}, {'$set':{'lks':count}})
+
 async def add_user(id,sts):
     try:
         data = User(
@@ -61,22 +94,23 @@ async def add_user(id,sts):
         else:
             logger.info("group is saved in database")
 
-async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp):
+async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
     """Save file in database"""
     text = str(text).lower()
     fdata = {'text': text}
     button = f'{btn}'
     button = button.replace('pyrogram.types.InlineKeyboardButton', 'InlineKeyboardButton')
     fdata['group_id'] = user_id
+    fdata['nyva'] = nyva
     found = await Media.find_one(fdata)
     if found and prc=='chec':
         return "hrm46"
     elif prc =='chec':
         return
     if found and prc=='hrm46':
-        dtav =await get_filter_results(text,user_id)
+        dtav =await get_filter_results(text,user_id,nyva)
         for dt3 in dtav:
-            details = await  get_filter_results(id,user_id)
+            details = await  get_filter_results(id,user_id,nyva)
             for dt in details:
                 for ad in await get_file_details(dt.id):
                     await Media.collection.delete_one({'_id':ad.id})
@@ -93,7 +127,9 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp):
             group_id =user_id,
             descp=descp,
             price = str(prc),
-            grp = grp
+            grp = grp,
+            nyva = str(nyva),
+            lks = lks
        )
     except ValidationError:
         logger.exception('Error occurred while saving file in database')
@@ -105,7 +141,7 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp):
         else:
             logger.info(text + " is saved in database")
 
-async def get_search_results(query, group_id, max_results=10, offset=0):
+async def get_search_results(query, group_id, nyva, max_results=10, offset=0):
     """For given query return (results, next_offset)"""
     
     query = query.strip()
@@ -154,6 +190,8 @@ async def get_search_results(query, group_id, max_results=10, offset=0):
         else:
             filter['descp']= regex1
     filter['group_id'] = group_id
+    if nyva != 'Movietzbot':
+        filter['nyva']=nyva
     total_results = await Media.count_documents(filter)
     next_offset = offset + max_results
 
@@ -169,14 +207,16 @@ async def get_search_results(query, group_id, max_results=10, offset=0):
     files = await cursor.to_list(length=max_results)
 
     return files, next_offset
-async def get_filter_result(group_id):
+async def get_filter_result(group_id,nyva):
     filter = {"group_id": group_id}
+    if nyva != 'Movietzbot':
+        filter['nyva']=nyva
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     cursor.sort('text', 1)
     files = await cursor.to_list(length=int(total_results))
     return files
-async def get_filter_results(query,group_id):
+async def get_filter_results(query,group_id,nyva):
     query = query.strip()
     query = query.lower()
     ab='empty'
@@ -221,6 +261,8 @@ async def get_filter_results(query,group_id):
         else:
             filter['descp']= regex1
     filter['group_id'] = group_id
+    if nyva != 'Movietzbot':
+        filter['nyva']=nyva
     total_results = await Media.count_documents(filter)
     cursor = Media.find(filter)
     cursor.sort('text', 1)
@@ -253,9 +295,11 @@ async def is_group_exist(query1,query):
     count = await User.count_documents(filter)
     userdetails = await cursor.to_list(length = int(count))
     return userdetails
-async  def get_random_details(query,group_id):
+async  def get_random_details(query,group_id,nyva):
     filter = {'grp':query}
     filter['group_id'] = int(group_id)
+    if nyva != 'Movietzbot':
+        filter['nyva']=nyva
     cursor = Media.find(filter)
     cursor.sort('$natural', -1)
     count = await Media.count_documents(filter)
