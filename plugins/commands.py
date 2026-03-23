@@ -49,7 +49,7 @@ async def new_filtervip(client, message):
     extracted = split_quotes(args[1])
     text = f'{args[1].lower()}.dd#.{user_id}'
     text = text.strip()
-    ab = f'{args[1].lower()}'
+    ab = (f'{args[1].lower()}').strip()
     msg_type = 'Text'
     ab1="fggh"
     abb = await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"chec",'normal',nyva,0)
@@ -72,7 +72,7 @@ async def new_filtervip(client, message):
                 a=False
         ab1=mkv.text.lower()
     if ab1=="y":
-        abnm= await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal',nyva,0)
+        abnm=await save_file(text, 'reply_text', [], 'fileid', 'msg_type', 'strid',message.from_user.id,'descp',"hrm46",'normal',nyva,0)
     elif ab1 !='n' and ab1 !='y' and ab1 != 'fggh':
         await client.send_message(text=f'tafadhali anza upya tuma kama ulivyoelekezwa',chat_id = message.from_user.id)
         return
@@ -92,7 +92,7 @@ async def new_filtervip(client, message):
             await message.reply_text("Tafadhali reply tangazo au posta ya movie yako kwa /adddata jina la movie au series\nMfano /adddata soz")
             return
 
-    elif message.reply_to_message and message.reply_to_message.reply_markup:
+    elif message.reply_to_message and message.reply_to_message.text:
         reply_text = ""
         btn = []
         fileid = None
@@ -869,7 +869,7 @@ async def addconnection(client,message):
         if st.status == "ADMINISTRATOR":
             if chat_type in ["ChatType.SUPERGROUP","ChatType.GROUP" ]:
                 mk2= await db.get_db_status(userid)
-                inv_lnk = await client.get_chat(group_id)
+                inv_lnk = await client.get_chat(group_id,nyva)
                 await db.update_db(userid,f'group {group_id}##{inv_lnk.invite_link}',mk2)
                 await client.send_message(
                     userid,
@@ -880,7 +880,7 @@ async def addconnection(client,message):
                     f"Group lako tumeiunga kikamlifu,Wateja wako watapa huduma za robot kupitia kikundi",
                 )           
             if chat_type == "ChatType.PRIVATE":
-                mk2= await db.get_db_status(userid)
+                mk2= await db.get_db_status(userid,nyva)
                 inv_lnk = await client.get_chat(group_id)
                 await db.update_db(userid,f'channels {group_id}##{inv_lnk.invite_link}',mk2)
                 await client.send_message(
@@ -1039,7 +1039,7 @@ Salio lako:Litaisha tarehe {salio} ::Kumbuka kufanya malipo mapema wateja wako w
         t1,t2,t3=tme91.split("-")
         tme9=f"{t3}/{t2}/{t1} Saa:{tme92}"
         if user['file_id'].startswith('g_') and user["db_name"]==group_id:
-            sd= await db.get_db_status(user['db_name'])
+            sd= await db.get_db_status(user['db_name'],nyva)
             g2 = user['file_id']
             sd = sd[g2].split('#@')[0]
             salio+=f"{sd}:Kitaisha tarehe : {tme9}\n\n"
