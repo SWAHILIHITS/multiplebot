@@ -868,7 +868,7 @@ async def addconnection(client,message):
         st.status=(f"{st.status}".split(".")[1])
         if st.status == "ADMINISTRATOR":
             if chat_type in ["ChatType.SUPERGROUP","ChatType.GROUP" ]:
-                mk2= await db.get_db_status(userid)
+                mk2= await db.get_db_status(userid,nyva)
                 inv_lnk = await client.get_chat(group_id,nyva)
                 await db.update_db(userid,f'group {group_id}##{inv_lnk.invite_link}',mk2)
                 await client.send_message(
