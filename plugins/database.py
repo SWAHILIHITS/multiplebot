@@ -125,7 +125,7 @@ class Database:
             
         )
         await self.col.update_one({'id': user_id}, {'$set': {'ban_status': ban_status}})
-    async def get_db_status(self, id,bot):
+    async def get_db_statuss(self, id,bot):
         default =dict(
                 db_name = "SWAHILI GROUP MEDIA",
                 descp = "Tunahusika na uuzaji wa muvi na sizon kal zilizotafsiriwa kwa bei ",
@@ -147,6 +147,29 @@ class Database:
             )
         filter={'id': int(id)}
         filter['db_status.bot_link']=bot
+        user = await self.col.find_one(filter)
+        return user.get('db_status', default)
+     async def get_db_status(self, id):
+        default =dict(
+                db_name = "SWAHILI GROUP MEDIA",
+                descp = "Tunahusika na uuzaji wa muvi na sizon kal zilizotafsiriwa kwa bei ",
+                p0 = "hrm45",
+                p1 = "hrm45",
+                lpa = False,
+                bot_link= "hrm45",
+                group ="hrm45##hrm45",
+                channels ="hrm45##hrm45",
+                user_link = "link2",
+                muda = "30 days",
+                mwongozo = "ufuatao n mwongozo mfupi",
+                g_1=  "hrm45",
+                g_2 = "hrm45",
+                g_3 = "hrm45",
+                g_4 = "hrm45",
+                g_5 = "hrm45",
+                g_6 = "hrm45",
+            )
+        filter={'id': int(id)}
         user = await self.col.find_one(filter)
         return user.get('db_status', default)
     async def update_db(self, user_id,ghi,ab):

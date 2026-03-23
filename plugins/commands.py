@@ -953,7 +953,7 @@ async def ban(c,m):
             strid = str(uuid.uuid4())
             ts=await c.get_users(user_id)
             await db.add_admin(user_id)
-            mk2=await db.get_db_status(user_id,'hrm45')
+            mk2=await db.get_db_statuss(user_id,'hrm45')
             await db.update_db(user_id,f'bot_link {mk.text.strip()}',mk2)
             await db.update_db(user_id,f"user_link https://t.me/{ts.username}",mk2)
             await db.add_acc(strid,user_id,"all",user_id,9999)
