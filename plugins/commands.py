@@ -150,7 +150,7 @@ async def new_filtervip(client, message):
         await message.reply_text(
             f"Samahani hii caption n kubwa tafadhali ipunguze kisha add tena kama hujui jinsi ya kuedit muulize msimiz wang @hrm45")
         return
-    usr = await db.get_db_status(message.from_user.id)
+    usr = await db.get_db_status(message.from_user.id,nyva)
     x = 0
     p=[]
     usrr=' '
