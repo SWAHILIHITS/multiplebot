@@ -952,7 +952,7 @@ async def ban(c,m):
                     a=False  
             strid = str(uuid.uuid4())
             ts=await c.get_users(user_id)
-            await db.add_admin(user_id,mk.text.strip(),'https://t.me/{ts.username}')
+            await db.add_admin(user_id,mk.text.strip(),f'https://t.me/{ts.username}')
             await db.add_acc(strid,user_id,"all",user_id,mk.text.strip(),9999)
         await db.ban_user(user_id, ban_duration)
         print(ban_log_text)
