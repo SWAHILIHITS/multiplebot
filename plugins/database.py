@@ -8,7 +8,7 @@ class Database:
         self.col = self.db1.admins
         self.fls = self.db1.acc
 
-    def new_user(self, id):
+    def new_user(self, id,bot,link):
         return dict(
             id=id,
             join_date=datetime.now().isoformat(),
@@ -18,10 +18,10 @@ class Database:
                 p0 = "hrm45",
                 p1 = "hrm45",
                 lpa=False,
-                bot_link= "hrm45",
+                bot_link= bot,
                 group = "hrm45##hrm45",
                 channels ="hrm45##hrm45",
-                user_link = "link2",
+                user_link = link,
                 muda = "30 days",
                 mwongozo = "ufuatao n mwongozo mfupi",
                 g_1=  "hrm45",
@@ -38,12 +38,13 @@ class Database:
                 
             )
         )
-    def new_acc(self, id,user_id,file_id,db_name,tme):
+    def new_acc(self, id,user_id,file_id,db_name,bot,tme):
         return dict(
             id=id,
             user_id=user_id,
             file_id = file_id,
             db_name = db_name,
+            bot_link = bot,
             ban_status=dict(
                 ban_duration=tme,
                 banned_on=datetime.now().isoformat(),
@@ -56,12 +57,12 @@ class Database:
             if id['db_status']['bot_link']==bot.strip():
                 id2=id['id']
         return id2
-    async def add_acc(self, id,user_id,file_id,db_name,tme):
-        user = self.new_acc(id,int(user_id),file_id,db_name,tme)
+    async def add_acc(self, id,user_id,file_id,db_name,bot,tme):
+        user = self.new_acc(id,int(user_id),file_id,db_name,bot,tme)
         await self.fls.insert_one(user)
 
-    async def add_admin(self, id):
-        user = self.new_user(id)
+    async def add_admin(self, id,bot,link):
+        user = self.new_user(id,bot,link)
         await self.col.insert_one(user)
 
     async def is_admin_exist(self, id,bot):
@@ -125,7 +126,7 @@ class Database:
             
         )
         await self.col.update_one({'id': user_id}, {'$set': {'ban_status': ban_status}})
-    async def get_db_statuss(self, id,bot):
+    async def get_db_status(self, id,bot):
         default =dict(
                 db_name = "SWAHILI GROUP MEDIA",
                 descp = "Tunahusika na uuzaji wa muvi na sizon kal zilizotafsiriwa kwa bei ",
@@ -147,29 +148,6 @@ class Database:
             )
         filter={'id': int(id)}
         filter['db_status.bot_link']=bot
-        user = await self.col.find_one(filter)
-        return user.get('db_status', default)
-     async def get_db_status(self, id):
-        default =dict(
-                db_name = "SWAHILI GROUP MEDIA",
-                descp = "Tunahusika na uuzaji wa muvi na sizon kal zilizotafsiriwa kwa bei ",
-                p0 = "hrm45",
-                p1 = "hrm45",
-                lpa = False,
-                bot_link= "hrm45",
-                group ="hrm45##hrm45",
-                channels ="hrm45##hrm45",
-                user_link = "link2",
-                muda = "30 days",
-                mwongozo = "ufuatao n mwongozo mfupi",
-                g_1=  "hrm45",
-                g_2 = "hrm45",
-                g_3 = "hrm45",
-                g_4 = "hrm45",
-                g_5 = "hrm45",
-                g_6 = "hrm45",
-            )
-        filter={'id': int(id)}
         user = await self.col.find_one(filter)
         return user.get('db_status', default)
     async def update_db(self, user_id,ghi,ab):
@@ -196,14 +174,16 @@ class Database:
             )
         await self.col.update_one({'id': user_id}, {'$set': {'db_status': update_admin}})
     
-    async def get_ban_status(self, id):
+    async def get_ban_status(self, id,bot):
         default = dict(
             is_banned=False,
             ban_duration=0,
             banned_on=datetime.now().isoformat(),
             
         )
-        user = await self.col.find_one({'id': int(id)})
+        filter={'id': int(id)}
+        filter['db_status.bot_link']=bot
+        user = await self.col.find_one(filter)
         return user.get('ban_status', default)
 
     async def get_all_banned_users(self):

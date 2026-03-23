@@ -22,7 +22,7 @@ async def give_filter(client, query):
     hjkl = f'{group_id}##{query.from_user.id}'  
     userdetails1= await is_user_exist(hjkl,nyva)
     text = query.query.strip()
-    db_sts =await db.get_db_status(group_id)
+    db_sts =await db.get_db_status(group_id,nyva)
     ban = await db.get_ban_status(group_id) 
     gd1 = db_sts['user_link']
     offset = int(query.offset or 0) 

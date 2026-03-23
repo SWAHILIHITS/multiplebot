@@ -12,20 +12,22 @@ async def handle_admin_status(bot, cmd):
         nyva=str(nyva)
         while a=='start':
             asyncio.sleep(18000)
-            all_user =await db.get_all_users()
-            async for user in all_user:
-                ban_status = await db.get_ban_status(user['id'])
+            all_users=await db.get_all_banned_users()
+            async for user in all_users:
+                if  user['bot_link']!= nyva:
+                    continue  
+                ban_status = await db.get_ban_status(user['id'],nyva)
                 if ban_status["is_banned"]:
-                    if ban_status["ban_duration"] < (
-                            datetime.now() - datetime.fromisoformat(ban_status["banned_on"])
-                    ).days:
-                        await bot.send_message(chat_id=int(user['id']),text=f"Samahan admin kifurushi ulicho lipia kumtumia swahili robot kimeisha tafadhali lipia ili wateja wako waendelee kupata huduma zetu")
+                    if ban_status["ban_duration"] < (datetime.now() - datetime.fromisoformat(ban_status["banned_on"])).days:
+                        await bot.send_message(chat_id=int(user['id']),text=f"Samahan admin kifurushi ulicho lipia kumtumia BOXFLIX MEDIA GROUP kimeisha tafadhali lipia ili wateja wako waendelee kupata huduma zetu")
                         await db.remove_ban(user['id'])
             all_users =await db.get_all_acc()
-            async for user in all_users:  
+            async for user in all_users:
+                if  user['bot_link']!= nyva:
+                    continue  
                 if user["ban_status"]["ban_duration"] <= (datetime.now() - datetime.fromisoformat(user["ban_status"]["banned_on"])).days:
                     try:
-                        abc2=await db.get_db_status( int(user['db_name']) )
+                        abc2=await db.get_db_status( int(user['db_name']),nyva)
                     except:
                         await db.delete_acc(user['id'])
                         continue

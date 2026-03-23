@@ -75,7 +75,10 @@ async def cb_handler(client, query):
         pass
     if (clicked == typed):
         if query.data == "kundii":
-            ab = await db.get_db_status(query.from_user.id)
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
+            ab = await db.get_db_status(query.from_user.id,nyva)
             grp="grp"
             if ab['g_1']=="hrm45":
                 reply_markup=replymkup3(ab,grp,1)
@@ -97,10 +100,13 @@ async def cb_handler(client, query):
             await query.answer('Tafadhali subiri')
  
         elif query.data.startswith("kad2grp"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer('Subiri kidogo')
             await query.message.delete()
             ghi1=query.data.split(" ")[1]
-            ab = await db.get_db_status(query.from_user.id)
+            ab = await db.get_db_status(query.from_user.id,nyva)
             try:
                 mkv11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba untumie jina LA kifurushi Mfano kifurushi cha vyote Mfano2 Kifurushi cha singo')
                 a,b = funask()
@@ -449,6 +455,9 @@ async def cb_handler(client, query):
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
         elif query.data == "startup":
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer('uzuri wa kitu ni muonekano')
             a=False
             b=time.time()
@@ -472,11 +481,14 @@ async def cb_handler(client, query):
                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine")
                 return
             ghi=f'descp {mkv.text}'
-            ab = await db.get_db_status(query.from_user.id)
+            ab = await db.get_db_status(query.from_user.id,nyva)
             await db.update_db(query.from_user.id,ghi,ab)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 
         elif query.data == "xba":
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer('Mtandao pendwa ndio bora')
             mkv1 = await client.send_message(chat_id = query.from_user.id,text='⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nTafadhali Tuma namba ya maelezo yako yamalipo ya wateja wa Tanzania sehemu ya bei weka {prc} mfano Tsh {prc} ',disable_web_page_preview = True)
             a=False  
@@ -521,11 +533,14 @@ async def cb_handler(client, query):
                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine anza upya kubonyez btn")
                 return
             ghi=f'p0 {mkv.text}####{mkv2.text}'
-            ab = await db.get_db_status(query.from_user.id)
+            ab = await db.get_db_status(query.from_user.id,nyva)
             await db.update_db(query.from_user.id,ghi,ab)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
             
         elif query.data == "dbname":
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer('jina zuri huonesha uzuri')
             mkv1 = await client.send_message(chat_id = query.from_user.id,text='⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nTafadhali tuma jina la kikundi chako Mfano Swahili media group au Baoflix movies n.k ')
             a=False
@@ -549,11 +564,14 @@ async def cb_handler(client, query):
                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine")
                 return
             ghi=f'db_name {mkv.text}'
-            ab = await db.get_db_status(query.from_user.id)
+            ab = await db.get_db_status(query.from_user.id,nyva)
             await db.update_db(query.from_user.id,ghi,ab)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 
         elif query.data.startswith("tzn"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             fileid = query.data.split(" ",1)[1]
             filedetails = await get_file_details(fileid)
             for files in filedetails:
@@ -569,7 +587,7 @@ async def cb_handler(client, query):
                 fileid=fileid + "##k"
             await query.answer()
             await query.message.delete()
-            db_details = await db.get_db_status(group_id)
+            db_details = await db.get_db_status(group_id,nyva)
             if type1=="Photo":
                 await client.send_photo(
                             chat_id=query.from_user.id,
@@ -584,6 +602,9 @@ async def cb_handler(client, query):
                                     reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton("Lipia hii __ tu", callback_data=f"wiik2 {fileid}.g_1.500.m")]]) )
            
         elif query.data.startswith("wik"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer()
             msgg1,fileiid,msg2=query.data.split(" ") 
             fileid,cvx=fileiid.split("##")
@@ -596,7 +617,7 @@ async def cb_handler(client, query):
             for files in filedetails:
                 group_id = files.group_id
             msg1 = group_id
-            details = await db.get_db_status(msg1)
+            details = await db.get_db_status(msg1,nyva)
             data1= details[msg2]
             data2= data1.split("#@")[1]
             fileid1=fileid
@@ -605,6 +626,9 @@ async def cb_handler(client, query):
                     reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 {cvz} {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 {cvz} {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 {cvz} {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 {cvz} {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 {cvz} {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##{cvz} {fileid1}")]])
                 )
         elif query.data.startswith("wiik2"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer()
             fileiid,msg2,prc1,tme = query.data.split(" ")[1].split(".")
             fileid,cvx=fileiid.split("##")
@@ -620,7 +644,7 @@ async def cb_handler(client, query):
                 grp = files.grp
             fileid1=fileid
             fileid=fileiid
-            details = await db.get_db_status(group_id)
+            details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
             if tme=="wk0":
                 tme1= "Siku 1"
@@ -652,6 +676,9 @@ async def cb_handler(client, query):
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )     
         elif query.data.startswith("malipo"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.answer()
             fileiid,msg2,prc1,tme = query.data.split(" ")[1].split(".")
             fileid,cvx=fileiid.split("##")
@@ -678,7 +705,7 @@ async def cb_handler(client, query):
                 tme1= "mwezi mmoja"
             else:
                 tme1=tme
-            details = await db.get_db_status(group_id)
+            details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
             data2 = data1.split("#@")[0]
             p1=details['p0']
@@ -760,6 +787,9 @@ async def cb_handler(client, query):
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("ndiyo", callback_data=f"nq {msg1} {query.data.split(' ')[2]}"),InlineKeyboardButton("rudi ", callback_data=f"rq {msg1} {query.data.split(' ')[2]}")]])
                 )
         elif query.data.startswith("rq"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             msg,msg1,data3 = query.data.split(" ")         
             fileid,msg2,prc1,tme = data3.split("@#")[0].split(".")
             fileid =fileid.split("##")[0]
@@ -780,7 +810,7 @@ async def cb_handler(client, query):
                 tme1= "mwezi mmoja"
             else:
                 tme1=tme
-            details = await db.get_db_status(group_id)
+            details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
             ttl = await client.get_users(int(msg1))
             if tme1=="m":
@@ -806,7 +836,7 @@ async def cb_handler(client, query):
                 prc2 = files.price
                 name = files.text.split('.dd#.',1)[0]
                 grp = files.grp
-            ban_status = await db.get_db_status(group_id)  
+            ban_status = await db.get_db_status(group_id,nyva)  
             group_id2 = int(ban_status['group'].split('##')[0])
             if tme=="wk0":
                 tme1= 1
@@ -820,11 +850,11 @@ async def cb_handler(client, query):
                 tme1= 30
             strid = str(uuid.uuid4())
             if tme == "m":
-                await db.add_acc(strid,msg1,fileid,query.from_user.id,30)
+                await db.add_acc(strid,msg1,fileid,query.from_user.id,nyva,30)
                 abx="**bonyeza download hapo juu ya movie uliochagua ili kuipakua**"
             else:
                 abx="**bonyeza download hapo juu ya movie/Series  uliochagua ili kuipakua kisha nyingine utazipakua kama muingozo ulivyosoma kipind unajiunga**"
-                await db.add_acc(strid,msg1,msg2,query.from_user.id,tme1)
+                await db.add_acc(strid,msg1,msg2,query.from_user.id,nyva,tme1)
             await query.message.delete()
             ttl = await client.get_users(int(msg1))
             await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja **{ttl.mention}** amesharuhusiwa kupata huduma ya kifurush alicho chagua Asante kwa mda wako"

@@ -73,7 +73,7 @@ async def start_msg_admins(client, message):
         await add_user(hjkl,nyva)
     hjkl = f'{user_details}##{message.from_user.id}'
     user_details1 = await is_user_exist(hjkl,nyva)
-    ban_status = await db.get_db_status(user_details)   
+    ban_status = await db.get_db_status(user_details,nyva)   
     try:
        if user_details1:
            text = ban_status['descp'].format(
@@ -115,6 +115,9 @@ async def start_msg_admins(client, message):
         return
         
     elif usr_cmdall1.startswith("/start subinps"):
+        botusername=await client.get_me()
+        nyva=botusername.username  
+        nyva=str(nyva)
         try:
             ident, file_id = cmd.text.split("_-_-_-_")
             filedetails = await get_file_details(file_id)
@@ -123,7 +126,7 @@ async def start_msg_admins(client, message):
                 id2 = files.id
                 group_id = files.group_id
                 msg_type =files.type
-                prc=files.price
+                prc=files.price 
                 grp = files.grp
             if not filedetails:
                 await client.send_message(
@@ -132,7 +135,7 @@ async def start_msg_admins(client, message):
                 )   
                 return 
             grp1,grp2=grp.split(" ") 
-            ban_status = await db.get_ban_status(group_id)
+            ban_status = await db.get_ban_status(group_id,nyva)
             lk = await client.get_users(group_id)
             if ban_status["is_banned"] == False and group_id != cmd.from_user.id :           
                 await client.send_message(
@@ -809,7 +812,7 @@ async def cb_handler(client, query):
             user_details = await db.is_bot_exist(nyva)
             if not user_details:
                 return
-            ban_status = await db.get_db_status(user_details)
+            ban_status = await db.get_db_status(user_details,nyva)
             mtext1="""<b>{db_name}</b>
 {descp}
 
@@ -832,7 +835,7 @@ async def cb_handler(client, query):
             nyva=botusername.username  
             nyva=str(nyva)
             user_details = await db.is_bot_exist(nyva)
-            ban_status = await db.get_db_status(user_details)   
+            ban_status = await db.get_db_status(user_details,nyva)   
             hjkl = f'{user_details}##{query.from_user.id}'
             existt=await is_user_exist(hjkl,nyva)
             if not existt: 
@@ -847,7 +850,7 @@ async def cb_handler(client, query):
             user_details = await db.is_bot_exist(nyva)
             if not user_details:
                 return
-            ban_status = await db.get_db_status(user_details)   
+            ban_status = await db.get_db_status(user_details,nyva)   
             mtext="""💥💥💥💥💥💥💥💥💥💥💥💥💥💥💥💥  
         <b>MWONGOZO {db_name}</b>
         
@@ -968,11 +971,14 @@ Bonyeza button hapo chini kusoma hitimisho la huduma zetu """
                             mkv22.delete()
                             mkv22=await client.send_message(text =text1, chat_id = query.from_user.id)  
             
-                    except Exception as e :
+                    except Exception as e : 
                         await client.send_message(query.from_user.id,text=f'error{e}')         
         elif query.data.startswith("3hdone"):
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
             await query.edit_message_text("tumetaarifu kikamilifu asante kwa kuonyesha uaminifu kwa wateja wako")
-            gd=await db.get_db_status(query.from_user.id)
+            gd=await db.get_db_status(query.from_user.id,nyva)
             await client.send_message(chat_id=int(query.data.split(" ")[1]),text=f'Shukrani kwa subra yako sasa unaeza pata huduma zote ulizolipia kifurushi chamgamoto yoyote tuulize kwenye kikundi\n\n{gd["group"].split("##")[1]}')           
         elif query.data.startswith("3hydelte"):
             id1=query.data.split(" ")[1]                                                              
