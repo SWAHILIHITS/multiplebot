@@ -870,7 +870,7 @@ async def addconnection(client,message):
             if chat_type in ["ChatType.SUPERGROUP","ChatType.GROUP" ]:
                 mk2= await db.get_db_status(userid,nyva)
                 inv_lnk = await client.get_chat(group_id)
-                await db.update_db(userid,f'group {group_id}##{inv_lnk.invite_link}',mk2)
+                await db.update_db(userid,f'group {group_id}##{inv_lnk.invite_link}',mk2,nyva)
                 await client.send_message(
                     userid,
                     f"Asante kwa kutuamini umefanikiwa kuunganisha group lako tuma /start kisha btn help kupata muongozo wa kutengeneza kikund chako zaid ukiea private",
@@ -882,7 +882,7 @@ async def addconnection(client,message):
             if chat_type == "ChatType.PRIVATE":
                 mk2= await db.get_db_status(userid,nyva)
                 inv_lnk = await client.get_chat(group_id)
-                await db.update_db(userid,f'channels {group_id}##{inv_lnk.invite_link}',mk2)
+                await db.update_db(userid,f'channels {group_id}##{inv_lnk.invite_link}',mk2,nyva)
                 await client.send_message(
                     userid,
                     f"Asante kwa kutuamini umefanikiwa kuunganisha update channel yako tuma /start kisha btn help kupata muongozo wa kutengeneza kikund chako zaid!",
@@ -933,28 +933,11 @@ async def ban(c,m):
             ban_log_text += f"\n\nNmeshindwa kumtaarifu tafadhali jaribu tena! \n\n`{traceback.format_exc()}`"
         adminexist=await db.is_admin_exist(user_id,username1)
         if not adminexist :
-            abc = await c.send_message(chat_id = m.from_user.id,text="Naomba untumie username ya bot ya mteja huyu")      
-            id1=abc.id+1                 
-            a,b = funask()
-            while a==False:
-                try:
-                    mk= await c.get_messages("me",id1)
-                    if mk.text!=None:
-                        a=True
-                    if mk.media != None and mk.text!=None:
-                        id1=id1+1
-                    if (time.time()-b)>(10*60):
-                        await c.send_message(chat_id = m.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 10 iliniweze kuhudumia na wengine")
-                        return
-                    if mk.from_user.id != m.from_user.id:
-                        a=False 
-                except:
-                    a=False  
             strid = str(uuid.uuid4())
             ts=await c.get_users(user_id)
-            await db.add_admin(user_id,mk.text.strip(),f'https://t.me/{ts.username}')
-            await db.add_acc(strid,user_id,"all",user_id,mk.text.strip(),9999)
-        await db.ban_user(user_id, ban_duration)
+            await db.add_admin(user_id,username1.strip(),f'https://t.me/{ts.username}')
+            await db.add_acc(strid,user_id,"all",user_id,username1.strip(),9999)
+        await db.ban_user(user_id, ban_duration,username1.strip())
         print(ban_log_text)
         await m.reply_text(
             ban_log_text,
@@ -974,7 +957,7 @@ async def get_statuss(bot,message):
     group_id = await db.is_bot_exist(nyva)
     status= await db.is_admin_exist(message.from_user.id,nyva)
     if status:
-        async for user in await db.get_user(message.from_user.id):
+        async for user in await db.get_user(message.from_user.id,nyva):
             salio =user['ban_status']
             salio = datetime.fromisoformat(salio['banned_on'])+timedelta(days=salio['ban_duration'])+timedelta(hours=3)
         filters = await get_filter_results('',message.from_user.id,nyva)

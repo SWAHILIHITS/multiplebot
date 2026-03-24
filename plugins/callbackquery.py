@@ -251,7 +251,7 @@ async def cb_handler(client, query):
                 await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                 return
             ghi=f"{ghi1} {mkv1.text}#@{mkv77},{mkv22},{mkv33},{mkv44},{mkv55}#@{mkv6.text}"
-            await db.update_db(query.from_user.id,ghi,ab)
+            await db.update_db(query.from_user.id,ghi,ab,nyva)
             await mkv1.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
         elif query.data.startswith("xprice"):
             await query.answer('wait please')
@@ -482,7 +482,7 @@ async def cb_handler(client, query):
                 return
             ghi=f'descp {mkv.text}'
             ab = await db.get_db_status(query.from_user.id,nyva)
-            await db.update_db(query.from_user.id,ghi,ab)
+            await db.update_db(query.from_user.id,ghi,ab,nyva)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 
         elif query.data == "xba":
@@ -534,7 +534,7 @@ async def cb_handler(client, query):
                 return
             ghi=f'p0 {mkv.text}####{mkv2.text}'
             ab = await db.get_db_status(query.from_user.id,nyva)
-            await db.update_db(query.from_user.id,ghi,ab)
+            await db.update_db(query.from_user.id,ghi,ab,nyva)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
             
         elif query.data == "dbname":
@@ -565,7 +565,7 @@ async def cb_handler(client, query):
                 return
             ghi=f'db_name {mkv.text}'
             ab = await db.get_db_status(query.from_user.id,nyva)
-            await db.update_db(query.from_user.id,ghi,ab)
+            await db.update_db(query.from_user.id,ghi,ab,nyva)
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 
         elif query.data.startswith("tzn"):

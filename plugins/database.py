@@ -71,8 +71,9 @@ class Database:
         user = await self.col.find_one(filter)
         return True if user else False
 
-    async def is_email_exist(self, id):
+    async def is_email_exist(self, id,id2):
         filter={'user_id': int(id)}
+        filter['db_name']=id2
         user = await self.fls.find_one(filter)
         return True if user else False
 
@@ -98,34 +99,42 @@ class Database:
     async def delete_acc(self, id):
         await self.fls.delete_many({'id': id})
 
-    async def get_user(self,id):
-        all_users = self.col.find({'id': id})
+    async def get_user(self,id,bot):
+        filter={'id': int(id)}
+        filter["db_status.bot_link"]= bot
+        all_users = self.col.find(filter)
         return all_users
 
     async def get_acc(self,id):
         all_users = self.fls.find({'user_id': int(id)})
         return all_users
 
-    async def delete_admin(self, user_id):
-        await self.col.delete_many({'id': int(user_id)})
+    async def delete_admin(self, user_id,bot):
+        filter={'id': int(id)}
+        filter["db_status.bot_link"]= bot
+        await self.col.delete_many(filter)
 
-    async def remove_ban(self, id):
+    async def remove_ban(self, id,bot):
         ban_status = dict(
             is_banned=False,
             ban_duration= 0,
             banned_on=datetime.now().isoformat(),
             
         )
-        await self.col.update_one({'id': id}, {'$set': {'ban_status': ban_status}})
+        filter={'id': int(id)}
+        filter["db_status.bot_link"]= bot
+        await self.col.update_one(filter, {'$set': {'ban_status': ban_status}})
 
-    async def ban_user(self, user_id, ban_duration):
+    async def ban_user(self, user_id, ban_duration,bot):
         ban_status = dict(
             is_banned=True,
             ban_duration=ban_duration,
             banned_on=datetime.now().isoformat(),
             
         )
-        await self.col.update_one({'id': user_id}, {'$set': {'ban_status': ban_status}})
+        filter={'id': int(user_id)}
+        filter["db_status.bot_link"]= bot
+        await self.col.update_one(filter, {'$set': {'ban_status': ban_status}})
     async def get_db_status(self, id,bot):
         default =dict(
                 db_name = "SWAHILI GROUP MEDIA",
@@ -150,7 +159,7 @@ class Database:
         filter['db_status.bot_link']=bot
         user = await self.col.find_one(filter)
         return user.get('db_status', default)
-    async def update_db(self, user_id,ghi,ab):
+    async def update_db(self, user_id,ghi,ab,bot):
         ab1,ab2=ghi.split(" ",1)
         ab[ab1] = ab2
         update_admin =dict(
@@ -172,7 +181,9 @@ class Database:
                 g_5 = ab["g_5"],
                 g_6 = ab["g_6"],
             )
-        await self.col.update_one({'id': user_id}, {'$set': {'db_status': update_admin}})
+        filter={'id': int(user_id)}
+        filter["db_status.bot_link"]= bot
+        await self.col.update_one(filter, {'$set': {'db_status': update_admin}})
     
     async def get_ban_status(self, id,bot):
         default = dict(

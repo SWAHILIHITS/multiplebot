@@ -20,7 +20,7 @@ async def handle_admin_status(bot, cmd):
                 if ban_status["is_banned"]:
                     if ban_status["ban_duration"] < (datetime.now() - datetime.fromisoformat(ban_status["banned_on"])).days:
                         await bot.send_message(chat_id=int(user['id']),text=f"Samahan admin kifurushi ulicho lipia kumtumia BOXFLIX MEDIA GROUP kimeisha tafadhali lipia ili wateja wako waendelee kupata huduma zetu")
-                        await db.remove_ban(user['id'])
+                        await db.remove_ban(user['id'],nyva)
             all_users =await db.get_all_acc()
             async for user in all_users:
                 if  user['bot_link']!= nyva:

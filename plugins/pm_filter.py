@@ -339,7 +339,7 @@ async def groupprv(client, message):
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
-                if await db.is_email_exist(message.from_user.id):
+                if await db.is_email_exist(message.from_user.id,group_id):
                     await message.reply_text(f'Tafadhali subir kidogo tutakupa taarifa tutakaipo iwezesha')
                     await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
             else:
