@@ -63,18 +63,17 @@ async def add_likes(id,id1):
     else:
         try:
             await data.commit()
-
         except DuplicateKeyError:
             logger.warning("already saved in database")
             await Like.collection.delete_one({'_id':id})
             filter = {'file_id':id1}
             count = await Like.count_documents(filter)
-            await Media.collection.update_one({'_id':id1}, {'$set':{'lks':count}})
+            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
         else:
             logger.info("group is saved in database")
             filter = {'file_id':id1}
             count = await Like.count_documents(filter)
-            await Media.collection.update_one({'_id':id1}, {'$set':{'lks':count}})
+            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
 
 async def add_user(id,sts):
     try:
