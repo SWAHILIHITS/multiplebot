@@ -292,7 +292,7 @@ async def cb_handler(client, query):
             await add_likes(f'{query.data.split(" ")[1]}##{query.from_user.id}',id3)
             filter = {'file_id':id3}
             lks = await Like.count_documents(filter)
-            reply_markup = InlineKeyboardMarkup([[[InlineKeyboardButton(f'like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]]])
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'like {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         elif query.data.startswith("xtext"):
             await query.answer('wait please')

@@ -72,7 +72,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua',
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'like {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue
@@ -94,7 +94,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua' or "",          
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('like {lks}',callback_data = f"xlks {id3} {nyvaa}")],[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'like {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue
