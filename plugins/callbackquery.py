@@ -20,83 +20,18 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-@Bot0.on_message( filters.command('renamee') & filters.private)
-async def grouop242(bot, message):
-    if lock.locked():
-        await message.reply('Wait until previous process complete.')
-    else:
-        while True:
-            last_msg = await bot.ask(text = "Forward me last message of a channel which I should save to my database.\n\nYou can forward posts from any public channel, but for private channels bot should be an admin in the channel.\n\nMake sure to forward with quotes (Not as a copy)", chat_id = message.from_user.id)
-            try:
-                last_msg_id = last_msg.forward_from_message_id
-                if last_msg.forward_from_chat.username:
-                    chat_id = last_msg.forward_from_chat.username
-                else:
-                    chat_id=last_msg.forward_from_chat.id
-                await bot.get_messages(chat_id, last_msg_id)
-                break
-            except Exception as e:
-                await last_msg.reply_text(f"This Is An Invalid Message, Either the channel is private and bot is not an admin in the forwarded chat, or you forwarded message as copy.\nError caused Due to <code>{e}</code>")
-                continue
+"""@Bot0.on_message( filters.command('renamee') & filters.private)
+async def grouop242(client, message):
+    filter = {'group_id': message.from_user.id}
+    total_results = await Media.count_documents(filter)
+    cursor = Media.find(filter)
+    await message.reply_text(
+            f"total found {total_results}")
+    cursor.sort('text', 1)
+    for file in await cursor.to_list(length=int(total_results)):
+        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp)
 
-        msg = await message.reply('Processing...⏳')
-        total_files = 0
-        async with lock:
-            try:
-                total=last_msg_id + 1
-                current=int(os.environ.get("SKIP", 2))
-                nyav=0
-                while True:
-                    try:
-                        message = await bot.get_messages(chat_id=chat_id, message_ids=current, replies=0)
-                    except FloodWait as e:
-                        await asyncio.sleep(e.x)
-                        message = await bot.get_messages(
-                            chat_id,
-                            current,
-                            replies=0
-                            )
-                    except Exception as e:
-                        print(e)
-                        pass
-                    try:
-                        for file_type in ("document", "video"):
-                            media = getattr(message, file_type, None)
-                            if media is not None:
-                                break
-                            else:
-                                continue
-                        file.text="test"
-                        file.reply=media.caption
-                        file.btn=[]
-                        file.file=media.file_id
-                        file.type=file_type
-                        file.id =media.file_id
-                        file.group_id = 859704527
-                        file.descp="fhjjj"
-                        file.grp ='g_1 hrm45'
-                        file.file_type = file_type
-                        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp,"Movietzbot",0)
-                        total_files += 1
-                    except Exception as e:
-                        print(e)
-                        pass
-                    current+=1
-                    nyav+=1
-                    if nyav == 20:
-                        await msg.edit(f"Total messages fetched: {current}\nTotal messages saved: {total_files}")
-                        nyav -= 20
-                    if current == total:
-                        break
-                    else:
-                        continue
-            except Exception as e:
-                logger.exception(e)
-                await msg.edit(f'Error: {e}')
-            else:
-                await msg.edit(f'Total {total_files} Saved To DataBase!'
-
-"""@Bot0.on_message( filters.command('rename') & filters.private)
+@Bot0.on_message( filters.command('rename') & filters.private)
 async def grouop2(client, message):
     if len(message.command) != 5:
         await message.reply_text(
