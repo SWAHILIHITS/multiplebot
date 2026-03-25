@@ -72,7 +72,7 @@ async def grouop242(bot, message):
                         file.file=media.file_id
                         file.type=file_type
                         file.id =media.file_id
-                        file.group_id = message.from_user.id
+                        file.group_id = 859704527
                         file.descp="fhjjj"
                         file.grp ='g_1 hrm45'
                         file.file_type = file_type
