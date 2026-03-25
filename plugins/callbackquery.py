@@ -73,7 +73,7 @@ async def grouop242(bot, message):
                         file.type=file_type
                         file.id =media.file_id
                         file.group_id = message.from_user.id
-                        file.descp "fhjjj"
+                        file.descp="fhjjj"
                         file.grp ='g_1 hrm45'
                         file.file_type = file_type
                         ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp,"Movietzbot",0)
