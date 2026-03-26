@@ -22,7 +22,10 @@ async def group2(client, message):
         ) 
 @Bot0.on_message(filters.command('index') & filters.private)
 async def index_filees(bot, message):
-    filez=Media.find({})
+    filz=Media.find({})
+    total_results = await Media.count_documents({})
+    #cursor.sort('text', 1)
+    filez = await filz.to_list(length=int(total_results))
     for files in filez:
         try:
             await asyncio.sleep(1)
