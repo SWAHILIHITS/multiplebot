@@ -85,17 +85,17 @@ async def index_files(bot, message):
                                 break
                             else:
                                 continue
-                        file.text="test"
-                        file.reply=media.caption
-                        file.btn=[]
-                        file.file=media.file_id
-                        file.type=file_type
-                        file.id =media.file_id
-                        file.group_id = 859704527
-                        file.descp="fhjjj"
-                        file.grp ='g_1 hrm45'
-                        file.file_type = file_type
-                        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp,"Movietzbot",0)
+                        text="test"
+                        reply=media.caption
+                        btn=[]
+                        file=media.file_id
+                        type=file_type
+                        id =media.file_id
+                        group_id = 859704527
+                        descp="fhjjj"
+                        grp ='g_1 hrm45'
+                        file_type = file_type
+                        ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm46',grp,"Movietzbot",0)
                         total_files += 1
                     except Exception as e:
                         await asyncio.sleep(10)
