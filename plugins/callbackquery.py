@@ -82,11 +82,11 @@ async def index_files(bot, message):
                         for file_type in ("document", "video"):
                             media = getattr(message, file_type, None)
                             if media is not None:
-                                break
                                 bfx="ty"
+                                break
                             else:
-                                continue
                                 bfx='wy'
+                                continue
                         if bfx=="ty":
                             await asyncio.sleep(10)
                             await msg.edit(media)
