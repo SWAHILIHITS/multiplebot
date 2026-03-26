@@ -30,7 +30,7 @@ async def index_filees(bot, message):
     id2=arg[1].strip()
     for files in filez:
         try:
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             await bot.send_cached_media(
                         chat_id=int(id2),
                         file_id=files.file,
@@ -39,7 +39,7 @@ async def index_filees(bot, message):
         except FloodWait as e:
             await asyncio.sleep(e.value)
             await bot.send_cached_media(
-                        chat_id=-1002132025080,
+                        chat_id=int(id2),
                         file_id=files.file,
                         caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
             )
