@@ -30,7 +30,6 @@ async def index_filees(bot, message):
     id2=arg[1].strip()
     for files in filez:
         try:
-            await asyncio.sleep(2)
             await bot.send_cached_media(
                         chat_id=int(id2),
                         file_id=files.file,
