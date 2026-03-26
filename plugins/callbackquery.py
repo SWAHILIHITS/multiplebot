@@ -85,12 +85,14 @@ async def index_files(bot, message):
                                 break
                             else:
                                 continue
+                        await asyncio.sleep(10)
+                        await msg.edit(f'Error: {e}')
                         text="test"
                         reply=message.caption
                         btn=[]
-                        file=media.file_id
+                        file=message.file_id
                         type=file_type
-                        id =media.file_id
+                        id =message.file_id
                         group_id = 859704527
                         descp="fhjjj"
                         grp ='g_1 hrm45'
