@@ -83,22 +83,25 @@ async def index_files(bot, message):
                             media = getattr(message, file_type, None)
                             if media is not None:
                                 break
+                                bfx="ty"
                             else:
                                 continue
-                        await asyncio.sleep(10)
-                        await msg.edit(media)
-                        text="test"
-                        reply=message.caption
-                        btn=[]
-                        file=message.file_id
-                        type=file_type
-                        id =message.file_id
-                        group_id = 859704527
-                        descp="fhjjj"
-                        grp ='g_1 hrm45'
-                        file_type = file_type
-                        ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm46',grp,"Movietzbot",0)
-                        total_files += 1
+                                bfx='wy'
+                        if bfx="ty":
+                            await asyncio.sleep(10)
+                            await msg.edit(media)
+                            text="test"
+                            reply=message.caption
+                            btn=[]
+                            file=message.file_id
+                            type=file_type
+                            id =message.file_id
+                            group_id = 859704527
+                            descp="fhjjj"
+                            grp ='g_1 hrm45'
+                            file_type = file_type
+                            ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm46',grp,"Movietzbot",0)
+                            total_files += 1
                     except Exception as e:
                         await asyncio.sleep(10)
                         await msg.edit(f'Error: {e}')
