@@ -68,14 +68,13 @@ async def index_files(bot, message):
                     try:
                         message = await bot.get_messages(chat_id=chat_id, message_ids=current, replies=0)
                     except FloodWait as e:
-                        await asyncio.sleep(e.x)
+                        await asyncio.sleep(e.seconds)
                         message = await bot.get_messages(
                             chat_id,
                             current,
                             replies=0
                             )
                     except Exception as e:
-                        
                         print(e)
                         pass
                     try:
@@ -88,8 +87,6 @@ async def index_files(bot, message):
                                 bfx='wy'
                                 continue
                         if bfx=="ty":
-                            await asyncio.sleep(1)
-                            await msg.edit(media)
                             text=media.file_name
                             reply=message.caption
                             btn=[]
@@ -103,15 +100,13 @@ async def index_files(bot, message):
                             ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm4666',grp,"Movietzbot",0)
                             total_files += 1
                     except Exception as e:
-                        await asyncio.sleep(10)
-                        await msg.edit(f'Error: {e}')
                         print(e)
                         pass
                     current+=1
                     nyav+=1
-                    if nyav == 20:
+                    if nyav == 100:
                         await msg.edit(f"Total messages fetched: {current}\nTotal messages saved: {total_files}")
-                        nyav -= 20
+                        nyav -= 100
                     if current == total:
                         break
                     else:
