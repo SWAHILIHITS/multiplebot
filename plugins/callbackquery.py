@@ -2,7 +2,7 @@ from info import filters,CHANNELS,OWNER_ID
 import uuid
 import time,re,os,asyncio
 from plugins.base_command import btn22
-from pyrogram.errors import ChatAdminRequired
+from pyrogram.errors import ChatAdminRequired,FloodWait
 from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like
 from botii  import Bot0
 import requests
@@ -21,8 +21,25 @@ async def group2(client, message):
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
 @Bot0.on_message(filters.command('index') & filters.private)
+async def index_filees(bot, message):
+    for files in await Media.find({}):
+        try:
+            await asyncio.sleep(1)
+            await bot.send_cached_media(
+                        chat_id=-1002132025080,
+                        file_id=files.file,
+                        dtcaption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
+            )
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            await bot.send_cached_media(
+                        chat_id=-1002132025080,
+                        file_id=files.file,
+                        dtcaption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
+            )
+"""@Bot0.on_message(filters.command('index') & filters.private)
 async def index_files(bot, message):
-    """Save channel or group files"""
+    #Save channel or group files
     if lock.locked():
         await message.reply('Wait until previous process complete.')
     else:
@@ -68,7 +85,7 @@ async def index_files(bot, message):
                     try:
                         message = await bot.get_messages(chat_id=chat_id, message_ids=current, replies=0)
                     except FloodWait as e:
-                        await asyncio.sleep(e.seconds)
+                        await asyncio.sleep(e.value)
                         message = await bot.get_messages(
                             chat_id,
                             current,
@@ -115,7 +132,7 @@ async def index_files(bot, message):
                 await msg.edit(f'Error: {e}')
             else:
                 await msg.edit(f'Total {total_files} Saved To DataBase!')
-"""@Bot0.on_message( filters.command('renamee') & filters.private)
+@Bot0.on_message( filters.command('renamee') & filters.private)
 async def grouop242(client, message):
     filter = {'group_id': message.from_user.id}
     total_results = await Media.count_documents(filter)
