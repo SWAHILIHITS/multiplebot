@@ -88,7 +88,7 @@ async def index_files(bot, message):
                                 bfx='wy'
                                 continue
                         if bfx=="ty":
-                            #await asyncio.sleep(1)
+                            await asyncio.sleep(1)
                             await msg.edit(media)
                             text=media.file_name
                             reply=message.caption
