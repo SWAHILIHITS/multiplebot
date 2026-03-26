@@ -86,7 +86,7 @@ async def index_files(bot, message):
                             else:
                                 continue
                         text="test"
-                        reply=media.caption
+                        reply=message.caption
                         btn=[]
                         file=media.file_id
                         type=file_type
