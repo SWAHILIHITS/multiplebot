@@ -115,6 +115,10 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
                     await Media.collection.delete_one({'_id':ad.id})
         await Media.collection.delete_one(fdata)
         return
+    fdata['file']= str(file)
+    found2 = await Media.find_one(fdata)
+    if found2 and prc=='hrm4666':
+        return "already saved"
     try:
         file = Media(
             id=id,
