@@ -97,6 +97,8 @@ async def index_files(bot, message):
                         ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp,"Movietzbot",0)
                         total_files += 1
                     except Exception as e:
+                        logger.exception(e)
+                        await msg.edit(f'Error: {e}')
                         print(e)
                         pass
                     current+=1
