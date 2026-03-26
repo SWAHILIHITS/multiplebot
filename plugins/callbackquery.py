@@ -26,7 +26,7 @@ async def index_filees(bot, message):
     total_results = await Media.count_documents({})
     #cursor.sort('text', 1)
     filez = await filz.to_list(length=int(total_results))
-    args = message.text.split(' ', 1)
+    arg = message.text.split(' ', 1)
     id2=arg[1].strip()
     for files in filez:
         try:
