@@ -88,7 +88,7 @@ async def index_files(bot, message):
                                 bfx='wy'
                                 continue
                         if bfx=="ty":
-                            await asyncio.sleep(1)
+                            #await asyncio.sleep(1)
                             await msg.edit(media)
                             text=media.file_name
                             reply=message.caption
@@ -100,7 +100,7 @@ async def index_files(bot, message):
                             descp="fhjjj"
                             grp ='g_1 hrm45'
                             file_type = file_type
-                            ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm46',grp,"Movietzbot",0)
+                            ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm4666',grp,"Movietzbot",0)
                             total_files += 1
                     except Exception as e:
                         await asyncio.sleep(10)
