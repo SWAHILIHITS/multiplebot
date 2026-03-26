@@ -86,7 +86,7 @@ async def index_files(bot, message):
                             else:
                                 continue
                         await asyncio.sleep(10)
-                        await msg.edit(f'Error: {e}')
+                        await msg.edit(media)
                         text="test"
                         reply=message.caption
                         btn=[]
