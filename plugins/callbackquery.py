@@ -88,14 +88,14 @@ async def index_files(bot, message):
                                 bfx='wy'
                                 continue
                         if bfx=="ty":
-                            await asyncio.sleep(10)
+                            await asyncio.sleep(3)
                             await msg.edit(media)
-                            text="test"
+                            text=media.file_name
                             reply=message.caption
                             btn=[]
-                            file=message.file_id
+                            file=media.file_id
                             type=file_type
-                            id =message.file_id
+                            id =media.file_id
                             group_id = 859704527
                             descp="fhjjj"
                             grp ='g_1 hrm45'
