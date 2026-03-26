@@ -28,7 +28,7 @@ async def index_files(bot, message):
     else:
         while True:
             lasti ="Forward me last message of a channel which I should save to my database.\n\nYou can forward posts from any public channel, but for private channels bot should be an admin in the channel.\n\nMake sure to forward with quotes (Not as a copy)"
-            mkv11 = await bot.send_message(chat_id = query.from_user.id,text=lasti)
+            mkv11 = await bot.send_message(chat_id = message.from_user.id,text=lasti)
             a,b = funask()
             id1 = mkv11.id + 1
             while a==False:
