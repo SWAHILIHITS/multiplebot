@@ -22,7 +22,8 @@ async def group2(client, message):
         ) 
 @Bot0.on_message(filters.command('index') & filters.private)
 async def index_filees(bot, message):
-    for files in await Media.find({}):
+    filez=Media.find({})
+    for files in filez:
         try:
             await asyncio.sleep(1)
             await bot.send_cached_media(
