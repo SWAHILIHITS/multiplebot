@@ -33,7 +33,7 @@ async def index_files(bot, message):
             id1 = mkv11.id + 1
             while a==False:
                 try:
-                    last_msg = await bot.get_messages("me",id1)
+                    mkv1= await bot.get_messages("me",id1)
                     if (mkv1.document | mkv1.video)!=None:
                         a=True
                     if (time.time()-b)>(3*60):
@@ -44,6 +44,7 @@ async def index_files(bot, message):
                         id1=id1+1
                 except:
                     a=False
+            last_msg=mkv1
             try:
                 last_msg_id = last_msg.forward_from_message_id
                 if last_msg.forward_from_chat.username:
