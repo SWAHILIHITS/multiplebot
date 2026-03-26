@@ -34,9 +34,9 @@ async def index_files(bot, message):
             while a==False:
                 try:
                     mkv1= await bot.get_messages("me",id1)
-                    if (mkv1.document | mkv1.video)!=None:
+                    if mkv1.media!=None or mkv1.text!=None:
                         a=True
-                    if (time.time()-b)>(3*60):
+                    if (time.time()-b)>(1*60):
                         await bot.send_message(chat_id = message.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine")
                         return
                     if mkv1.from_user.id != message.from_user.id :
@@ -78,7 +78,7 @@ async def index_files(bot, message):
                         print(e)
                         pass
                     try:
-                        for file_type in ("document", "video", "audio"):
+                        for file_type in ("document", "video"):
                             media = getattr(message, file_type, None)
                             if media is not None:
                                 break
