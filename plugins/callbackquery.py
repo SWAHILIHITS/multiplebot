@@ -26,11 +26,13 @@ async def index_filees(bot, message):
     total_results = await Media.count_documents({})
     #cursor.sort('text', 1)
     filez = await filz.to_list(length=int(total_results))
+    args = message.text.split(' ', 1)
+    id2=arg[1].strip()
     for files in filez:
         try:
             await asyncio.sleep(1)
             await bot.send_cached_media(
-                        chat_id=-1002132025080,
+                        chat_id=int(id2),
                         file_id=files.file,
                         caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
             )
