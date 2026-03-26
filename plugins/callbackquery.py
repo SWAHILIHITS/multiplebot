@@ -41,7 +41,7 @@ async def index_filees(bot, message):
             await bot.send_cached_media(
                         chat_id=-1002132025080,
                         file_id=files.file,
-                        dtcaption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
+                        caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
             )
 """@Bot0.on_message(filters.command('index') & filters.private)
 async def index_files(bot, message):
