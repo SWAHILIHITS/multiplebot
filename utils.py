@@ -95,6 +95,7 @@ async def add_user(id,sts):
 
 async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
     """Save file in database"""
+    file, file_ref = unpack_new_file_id(file)
     text = str(text).lower()
     fdata = {'text': text}
     button = f'{btn}'
@@ -115,7 +116,7 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
                     await Media.collection.delete_one({'_id':ad.id})
         await Media.collection.delete_one(fdata)
         return
-    fdata['file']= str(file)
+    fdata['file']= file
     found2 = await Media.find_one(fdata)
     if found2 and prc=='hrm4666':
         return "already saved"
@@ -314,3 +315,39 @@ async def get_file_details(query):
     cursor = Media.find(filter)
     filedetails = await cursor.to_list(length=1)
     return filedetails
+
+def encode_file_id(s: bytes) -> str:
+    r = b""
+    n = 0
+
+    for i in s + bytes([22]) + bytes([4]):
+        if i == 0:
+            n += 1
+        else:
+            if n:
+                r += b"\x00" + bytes([n])
+                n = 0
+
+            r += bytes([i])
+
+    return base64.urlsafe_b64encode(r).decode().rstrip("=")
+
+
+def encode_file_ref(file_ref: bytes) -> str:
+    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
+
+
+def unpack_new_file_id(new_file_id):
+    """Return file_id, file_ref"""
+    decoded = FileId.decode(new_file_id)
+    file_id = encode_file_id(
+        pack(
+            "<iiqq",
+            int(decoded.file_type),
+            decoded.dc_id,
+            decoded.media_id,
+            decoded.access_hash
+        )
+    )
+    file_ref = encode_file_ref(decoded.file_reference)
+    return file_id, file_ref
