@@ -9,7 +9,7 @@ primary_region = 'ams'
 [build]
 
 [[restart]]
-  policy = "Always | on-failure"
+  policy = "always | on-failure"
   retries = 1
   processes = ["app"]
 
