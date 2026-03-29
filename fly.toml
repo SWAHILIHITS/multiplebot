@@ -9,8 +9,8 @@ primary_region = 'ams'
 [build]
 
 [[restart]]
-  policy = "<never | always | on-fail>"
-  retries = 10
+  policy = "on-fail"
+  retries = 1
   processes = ["app"]
   
 [http_service]
