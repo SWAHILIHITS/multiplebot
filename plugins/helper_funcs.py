@@ -2,6 +2,7 @@ import re
 import os   
 import uuid,requests,base64
 from typing import List
+import imgbbpy
 from telegraph import upload_file
 from pyrogram.types import InlineKeyboardButton
 
@@ -41,17 +42,22 @@ def replace_href(text):
     return text
  
 async def upload_photo(message):
-    msg = await message.reply_text("<code>Please wait..</code>")
+    clienti = imgbbpy.SyncClient('cab55905565c6715080c8040b8292a48')
     _T_LIMIT = 5242880
     if not (bool(message.photo) and bool(message.photo.file_size <= _T_LIMIT)):
         await msg.edit("<i>Sorry this Photo is not supported..</i>")
         return False
-    dl_loc = await message.download()
+    msg = await message.reply_text("<code>Please wait..</code>")
+    
     try:
         #response = upload_file(dl_loc)
 
 # Set API endpoint and headers
+        dl_loc = await message.download()
+        image = clienti.upload(file=dl_lock)
+         
         url = "https://api.imgur.com/3/image"
+        
         headers = {"Authorization": "Client-ID 5caba95f470ff04"}
         with open(dl_loc, "rb") as file:
             data = file.read()
@@ -68,6 +74,7 @@ async def upload_photo(message):
         link = False
     else:
         link = url
+        link=image.url
         await msg.delete()
     finally:
         os.remove(dl_loc)
