@@ -10,7 +10,7 @@ primary_region = 'ams'
 
 [[restart]]
   policy = "<always | on-failure>"
-  retries = 1
+  retries = 10
   processes = ["app"]
 
 [http_service]
