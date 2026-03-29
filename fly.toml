@@ -9,9 +9,10 @@ primary_region = 'ams'
 [build]
 
 [[restart]]
-  retries = 1
+  policy = "<never | always | on-fail>"
+  retries = 10
   processes = ["app"]
-
+  
 [http_service]
   internal_port = 8080
   force_https = true
