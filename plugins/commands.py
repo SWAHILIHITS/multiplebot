@@ -355,6 +355,8 @@ async def new_filtervip(client, message):
                 for data2 in ["haijatafsiriwa","imetafsiriwa","movie","series"]:
                     if data2 in dta1.id and dta1.id.split("##")[0] not in abz:
                         abz.append(dta1.id.split("##")[0])
+            if user_id=="":
+                nyvaa="Movietzbot"
             if msg_type == 'Photo':  
                 await client.send_photo(
                     chat_id = CHANNELS,
@@ -369,7 +371,7 @@ async def new_filtervip(client, message):
                             photo = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyvaa}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{strid}")]])
                         )
                     except Exception as err:
                         await message.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")                    
@@ -388,7 +390,7 @@ async def new_filtervip(client, message):
                             file_id = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyvaa}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{strid}")]])
                         )
                     except:
                         pass
