@@ -1,5 +1,5 @@
 import re
-import os   
+import os,asyncio  
 import uuid,requests,base64
 from typing import List
 import imgbbpy
@@ -66,7 +66,8 @@ async def upload_photo(message):
         # Upload image to Imgur and get URL
         response = requests.post(url, headers=headers, data={"image": base64_data})
         url = response.json()["data"]["link"]
-        await msg.edit_text(url)
+        await msg.edit_text(image.url)
+        asyncio.sleep(5)
     except Exception as t_e:
         t_e =str(t_e) + "hi"
         await message.reply_photo(dl_loc)
