@@ -50,6 +50,8 @@ async def give_filter(client, query):
             reply_markup = None
         else:
             reply_markup = InlineKeyboardMarkup(eval(button))
+        if group_id==859704527:
+            nyvaa='Movietzbot'
         if reply_text:
             reply_text = reply_text.replace("\\n", "\n").replace("\\t", "\t")
         if acs == 'x':  
@@ -72,7 +74,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua',
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}"),InlineKeyboardButton(' Edit', url=f"https://t.me/{nyvaa}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue
@@ -94,7 +96,7 @@ async def give_filter(client, query):
                         title = keyword.upper(),
                         description = descp,
                         caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua' or "",          
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != query.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}"),InlineKeyboardButton(' Edit', url=f"https://t.me/{nyvaa}?start=xsubinps_-_-_-_{id3}")]])
                     )
                 except:
                     continue 

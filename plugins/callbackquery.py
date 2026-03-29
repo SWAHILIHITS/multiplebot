@@ -20,7 +20,7 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-@Bot0.on_message(filters.command('index') & filters.private)
+"""@Bot0.on_message(filters.command('index') & filters.private)
 async def index_filees(bot, message):
     filz=Media.find({})
     total_results = await Media.count_documents({})
@@ -42,7 +42,7 @@ async def index_filees(bot, message):
                         file_id=files.file,
                         caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
             )
-"""@Bot0.on_message(filters.command('index') & filters.private)
+@Bot0.on_message(filters.command('index') & filters.private)
 async def index_files(bot, message):
     #Save channel or group files
     if lock.locked():
@@ -409,7 +409,7 @@ async def cb_handler(client, query):
             await add_likes(f'{query.data.split(" ")[1]}##{query.from_user.id}',id3)
             filter = {'file_id':id3}
             lks = await Like.count_documents(filter)
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])
             await query.edit_message_reply_markup(reply_markup=reply_markup)
         elif query.data.startswith("xtext"):
             await query.answer('wait please')

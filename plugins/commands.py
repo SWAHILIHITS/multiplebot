@@ -369,7 +369,7 @@ async def new_filtervip(client, message):
                             photo = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                     except Exception as err:
                         await message.reply_text(f"Something went wrong!\n\n**Error:** `{err}`")                    
@@ -388,7 +388,7 @@ async def new_filtervip(client, message):
                             file_id = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('like 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton('❤️likes 0',callback_data = f"xlks {strid} {nyva}")],[InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
                         )
                     except:
                         pass

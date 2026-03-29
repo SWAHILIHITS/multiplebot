@@ -163,6 +163,8 @@ async def rrecussive(client, message):
             ict+=1
             if ict==3:
                 break
+            if int(user_id3)==859704527:
+                nyvaa='Movietzbot'
             if msg_type == 'Photo':   
                 for data2 in abz:
                     try:
@@ -171,7 +173,7 @@ async def rrecussive(client, message):
                             photo = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {strid} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {strid} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{strid}")]])
                         )
                         a+=1
                         await asyncio.sleep(a)
@@ -185,7 +187,7 @@ async def rrecussive(client, message):
                             file_id = fileid,
                             disable_notification=True,
                             caption = reply_text,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {strid} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{strid}")]])
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {strid} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{strid}")]])
                         )
                         a+=1
                         await asyncio.sleep(a)
@@ -264,6 +266,8 @@ async def group(client, message):
                 acs = document.descp.split('.dd#.')[0]
                 nyvaa=document.nyva
                 lks =document.lks
+                if int(user_id3)==859704527:
+                   nyvaa='Movietzbot'
                 if button =="[]":
                     reply_markup = None
                 else:
@@ -278,7 +282,7 @@ async def group(client, message):
                         await message.reply_photo(
                             photo = fileid,
                             caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua',
-                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")]])if group_id != message.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != message.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyvaa}?start=xsubinps_-_-_-_{id3}")]])
                         )
                  
                     elif msg_type == 'Photo':
@@ -292,7 +296,7 @@ async def group(client, message):
                         await message.reply_cached_media(
                             file_id = fileid,
                             caption = reply_text+'\nBonyeza **DOWNLOAD** kuipakua' or "",
-                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")]])if group_id != message.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyva}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{id3}")]])
+                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(f'❤️likes  {lks}',callback_data = f"xlks {id3} {nyvaa}"),InlineKeyboardButton(text='📥 Download',url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")]])if group_id != message.from_user.id else InlineKeyboardMarkup([[InlineKeyboardButton('📤 Download', url=f"https://t.me/{nyvaa}?start=subinps_-_-_-_{id3}")],[InlineKeyboardButton(' Edit', url=f"https://t.me/{nyvaa}?start=xsubinps_-_-_-_{id3}")]])
                         )
                 
                     elif fileid:
