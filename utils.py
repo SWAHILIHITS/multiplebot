@@ -95,7 +95,8 @@ async def add_user(id,sts):
 
 async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
     """Save file in database"""
-    file, file_ref = unpack_new_file_id(file)
+    if type=='Video':
+        file, file_ref = unpack_new_file_id(file)
     text = str(text).lower()
     fdata = {'text': text}
     button = f'{btn}'
