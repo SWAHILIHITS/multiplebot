@@ -54,7 +54,7 @@ async def upload_photo(message):
 
 # Set API endpoint and headers
         dl_loc = await message.download()
-        image = clienti.upload(file=dl_lock)
+        image = clienti.upload(file=dl_loc)
          
         url = "https://api.imgur.com/3/image"
         
