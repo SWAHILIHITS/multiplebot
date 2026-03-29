@@ -355,7 +355,7 @@ async def new_filtervip(client, message):
                 for data2 in ["haijatafsiriwa","imetafsiriwa","movie","series"]:
                     if data2 in dta1.id and dta1.id.split("##")[0] not in abz:
                         abz.append(dta1.id.split("##")[0])
-            if user_id=="859704527":
+            if user_id==859704527:
                 nyvaa="Movietzbot"
             else:
                 nvyaa=nyva
