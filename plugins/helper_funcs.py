@@ -56,25 +56,23 @@ async def upload_photo(message):
         dl_loc = await message.download()
         image = clienti.upload(file=dl_loc)
          
-        url = "https://api.imgur.com/3/image"
+        #url = "https://api.imgur.com/3/image"
         
-        headers = {"Authorization": "Client-ID 5caba95f470ff04"}
-        with open(dl_loc, "rb") as file:
-            data = file.read()
-            base64_data = base64.b64encode(data)
+        #headers = {"Authorization": "Client-ID 5caba95f470ff04"}
+        #with open(dl_loc, "rb") as file:
+            #data = file.read()
+            #base64_data = base64.b64encode(data)
 
         # Upload image to Imgur and get URL
-        response = requests.post(url, headers=headers, data={"image": base64_data})
-        url = response.json()["data"]["link"]
+        #response = requests.post(url, headers=headers, data={"image": base64_data})
+        #url = response.json()["data"]["link"]
         await msg.edit_text(image.url)
-        asyncio.sleep(5)
     except Exception as t_e:
         t_e =str(t_e) + "hi"
         await message.reply_photo(dl_loc)
         await msg.edit_text(t_e)
         link = False
     else:
-        link = url
         link=image.url
         await msg.delete()
     finally:
