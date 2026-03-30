@@ -351,10 +351,17 @@ async def new_filtervip(client, message):
         if fileid:
             data1=await is_group_exist("channel",nyva)
             abz=[]
+            hanz="haijatafsiriwa imetafsiriwa movie series murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six fingers hero"
+            hanz=hanz.lower().strip()
+            hanz=hanz.split(' ')
             for dta1 in data1:
-                for data2 in ["haijatafsiriwa","imetafsiriwa","movie","series"]:
+                for data2 in hanz:
                     if data2 in dta1.id and dta1.id.split("##")[0] not in abz:
                         abz.append(dta1.id.split("##")[0])
+                        break
+                    elif data2 =='auto'and dta1.id.split("##")[0] not in abz:
+                        abz.append(dta1.id.split("##")[0])
+                        break
             if user_id==859704527:
                 nyvaa="Movietzbot"
             else:

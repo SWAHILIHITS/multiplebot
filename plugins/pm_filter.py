@@ -33,7 +33,7 @@ async def addchannel(client, message):
     if chat_type == "ChatType.PRIVATE":
         if not message.forward_from_chat:
             await message.reply_text(
-                "Samahan add hii bot kama admin kwenye group au channel yako kisha tuma command hii \n<b>/ongeza weka neno</b>kwenye neno inabidi iwe kati ya maneno haya Imetafsiriwa au haijatafsiriwa au movie au series kwa maneno zaidi muulize @hrm45 akuelekeze",
+                "Samahan add hii bot kama admin kwenye group au channel yako kisha tuma command hii \n<b>/ongeza weka neno</b>kwenye neno inabidi iwe kati ya maneno haya Imetafsiriwa au haijatafsiriwa au movie au series murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six fingers hero kwa maneno zaidi muulize @hrm45 akuelekeze",
                 quote=True
             )
             return
@@ -61,7 +61,7 @@ async def addchannel(client, message):
         st = await client.get_chat_member(group_id, "me")
         st.status=(f"{st.status}".split(".")[1])
         if st.status == "ADMINISTRATOR":
-            if message.command[1].lower() in "imetafsiriwa haijatafsiriwa movie series auto":
+            if message.command[1].lower() in "imetafsiriwa haijatafsiriwa movie series auto murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six fingers hero":
                 abf=message.command[1].strip()
                 hjkl1 = f'{group_id}##{abf.lower()}'
                 if not await is_user_exist(hjkl1,nyva):
