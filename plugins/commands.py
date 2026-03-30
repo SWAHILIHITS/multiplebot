@@ -33,9 +33,6 @@ async def new_filtervip(client, message):
     botusername=await client.get_me()
     nyva=botusername.username  
     nyva=str(nyva)
-    if nyva=='Movietzbot':
-        await message.reply_text("tafadhali huyu n main robot huwez add movie", quote=True)
-        return
     status= await db.is_admin_exist(message.from_user.id,nyva)
     if not status:
         return
