@@ -8,7 +8,6 @@ from botii  import Bot0
 import requests
 from plugins.database import db
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery,ForceReply,ChatPermissions
-lock = asyncio.Lock()
 @Bot0.on_message( filters.command('edit_admin') & filters.private)
 async def group2(client, message):
     botusername=await client.get_me()
@@ -20,168 +19,6 @@ async def group2(client, message):
     await client.send_message(chat_id= message.from_user.id,text="chagua huduma unayotaka kufanya marekebisho",
             reply_markup =InlineKeyboardMarkup([[InlineKeyboardButton('Rekebisha Makundi', callback_data = "kundii")],[InlineKeyboardButton('Rekebisha Jina la Kikundi', callback_data = "dbname")],[InlineKeyboardButton('Rekebisha Startup sms', callback_data = "startup")],[InlineKeyboardButton('Rekebisha Mawasiliano', callback_data = "xba")]])
         ) 
-"""@Bot0.on_message(filters.command('index') & filters.private)
-async def index_filees(bot, message):
-    filz=Media.find({})
-    total_results = await Media.count_documents({})
-    #cursor.sort('text', 1)
-    filez = await filz.to_list(length=int(total_results))
-    arg = message.text.split(' ', 1)
-    id2=arg[1].strip()
-    for files in filez:
-        try:
-            await bot.send_cached_media(
-                        chat_id=int(id2),
-                        file_id=files.file,
-                        caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
-            )
-        except FloodWait as e:
-            await asyncio.sleep(e.value)
-            await bot.send_cached_media(
-                        chat_id=int(id2),
-                        file_id=files.file,
-                        caption=f'{files.reply}\n\njiunge kikund chetu usipitwe n vitu vizuri\nhttps://t.me/dj_vasco_murphy_mjukuu_mack_ommy'
-            )
-@Bot0.on_message(filters.command('index') & filters.private)
-async def index_files(bot, message):
-    #Save channel or group files
-    if lock.locked():
-        await message.reply('Wait until previous process complete.')
-    else:
-        while True:
-            lasti ="Forward me last message of a channel which I should save to my database.\n\nYou can forward posts from any public channel, but for private channels bot should be an admin in the channel.\n\nMake sure to forward with quotes (Not as a copy)"
-            mkv11 = await bot.send_message(chat_id = message.from_user.id,text=lasti)
-            a,b = funask()
-            id1 = mkv11.id + 1
-            while a==False:
-                try:
-                    mkv1= await bot.get_messages("me",id1)
-                    if mkv1.media!=None or mkv1.text!=None:
-                        a=True
-                    if (time.time()-b)>(1*60):
-                        await bot.send_message(chat_id = message.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine")
-                        return
-                    if mkv1.from_user.id != message.from_user.id :
-                        a=False
-                        id1=id1+1
-                except:
-                    a=False
-            last_msg=mkv1
-            try:
-                last_msg_id = last_msg.forward_from_message_id
-                if last_msg.forward_from_chat.username:
-                    chat_id = last_msg.forward_from_chat.username
-                else:
-                    chat_id=last_msg.forward_from_chat.id
-                await bot.get_messages(chat_id, last_msg_id)
-                break
-            except Exception as e:
-                await last_msg.reply_text(f"This Is An Invalid Message, Either the channel is private and bot is not an admin in the forwarded chat, or you forwarded message as copy.\nError caused Due to <code>{e}</code>")
-                continue
-
-        msg = await message.reply('Processing...⏳')
-        total_files = 0
-        async with lock:
-            try:
-                total=last_msg_id + 1
-                current=2
-                nyav=0
-                while True:
-                    try:
-                        message = await bot.get_messages(chat_id=chat_id, message_ids=current, replies=0)
-                    except FloodWait as e:
-                        await asyncio.sleep(e.value)
-                        message = await bot.get_messages(
-                            chat_id,
-                            current,
-                            replies=0
-                            )
-                    except Exception as e:
-                        print(e)
-                        pass
-                    try:
-                        for file_type in ("document", "video"):
-                            media = getattr(message, file_type, None)
-                            if media is not None:
-                                bfx="ty"
-                                break
-                            else:
-                                bfx='wy'
-                                continue
-                        if bfx=="ty":
-                            text=media.file_name
-                            reply=message.caption
-                            btn=[]
-                            file=media.file_id
-                            type=file_type
-                            id =media.file_id
-                            group_id = 859704527
-                            descp="fhjjj"
-                            grp ='g_1 hrm45'
-                            file_type = file_type
-                            ab=await save_file(text,reply, btn, file, type, id,group_id,descp,'hrm4666',grp,"Movietzbot",0)
-                            total_files += 1
-                    except Exception as e:
-                        print(e)
-                        pass
-                    current+=1
-                    nyav+=1
-                    if nyav == 100:
-                        await msg.edit(f"Total messages fetched: {current}\nTotal messages saved: {total_files}")
-                        nyav -= 100
-                    if current == total:
-                        break
-                    else:
-                        continue
-            except Exception as e:
-                await msg.edit(f'Error: {e}')
-            else:
-                await msg.edit(f'Total {total_files} Saved To DataBase!')
-@Bot0.on_message( filters.command('renamee') & filters.private)
-async def grouop242(client, message):
-    filter = {'group_id': message.from_user.id}
-    total_results = await Media.count_documents(filter)
-    cursor = Media.find(filter)
-    await message.reply_text(
-            f"total found {total_results}")
-    cursor.sort('text', 1)
-    for file in await cursor.to_list(length=int(total_results)):
-        ab=await save_file(file.text,file.reply, file.btn, file.file, file.type, file.id,file.group_id,file.descp,'hrm46',file.grp)
-
-@Bot0.on_message( filters.command('rename') & filters.private)
-async def grouop2(client, message):
-    if len(message.command) != 5:
-        await message.reply_text(
-            f"tuma /rename 1234kb 1234kw usrkbadlisha usrkuweka")
-        return 
-    raw_pattern = r'\b' + message.command[1] + r'.*'
-    try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except Exception as e :
-        print(e)
-        return
-    else:
-        filter = {'text': regex}
-    filter["type"]="Photo"
-    filter['group_id'] = int(message.command[1])
-    total_results = await Media.count_documents(filter)
-    cursor = Media.find(filter)
-    await message.reply_text(
-            f"total found {total_results}")
-    cursor.sort('text', 1)
-    for file in await cursor.to_list(length=int(total_results)):
-        if "data" in file.descp :
-            print("hi")
-            continue 
-        elif len(file.descp.split(".dd#."))>=3:
-            abb = await save_file( file.text.split(".dd#")[0] + ".dd#." + message.command[2], 'reply_text', [], 'fileid', 'msg_type', 'strid',int(message.command[2]),'descp',"chec",'normal')
-            if abb != "hrm46":
-                print("hi")
-                strid = str(uuid.uuid4())
-                file.reply=file.reply.replace( message.command[3] ,message.command[4])
-                file.reply=file.reply.replace("hrm45",message.command[4])
-                await save_file(file.text.split(".dd#")[0] + ".dd#." + message.command[2], file.reply, file.btn, file.file, file.type, strid, int(message.command[2]) ,file.descp,file.price,file.grp) 
-"""
 @Bot0.on_callback_query()
 async def cb_handler(client, query):
     clicked = query.from_user.id
@@ -697,28 +534,34 @@ async def cb_handler(client, query):
                 group_id = files.group_id
                 id3 = files.file
                 type1 = files.type
+                prc2 = files.price
+                name = files.text.split('.dd#.',1)[0]
             if query.data.split(" ")[0].split("##")[1]=="tsh":
                 kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
                 fileid=fileid + "##z"
+                prc2=f'Tsh {int(prc2)}'
             elif query.data.split(" ")[0].split("##")[1]=="ksh":
                 kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
                 fileid=fileid + "##k"
+                prc2=f'Ksh {int(prc2)/19}'
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id,nyva)
-            if type1=="Photo":
-                await client.send_photo(
-                            chat_id=query.from_user.id,
-                            photo= id3,
-                            caption =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** \nTafadhali chagua kifurush kupata maelezo zaidi na jinsi ya kufanya malipo kwa kubonyeza button zilizopo chini\n\nbonyeza **lipia hii tu** kuilipia movie/Series hii tu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                            reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton("Lipia hii __ tu", callback_data=f"wiik2 {fileid}.g_1.500.m")]]) )
-            else:
-                await client.send_cached_media(
-                                    chat_id=query.from_user.id,
-                                    file_id=id3,
-                                    caption =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** \nTafadhali chagua kifurush kupata maelezo zaidi na jinsi ya kufanya malipo kwa kubonyeza button zilizopo chini\n\nbonyeza **lipi hii tu** kulipia movie/series hii tu \n\n**__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                                    reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton("Lipia hii __ tu", callback_data=f"wiik2 {fileid}.g_1.500.m")]]) )
-           
+            strl=''
+            icount1=0
+            for ir in range(6):
+                if db_details[f"g_{ir+1}"]=='hrm45':
+                    continue
+                elif db_details[f"g_{ir+1}"].split("#@")[1]=="0,0,0,0,0":
+                    continue
+                else:
+                    icount1+=1
+                    strl=f'{strl}\n\n**{icount1}{db_details[f"g_{ir+1}"].split("#@")[0].upper()}**\n    {db_details[f"g_{ir+1}"].split("#@")[2]}'
+            await client.message(
+                        chat_id=query.from_user.id,
+                        caption =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** {strl}\n\nAu bonyeza **Lipia {prc2}** kulipia {name} hii tu na kuweza kuipakua mda wowote ndan ya siku 90 ~ miez mitatu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
+                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.500.m")]]) )
+            
         elif query.data.startswith("wik"):
             botusername=await client.get_me()
             nyva=botusername.username  
@@ -839,8 +682,8 @@ async def cb_handler(client, query):
                     if mkv.text!=None or mkv.media!=None:
                         a=True
                     
-                    if (time.time()-b)>180:
-                        mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tanzania {fileid}')]]))
+                    if (time.time()-b)>300:
+                        mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma screenshot ndani ya dakika 5 au maelezo ya muamala iliniweze kuhudumia na wengine kwa kubonyeza nmefanya malipo",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tanzania {fileid}')]]))
                         return
 
                     if mkv.from_user.id != query.from_user.id :
@@ -881,6 +724,23 @@ async def cb_handler(client, query):
                     except Exception as e:
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto')
                
+            elif mkv.text:
+                await query.message.delete()
+                for idf in [channel,group_id]:
+                    asyncio.sleep(4)
+                    try:
+                        if tme=='m':
+                            await client.send_message(
+                                chat_id=int(idf),
+                                text = f'{mkv.text}Mteja **{query.from_user.mention}**Amechagua \n Jina :{name}\nBei yake : Tsh {prc2} \nTafadhali hii n kumbukumbu tafadhali kama sio sahihi bonyeza close' ,
+                                reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("CLOSE", callback_data=f"close")]]))
+                        else:
+                            await client.send_message(
+                                chat_id=int(idf),
+                                text = f'Mteja **{query.from_user.mention}**Amechagua kifurushi**\n {data1.split("#@")[0].upper()}**\n Muda wa : {tme1}\nBei yake : Tsh {prc1}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
+                                reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}")]]))
+                    except Exception as e:
+                        await client.send_message(chat_id = int(idf),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} kwenye kuthibitisha malipo forward kwa @hrm45 aondoe hii changamoto')
             else:
                 await query.message.delete()
                 if cvx == "z":
