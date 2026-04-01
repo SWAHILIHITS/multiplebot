@@ -560,7 +560,7 @@ async def cb_handler(client, query):
             await client.send_message(
                         chat_id=query.from_user.id,
                         text =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** {strl}\n\nAu bonyeza **Lipia {prc2}** kulipia {name} hii tu na kuweza kuipakua mda wowote ndan ya siku 90 ~ miez mitatu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.500.m")]]) )
+                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.50.m")]]) )
             
         elif query.data.startswith("wik"):
             botusername=await client.get_me()
@@ -620,20 +620,21 @@ async def cb_handler(client, query):
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
-            
+            if prc1!!="50":
+                prc2=prc1
             mda = details["muda"]
             ts = await client.get_users(group_id)
             await query.message.delete()
             if cvx=="z":
                 p1 = details["p0"].format(prc=prc2)
                 await client.send_message(chat_id=query.from_user.id,
-                    text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Tsh {prc2}** kwa mteja wa TANZANIA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[0]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
+                    text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Tsh {prc2}** kwa mteja wetu wa TANZANIA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[0]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
             elif cvx == "k":
                 p1 = details["p0"].format(prc=int(int(prc2)/19))
                 await client.send_message(chat_id=query.from_user.id,
-                    text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Ksh {int(int(prc2)//19)}** Kwa wateja wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[1]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
+                    text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Ksh {int(int(prc2)//19)}** Kwa wateja wetu wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[1]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )     
         elif query.data.startswith("malipo"):
@@ -924,6 +925,7 @@ def replymkup2(msg2,msg4):
     except Exception:
         msg1 = msg2.split('ksh ')[1] 
         msg1=(int(msg1))//19
+        msg2=f"{msg2.split('ksh ')[0]} Ksh {msg1}"
     msg1 =int(msg1)
     if msg1 == 0:
         return []
