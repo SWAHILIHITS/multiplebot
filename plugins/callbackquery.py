@@ -675,7 +675,7 @@ async def cb_handler(client, query):
             mda = details['muda']
             ts = await client.get_users(group_id)
             dbname = details['db_name']
-            mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nTuma picha ya screenshot ya malipo yako kisha subir kidogo wasimamiz wangu wahakiki muamala wako')
+            mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nTuma picha ya screenshot ya malipo yako au copy sms yako kisha itume tuihakiki kuwa na subra kidogo wasimamiz wangu wahakiki muamala wako')
             a,b =funask()
             id1=(mkv1.id)+1
             while a==False:
