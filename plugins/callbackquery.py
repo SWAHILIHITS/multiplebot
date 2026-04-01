@@ -543,7 +543,7 @@ async def cb_handler(client, query):
             elif query.data.split(" ")[0].split("##")[1]=="ksh":
                 kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
                 fileid=fileid + "##k"
-                prc2=f'Ksh {int(prc2)/19}'
+                prc2=f'Ksh {int(prc2)//19}'
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id,nyva)
@@ -923,7 +923,7 @@ def replymkup2(msg2,msg4):
         msg1 = msg2.split('tsh ')[1]
     except Exception:
         msg1 = msg2.split('ksh ')[1] 
-        msg4=int(msg4//19)
+        msg4=(int(msg419))//19
     msg1 =int(msg1)
     if msg1 == 0:
         return []
