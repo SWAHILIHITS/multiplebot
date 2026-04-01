@@ -620,7 +620,7 @@ async def cb_handler(client, query):
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
-            if prc1!!="50":
+            if prc1 != "50":
                 prc2=prc1
             mda = details["muda"]
             ts = await client.get_users(group_id)
