@@ -919,7 +919,10 @@ async def cb_handler(client, query):
             )
                                     
 def replymkup2(msg2,msg4):
-    msg1 = msg2.split('tsh ')[1]
+    try:
+       msg1 = msg2.split('tsh ')[1]
+    except Exception:
+       msg1 = msg2.split('ksh ')[1] 
     msg1 =int(msg1)
     if msg1 == 0:
         return []
