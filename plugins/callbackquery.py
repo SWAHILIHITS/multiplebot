@@ -778,7 +778,7 @@ async def cb_handler(client, query):
                 )
             else:
                 await query.edit_message_text(
-                    text = f'{(query.message.text).split('####')[0]}####\nje unauhakika tumruhusu {ttl.mention} bonyeza ndiyo kukubali au bonyeza rudi kurudi kupata maelezo ya muamala',
+                    text = f'{(query.message.text).split("####")[0]}####\nje unauhakika tumruhusu {ttl.mention} bonyeza ndiyo kukubali au bonyeza rudi kurudi kupata maelezo ya muamala',
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("ndiyo", callback_data=f"nq {msg1} {query.data.split(' ')[2]}"),InlineKeyboardButton("rudi ", callback_data=f"rq {msg1} {query.data.split(' ')[2]}")]])
                 )
         elif query.data.startswith("rq"):
