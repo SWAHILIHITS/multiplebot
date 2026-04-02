@@ -632,7 +632,7 @@ async def cb_handler(client, query):
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
             elif cvx == "k":
-                p1 = details["p0"].format(prc=int(int(prc2)/19))
+                p1 = details["p0"].format(prc=int(int(prc2)//19))
                 await client.send_message(chat_id=query.from_user.id,
                     text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Ksh {int(int(prc2)//19)}** Kwa wateja wetu wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[1]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
@@ -644,10 +644,7 @@ async def cb_handler(client, query):
             await query.answer()
             fileiid,msg2,prc1,tme = query.data.split(" ")[1].split(".")
             fileid,cvx=fileiid.split("##")
-            if cvx=="k":
-                cvz="ksh"
-            elif cvx=="z":
-                cvz="tsh"
+
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
@@ -667,6 +664,14 @@ async def cb_handler(client, query):
                 tme1= "mwezi mmoja"
             else:
                 tme1=tme
+            if prc1 != "50":
+                prc2=prc1 
+            if cvx=="k":
+                cvz="ksh"
+                prc2=f'Ksh {prc2//19}'
+            elif cvx=="z":
+                cvz="tsh"
+                prc2=f'Tsh {prc2}'
             details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
             data2 = data1.split("#@")[0].upper()
@@ -694,8 +699,8 @@ async def cb_handler(client, query):
                     a=False
             channel=int(details['channels'].split('##')[0])
             if mkv.photo:
-                #await query.message.delete()
-                await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea screenshot ngoja tuihakiki tutakupa majibu tukimaliza tatizo lolote tujuze kwa kubonyeza {details["user_link"]}')
+                await query.message.delete()
+                await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea screenshot ngoja tuihakiki tutakupa majibu tukimaliza tatizo lolote tujuze kwa kubonyeza **{details["user_link"]}**')
                 if tme=='m':
                     await client.send_photo(
                             chat_id=int(group_id),
@@ -726,8 +731,8 @@ async def cb_handler(client, query):
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto')
                
             elif mkv.text:
-                #await query.message.delete()
-                await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea maelezo ya muamala yako ya muamala tutakupa majibu tukimaliza kuyahakiki tatizo lolote tujuze kwa kubonyeza {details["user_link"]}')
+                await query.message.delete()
+                await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea maelezo ya muamala yako ya muamala tutakupa majibu tukimaliza kuyahakiki tatizo lolote tujuze kwa kubonyeza **{details["user_link"]}**')
                 if tme=='m':
                     try:
                         await client.send_message(
