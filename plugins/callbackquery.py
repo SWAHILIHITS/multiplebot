@@ -560,7 +560,7 @@ async def cb_handler(client, query):
             await client.send_message(
                         chat_id=query.from_user.id,
                         text =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** {strl}\n\nAu bonyeza **Lipia {prc2}** kulipia {name} hii tu na kuweza kuipakua mda wowote ndan ya siku 90 ~ miez mitatu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.50.m")]]) )
+                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.5.m")]]) )
             
         elif query.data.startswith("wik"):
             botusername=await client.get_me()
@@ -620,7 +620,7 @@ async def cb_handler(client, query):
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
-            if prc1 != "50":
+            if prc1 != "5":
                 prc2=prc1
             mda = details["muda"]
             ts = await client.get_users(group_id)
@@ -654,27 +654,33 @@ async def cb_handler(client, query):
             fileid=fileiid
             if tme=="wk0":
                 tme1= "Siku 1"
+                ax=0
             elif tme=="wk1":
                 tme1= "wiki 1"
+                ax=1
             elif tme=="wk2":
                 tme1= "wiki 2"
+                ax=2
             elif tme=="wk3":
                 tme1= "wiki 3"
+                ax=3
             elif tme== "mwz1":
                 tme1= "mwezi mmoja"
+                ax=4
             else:
                 tme1=tme
-            if prc1 != "50":
-                prc2=prc1 
+            details = await db.get_db_status(group_id,nyva)
+            data1 = details[msg2]
+            data2 = data1.split("#@")[0]
+            if prc1 != "5":
+                prc2=data1.split("#@")[1].split(',')[ax]
             if cvx=="k":
                 cvz="ksh"
                 prc2=f'Ksh {int(prc2)//19}'
             elif cvx=="z":
                 cvz="tsh"
                 prc2=f'Tsh {prc2}'
-            details = await db.get_db_status(group_id,nyva)
-            data1 = details[msg2]
-            data2 = data1.split("#@")[0]
+            
             p1=details['p0']
             mda = details['muda']
             ts = await client.get_users(group_id)
@@ -716,6 +722,7 @@ async def cb_handler(client, query):
                     except Exception as e:
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto ')
                 else:
+                    query.data.split(' ')[1]=f'{fileiid}.{msg2}.0.{tme}'
                     await client.send_photo(
                             chat_id=int(group_id),
                             photo= mkv.photo.file_id,
@@ -748,6 +755,7 @@ async def cb_handler(client, query):
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto ')
                 else:
                     try:
+                        query.data.split(' ')[1]=f'{fileiid}.{msg2}.0.{tme}'
                         await client.send_message(
                             chat_id=int(group_id),
                             text = f'{mkv.text}####\nMteja **{query.from_user.mention}**Amechagua kifurushi**\n {data2}**\n Muda wa : {tme1}\nBei yake : {prc2}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhali bonyeza jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au batili kutume ujumbe kuwa muamala wake sisahihi' ,
@@ -802,40 +810,54 @@ async def cb_handler(client, query):
                 name = files.text.split('.dd#.',1)[0]
             if tme=="wk0":
                 tme1= "Siku 1"
+                ax=0
             elif tme=="wk1":
                 tme1= "wiki 1"
+                ax=1
             elif tme=="wk2":
                 tme1= "wiki 2"
+                ax=2
             elif tme=="wk3":
                 tme1= "wiki 3"
+                ax=3
             elif tme== "mwz1":
                 tme1= "mwezi mmoja"
+                ax=4
             else:
                 tme1=tme
             details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
+            data2 = data1.split("#@")[0]
+            if prc1 != "5":
+                prc2=data1.split("#@")[1].split(',')[ax]
+            if cvx=="k":
+                cvz="ksh"
+                prc2=f'Ksh {int(prc2)//19}'
+            elif cvx=="z":
+                cvz="tsh"
+                prc2=f'Tsh {prc2}'
             ttl = await client.get_users(int(msg1))
             if tme1=="m":
                 if query.message.photo:
                     await query.edit_message_caption(
-                        caption = f'Mteja {ttl.mention}Amechagua \n Jina :{name}\nBei yake : Tsh {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
+                        caption = f'Mteja {ttl.mention}Amechagua \n Jina :{name}\nBei yake :  {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
                         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {msg1} {data3}"),InlineKeyboardButton("Batili", callback_data=f"kgb {msg1}")]])
                     )
                 else:
                     await query.edit_message_text(
-                        text = f'{(query.message.text).split("####")[0]}####\nMteja {ttl.mention}Amechagua \n Jina :{name}\nBei yake : Tsh {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
+                        text = f'{(query.message.text).split("####")[0]}####\nMteja {ttl.mention}Amechagua \n Jina :{name}\nBei yake : {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
                         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {msg1} {data3}"),InlineKeyboardButton("Batili", callback_data=f"kgb {msg1}")]])
                     )
 
             else:
                 if query.message.photo:
                     await query.edit_message_caption(
-                        caption = f'Mteja {ttl.mention}Amechagua \n **{data1.split("#@")[0].upper()}**\n Kwa muda wa: {tme1}\nBei yake : Tsh {prc1} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya **{data1.split("#@")[0].upper()}** ,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
+                        caption = f'Mteja {ttl.mention}Amechagua \n **{data1.split("#@")[0].upper()}**\n Kwa muda wa: {tme1}\nBei yake : {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya **{data1.split("#@")[0].upper()}** ,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
                         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {msg1} {data3}"),InlineKeyboardButton("Batili", callback_data=f"kgb {msg1}")]])
                     )
                 else:
                     await query.edit_message_text(
-                        text = f'{(query.message.text).split("####")[0]}####\nMteja {ttl.mention}Amechagua \n **{data1.split("#@")[0].upper()}**\n Kwa muda wa: {tme1}\nBei yake : Tsh {prc1} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya **{data1.split("#@")[0].upper()}** ,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
+                        text = f'{(query.message.text).split("####")[0]}####\nMteja {ttl.mention}Amechagua \n **{data1.split("#@")[0].upper()}**\n Kwa muda wa: {tme1}\nBei yake : {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya **{data1.split("#@")[0].upper()}** ,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
                         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {msg1} {data3}"),InlineKeyboardButton("Batili", callback_data=f"kgb {msg1}")]])
                     )
         elif query.data.startswith("nq"):
@@ -865,7 +887,7 @@ async def cb_handler(client, query):
                 tme1= 30
             strid = str(uuid.uuid4())
             if tme == "m":
-                await db.add_acc(strid,msg1,fileid,query.from_user.id,nyva,30)
+                await db.add_acc(strid,msg1,fileid,query.from_user.id,nyva,90)
                 abx="**bonyeza download hapo juu ya movie uliochagua ili kuipakua**"
             else:
                 abx="**bonyeza download hapo juu ya movie/Series  uliochagua ili kuipakua kisha nyingine utazipakua kama muingozo ulivyosoma kipind unajiunga**"
