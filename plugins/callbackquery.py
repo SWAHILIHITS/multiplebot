@@ -668,7 +668,7 @@ async def cb_handler(client, query):
                 prc2=prc1 
             if cvx=="k":
                 cvz="ksh"
-                prc2=f'Ksh {prc2//19}'
+                prc2=f'Ksh {int(prc2)//19}'
             elif cvx=="z":
                 cvz="tsh"
                 prc2=f'Tsh {prc2}'
