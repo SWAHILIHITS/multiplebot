@@ -729,7 +729,7 @@ async def cb_handler(client, query):
                 await query.message.delete()
                 await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea maelezo ya muamala yako ya muamala tutakupa majibu tukimaliza kuyahakiki tatizo lolote tujuze kwa kubonyeza {details["user_link"]}')
                 if tme=='m':
-                    try
+                    try:
                         await client.send_message(
                             chat_id=int(group_id),
                             text = f'{mkv.text}####\nMteja **{query.from_user.mention}**Amechagua \n Jina :{name}\nBei yake : Tsh {prc2} \nTafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au bonyeza batili tutume ujumbe kuwa muamala wake n batili,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
@@ -742,7 +742,7 @@ async def cb_handler(client, query):
                     except Exception as e:
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto ')
                 else:
-                    try
+                    try:
                         await client.send_message(
                             chat_id=int(group_id),
                             text = f'{mkv.text}####\nMteja **{query.from_user.mention}**Amechagua kifurushi**\n {data1.split("#@")[0].upper()}**\n Muda wa : {tme1}\nBei yake : Tsh {prc1}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhali bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au batili kutume ujumbe kuwa muamal wake n batili,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
