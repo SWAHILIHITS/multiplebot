@@ -674,7 +674,7 @@ async def cb_handler(client, query):
                 prc2=f'Tsh {prc2}'
             details = await db.get_db_status(group_id,nyva)
             data1 = details[msg2]
-            data2 = data1.split("#@")[0].upper()
+            data2 = data1.split("#@")[0]
             p1=details['p0']
             mda = details['muda']
             ts = await client.get_users(group_id)
