@@ -715,7 +715,8 @@ async def cb_handler(client, query):
                             chat_id=int(group_id),
                             photo= mkv.photo.file_id,
                             caption = f'Mteja **{query.from_user.mention}**Amechagua kifurushi**\n {data1.split("#@")[0].upper()}**\n Muda wa : {tme1}\nBei yake : Tsh {prc1}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii batili tutume ujumbe kuwa muamala wake n batili,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
-                    )#reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
+                    #reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
                     try:
                         await client.send_photo(
                             chat_id=int(channel),
