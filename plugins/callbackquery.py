@@ -722,12 +722,11 @@ async def cb_handler(client, query):
                     except Exception as e:
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto ')
                 else:
-                    query.data.split(' ')[1]=f'{fileiid}.{msg2}.0.{tme}'
                     await client.send_photo(
                             chat_id=int(group_id),
                             photo= mkv.photo.file_id,
                             caption = f'Mteja **{query.from_user.mention}**Amechagua kifurushi**\n {data2}**\n Muda wa : {tme1}\nBei yake :  {prc2}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhal bonyeza jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au batili tutume ujumbe kuwa muamala wake sisahihi,Kama muamala wake upo sahihi' ,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {fileiid}.{msg2}.0.{tme}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
                     try:
                         await client.send_photo(
                             chat_id=int(channel),
@@ -759,7 +758,7 @@ async def cb_handler(client, query):
                         await client.send_message(
                             chat_id=int(group_id),
                             text = f'{mkv.text}####\nMteja **{query.from_user.mention}**Amechagua kifurushi**\n {data2}**\n Muda wa : {tme1}\nBei yake : {prc2}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhali bonyeza jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au batili kutume ujumbe kuwa muamala wake sisahihi' ,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
+                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {fileiid}.{msg2}.0.{tme}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
 
                         await client.send_message(
                             chat_id=int(channel),
@@ -801,8 +800,8 @@ async def cb_handler(client, query):
             nyva=botusername.username  
             nyva=str(nyva)
             msg,msg1,data3 = query.data.split(" ")         
-            fileid,msg2,prc1,tme = data3.split("@#")[0].split(".")
-            fileid =fileid.split("##")[0]
+            fileiid,msg2,prc1,tme = data3.split("@#")[0].split(".")
+            fileid =fileiid.split("##")[0]
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
@@ -829,6 +828,7 @@ async def cb_handler(client, query):
             data1 = details[msg2]
             data2 = data1.split("#@")[0]
             if prc1 != "5":
+                data3=f'{fileiid}.{msg2}.0.{tme}'
                 prc2=data1.split("#@")[1].split(',')[ax]
             if cvx=="k":
                 cvz="ksh"
