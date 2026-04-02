@@ -801,7 +801,7 @@ async def cb_handler(client, query):
             nyva=str(nyva)
             msg,msg1,data3 = query.data.split(" ")         
             fileiid,msg2,prc1,tme = data3.split("@#")[0].split(".")
-            fileid =fileiid.split("##")[0]
+            fileid,cvx=fileiid.split("##")
             filedetails = await get_file_details(fileid)
             for files in filedetails:
                 group_id = files.group_id
