@@ -746,11 +746,11 @@ async def cb_handler(client, query):
                         await client.send_message(
                             chat_id=int(group_id),
                             text = f'{mkv.text}####\nMteja **{query.from_user.mention}**Amechagua kifurushi**\n {data1.split("#@")[0].upper()}**\n Muda wa : {tme1}\nBei yake : Tsh {prc1}\n Tafadhal hakiki huu muamala wake,Kama amekosea tafadhali bonyeza maneno ya blue yaani jina lake kisha muelekeze aanze upya kuchagua kifurush sahihi au kutuma screenshot ya muamala sahihi.\n Bonyeza activate kumruhusu aweze kupata huduma ya {name} hii au batili kutume ujumbe kuwa muamal wake n batili,Kama muamala wake upo sahihi \n\nNote:Kama utamshauri aanze upya tafadhali futa huu ujumbe ili usichanganye mada(ushauri tu)' ,
-                            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
+                            #reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Activate", callback_data=f"yq {query.from_user.id} {query.data.split(' ')[1]}"),InlineKeyboardButton("Batili", callback_data=f"kgb {query.from_user.id}")]]))
 
                         await client.send_message(
                             chat_id=int(channel),
-                            text = f'{mkv.text}####\nMteja **{query.from_user.mention}**\nAmechagua kifurushi**\n {data1.split("#@")[0].upper()}\nBei yake : Tsh {prc1} \nTafadhali hii n kumbukumbu tafadhali kama sio sahihi bonyeza close' ,
+                            text = f'{mkv.text}####\nMteja **{query.from_user.mention}**\nAmechagua kifurushi**\n {data1.split("#@")[0].upper()}\nMuda wa : {tme1}\nBei yake : Tsh {prc1} \nTafadhali hii n kumbukumbu tafadhali kama sio sahihi bonyeza close' ,
                             reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("CLOSE", callback_data=f"close")]]))
                     except Exception as e:
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto')
