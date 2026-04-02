@@ -694,7 +694,7 @@ async def cb_handler(client, query):
                     a=False
             channel=int(details['channels'].split('##')[0])
             if mkv.photo:
-                await query.message.delete()
+                #await query.message.delete()
                 await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea screenshot ngoja tuihakiki tutakupa majibu tukimaliza tatizo lolote tujuze kwa kubonyeza {details["user_link"]}')
                 if tme=='m':
                     await client.send_photo(
@@ -726,7 +726,7 @@ async def cb_handler(client, query):
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto')
                
             elif mkv.text:
-                await query.message.delete()
+                #await query.message.delete()
                 await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea maelezo ya muamala yako ya muamala tutakupa majibu tukimaliza kuyahakiki tatizo lolote tujuze kwa kubonyeza {details["user_link"]}')
                 if tme=='m':
                     try:
