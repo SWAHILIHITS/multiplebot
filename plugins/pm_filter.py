@@ -1,5 +1,5 @@
 from botii import Bot0
-import re,random 
+import re,random ,pickle
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 from info import filters
 import asyncio 
@@ -8,10 +8,42 @@ from plugins.database import db
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 from utils import get_filter_result,get_filter_results, is_user_exist,User ,get_file_details,is_subscribed,add_user,is_group_exist,get_random_details
+from googleapiclient.http import MediaFileUpload
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+'''
 gauth = GoogleAuth()
 gauth.LoadClientConfigFile("./client_secret.json")  # e.g. "./client_secrets.json"
 gauth.LocalWebserverAuth()
 drive = GoogleDrive(gauth)
+'''
+def getCreds():
+  # The file token.pickle stores the user's access and refresh tokens, and is
+  # created automatically when the authorization flow completes for the first
+  # time.
+  creds = None
+  SCOPES = 'https://www.googleapis.com/auth/drive'
+
+  if os.path.exists('token.pickle'):
+      with open('token.pickle', 'rb') as token:
+          creds = pickle.load(token)
+  # If there are no (valid) credentials available, let the user log in.
+  if not creds or not creds.valid:
+      if creds and creds.expired and creds.refresh_token:
+          creds.refresh(Request())
+      else:
+          flow = InstalledAppFlow.from_client_secrets_file(
+              'credentials.json', SCOPES)
+          creds = flow.run_local_server(port=0)
+      # Save the credentials for the next run
+      with open('token.pickle', 'wb') as token:
+          pickle.dump(creds, token)
+
+  return creds
+
+service = build('drive', 'v3', credentials=getCreds(),cache_discovery=False)
+print(service)
 @Bot0.on_message(filters.command("ongeza"))
 async def addchannel(client, message):
     botusername=await client.get_me()
