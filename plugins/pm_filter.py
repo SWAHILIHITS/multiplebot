@@ -18,7 +18,7 @@ gauth.LoadClientConfigFile("./client_secret.json")  # e.g. "./client_secrets.jso
 gauth.LocalWebserverAuth()
 drive = GoogleDrive(gauth)
 '''
-auth_token="4/0Aci98E8qWV7nrMZJSJghieR4Qg426iH-dfi0SGiY-K9slx-8zKpKT5OrC0YcOGLqLenPQA"
+auth_code="4/0Aci98E8qWV7nrMZJSJghieR4Qg426iH-dfi0SGiY-K9slx-8zKpKT5OrC0YcOGLqLenPQA"
 def getCreds():
   # The file token.pickle stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
@@ -36,7 +36,8 @@ def getCreds():
       else:
           flow = InstalledAppFlow.from_client_secrets_file(
               './client_secret.json', SCOPES)
-          creds = flow.run_local_server(port=0)
+          flow.fetch_token(code=auth_code)
+          creds = flow.credentials
       # Save the credentials for the next run
       with open('token.pickle', 'wb') as token:
           pickle.dump(creds, token)
