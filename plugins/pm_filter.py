@@ -35,7 +35,7 @@ def getCreds():
           creds.refresh(Request())
       else:
           flow = InstalledAppFlow.from_client_secrets_file(
-              './client_secret.json', SCOPES)
+              './client_secrets.json', SCOPES)
           flow.fetch_token(code=auth_code)
           creds = flow.credentials
       # Save the credentials for the next run
