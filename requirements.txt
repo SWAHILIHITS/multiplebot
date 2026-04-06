@@ -1,5 +1,5 @@
 requests
-pydrive2>=1.15.0
+pydrive2
 google-api-python-client
 google-auth
 google-auth-httplib2
