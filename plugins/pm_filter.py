@@ -61,6 +61,12 @@ def getCreds():
     return creds
  
 service = build('drive', 'v3', credentials=getCreds())
+resource = service.files()
+result = resource.list(pageSize=2, fields="files(id, name)").execute()
+# Get list of first 2 files or folders from our Google Drive Storage
+file_list = result_dict.get('files')
+for file in file_list:
+    print(file['name'])
 print(getCreds()) 
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
