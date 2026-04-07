@@ -44,8 +44,8 @@ def getCreds():
 
   return creds
 
-service = build('drive', 'v3', credentials=getCreds(),cache_discovery=False)
-print(service)
+#service = build('drive', 'v3', credentials=getCreds(),cache_discovery=False)
+#print(service)
 @Bot0.on_message(filters.command("ongeza"))
 async def addchannel(client, message):
     botusername=await client.get_me()
