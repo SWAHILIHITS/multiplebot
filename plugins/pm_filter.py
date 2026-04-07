@@ -5,8 +5,6 @@ from info import filters
 import asyncio 
 from plugins.status import handle_admin_status
 from plugins.database import db
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
 from utils import get_filter_result,get_filter_results, is_user_exist,User ,get_file_details,is_subscribed,add_user,is_group_exist,get_random_details
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.discovery import build
@@ -14,12 +12,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.auth import exceptions
 from google.oauth2.credentials import Credentials
-'''
-gauth = GoogleAuth()
-gauth.LoadClientConfigFile("./client_secret.json")  # e.g. "./client_secrets.json"
-gauth.LocalWebserverAuth()
-drive = GoogleDrive(gauth)
-'''
+
 def getCreds():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -62,7 +55,7 @@ def getCreds():
  
 service = build('drive', 'v3', credentials=getCreds())
 resource = service.files()
-result = resource.list(pageSize=2, fields="files(id, name)").execute()
+result = resource.list(pageSize=10, fields="files(id, name)").execute()
 # Get list of first 2 files or folders from our Google Drive Storage
 file_list = result.get('files')
 for file in file_list:
@@ -80,8 +73,6 @@ async def addtoken(client, message):
     await db.update_db(message.from_user.id,ghi,ab,nyva)
     await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
                 
-#service = build('drive', 'v3', credentials=getCreds(),cache_discovery=False)
-#print(service)
 @Bot0.on_message(filters.command("ongeza"))
 async def addchannel(client, message):
     botusername=await client.get_me()
