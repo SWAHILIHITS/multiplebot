@@ -36,10 +36,10 @@ def getCreds():
             try:
                 creds = Credentials(
                     token=None,  # Hatuna access token ya sasa, tunataka mpya
-                    refresh_token=refresh_token,
+                    refresh_token="1//046MD1783yQnhCgYIARAAGAQSNwF-L9IrgCZN2A6hbDe7BnnFGcTzN-eSV8Vp4jC8szJ_LEal7CH5DsOOsKrfsBYYTaM5I7MaYg4",
                     token_uri="https://googleapis.com",
-                    client_id=client_id,
-                    client_secret=client_secret
+                    client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
+                    client_secret="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",
                 )
 
                 creds.refresh(Request())
@@ -57,6 +57,9 @@ def getCreds():
             pickle.dump(creds, token)
 
     return creds
+
+service = build('drive', 'v3', credentials=getCreds())
+    
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
