@@ -18,7 +18,6 @@ gauth.LoadClientConfigFile("./client_secret.json")  # e.g. "./client_secrets.jso
 gauth.LocalWebserverAuth()
 drive = GoogleDrive(gauth)
 '''
-auth_code="4/0Aci98E8qWV7nrMZJSJghieR4Qg426iH-dfi0SGiY-K9slx-8zKpKT5OrC0YcOGLqLenPQA"
 def getCreds():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -34,11 +33,26 @@ def getCreds():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                './client_secrets.json', SCOPES)
-            flow.fetch_token(code=auth_code)
-            creds = flow.credentials
-        # Save the credentials for the next run
+            try:
+                creds = Credentials(
+                    token=None,  # Hatuna access token ya sasa, tunataka mpya
+                    refresh_token=refresh_token,
+                    token_uri="https://googleapis.com",
+                    client_id=client_id,
+                    client_secret=client_secret
+                )
+
+                creds.refresh(Request())
+                print(f"Access Token Mpya: {creds.token}")
+            
+            except RefreshError as e:
+                # Google SDK huweka 'invalid_grant' ndani ya ujumbe wa kosa
+                if "invalid_grant" in str(e).lower():
+                    
+                    print("Refresh Token haitumiki tena. Tafadhali ingia upya.")
+                    # Logic ya kumlazimisha mtumiaji ku-login tena
+                    return ' auth_error'
+                    # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
