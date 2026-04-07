@@ -39,7 +39,7 @@ def getCreds():
                 creds = Credentials(
                     token=None,  # Hatuna access token ya sasa, tunataka mpya
                     refresh_token="1//046MD1783yQnhCgYIARAAGAQSNwF-L9IrgCZN2A6hbDe7BnnFGcTzN-eSV8Vp4jC8szJ_LEal7CH5DsOOsKrfsBYYTaM5I7MaYg4",
-                    token_uri="https://googleapis.com",
+                    token_uri="https://oauth2.googleapis.com/token",
                     client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
                     client_secret="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",
                 )
