@@ -12,6 +12,8 @@ from googleapiclient.http import MediaFileUpload
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from google.auth import exceptions
+from google.oauth2.credentials import Credentials
 '''
 gauth = GoogleAuth()
 gauth.LoadClientConfigFile("./client_secret.json")  # e.g. "./client_secrets.json"
@@ -44,20 +46,20 @@ def getCreds():
 
                 creds.refresh(Request())
                 print(f"Access Token Mpya: {creds.token}")
-            
-            except RefreshError as e:
+            except exceptions.GoogleAuthError as e:
+                return 'auth_error'
+            except exceptions.RefreshError as e:
                 # Google SDK huweka 'invalid_grant' ndani ya ujumbe wa kosa
-                if "invalid_grant" in str(e).lower():
-                    
+                if "invalid_grant" in str(e).lower():    
                     print("Refresh Token haitumiki tena. Tafadhali ingia upya.")
                     # Logic ya kumlazimisha mtumiaji ku-login tena
-                    return ' auth_error'
+                    return 'token_error'
                     # Save the credentials for the next run
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
     return creds
-
+ 
 service = build('drive', 'v3', credentials=getCreds())
     
 @Bot0.on_message(filters.command("token"))
