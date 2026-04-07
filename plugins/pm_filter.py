@@ -60,8 +60,8 @@ def getCreds():
 
     return creds
  
-service = build('drive', 'v3', credentials=getCreds())
-    
+#service = build('drive', 'v3', credentials=getCreds())
+print(getCreds()) 
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
