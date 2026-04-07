@@ -20,30 +20,41 @@ drive = GoogleDrive(gauth)
 '''
 auth_code="4/0Aci98E8qWV7nrMZJSJghieR4Qg426iH-dfi0SGiY-K9slx-8zKpKT5OrC0YcOGLqLenPQA"
 def getCreds():
-  # The file token.pickle stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first
-  # time.
-  creds = None
-  SCOPES = 'https://www.googleapis.com/auth/drive'
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    creds = None
+    SCOPES = 'https://www.googleapis.com/auth/drive'
 
-  if os.path.exists('token.pickle'):
-      with open('token.pickle', 'rb') as token:
-          creds = pickle.load(token)
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-      if creds and creds.expired and creds.refresh_token:
-          creds.refresh(Request())
-      else:
-          flow = InstalledAppFlow.from_client_secrets_file(
-              './client_secrets.json', SCOPES)
-          flow.fetch_token(code=auth_code)
-          creds = flow.credentials
-      # Save the credentials for the next run
-      with open('token.pickle', 'wb') as token:
-          pickle.dump(creds, token)
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                './client_secrets.json', SCOPES)
+            flow.fetch_token(code=auth_code)
+            creds = flow.credentials
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
 
-  return creds
-
+    return creds
+@Bot0.on_message(filters.command("token"))
+async def addtoken(client, message):
+    botusername=await client.get_me()
+    nyva=botusername.username
+    nyva=str(nyva)
+    try1=message.text.strip()
+    ghi=f'{try1.split(" ")[1]}'
+    ghi=f'token {ghi}'
+    ab = await db.get_db_status(message.from_user.id,nyva)
+    await db.update_db(message.from_user.id,ghi,ab,nyva)
+    await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
+                
 #service = build('drive', 'v3', credentials=getCreds(),cache_discovery=False)
 #print(service)
 @Bot0.on_message(filters.command("ongeza"))
