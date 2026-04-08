@@ -61,6 +61,26 @@ file_list = result.get('files')
 for file in file_list:
     print(file['name'])
 print(getCreds()) 
+from googleapiclient.errors import HttpError
+file_id='1HcKD8g4HYQHhKrrdQg26BTa1biDU9RpC'
+user_email='hramamohamed@gmail.com'
+def grant_access(service, file_id, user_email):
+    """Gives a specific user writer access to a file."""
+    new_permission = {
+        'type': 'user',
+        'role': 'writer',  # Roles include: owner, writer, commenter, reader
+        'emailAddress': user_email
+    }
+    try:
+        permission = service.permissions().create(
+            fileId=file_id,
+            body=new_permission,
+            fields='id'
+        ).execute()
+        print(f"Permission ID: {permission.get('id')}")
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+grant_access(service, file_id, user_email)
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
