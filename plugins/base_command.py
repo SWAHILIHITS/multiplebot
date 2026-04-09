@@ -90,7 +90,7 @@ async def start_msg_admins(client, message):
     usr_cmdall1 = message.text
     cmd=message
     try:
-        aby = await  is_subscribed(client, message, int(ban_status['group'].split('##')[0]) )
+        aby = await  is_subscribed(client, message.from_user.id , int(ban_status['group'].split('##')[0]) )
         
     except :
         ts=await client.get_users(user_details)

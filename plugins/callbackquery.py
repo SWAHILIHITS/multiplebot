@@ -890,7 +890,7 @@ async def cb_handler(client, query):
                 await db.add_acc(strid,msg1,fileid,query.from_user.id,nyva,90)
                 abx="**bonyeza download hapo juu ya movie uliochagua ili kuipakua**"
             else:
-                abx="**bonyeza download hapo juu ya movie/Series  uliochagua ili kuipakua kisha nyingine utazipakua kama muingozo ulivyosoma kipind unajiunga**"
+                abx="**bonyeza download hapo juu ya movie/Series  uliochagua ili kuipakua kisha nyingine utazipakua kama muongozo ulivyosoma kipind unajiunga**"
                 await db.add_acc(strid,msg1,msg2,query.from_user.id,nyva,tme1)
             await query.message.delete()
             ttl = await client.get_users(int(msg1))
@@ -898,10 +898,12 @@ async def cb_handler(client, query):
                     )
             for grp in await is_group_exist("group",nyva):
                 try:
-                    grp_id = int(grp.id.split("##")[1])
-                    await client.send_message(chat_id = int(grp_id),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja **{ttl.first_name}** Tumepokea muamala wako,\nAsante kwa kutunga mkono\n\nEndelea kufurahia huduma zetu"
-                        )
+                    aby = await  is_subscribed(client, int(msg1), int(grp.id.split("##")[1]) )
+                    if aby==True:
+                        await client.send_message(chat_id = int(grp.id.split("##")[1]),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja **{ttl.first_name}** Tumepokea muamala wako,\nAsante kwa kutunga mkono\n\nEndelea kufurahia huduma zetu"
+                            )
                 except Exception as e:
+                    await client.send_message(chat_id = query.from_user.id,text=f"kuna tatizo upande wa subscribe {e}")
                     print(e)
             try:
                 hjkl = f'{group_id}##{msg1}'

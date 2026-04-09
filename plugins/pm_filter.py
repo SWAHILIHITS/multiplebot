@@ -437,7 +437,9 @@ async def groupprv(client, message):
                     await message.reply_text(f'Tafadhali subir kidogo tutakupa taarifa tutakaipo iwezesha')
                     await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
             else:
-                await message.reply_text('Tafadhali hujajiunga na kifurushi chochote cha kwetu jiunge kwanza ndio tutawezesha email yako')
+                await message.reply_text('Tumeibadilisha kikamilifu')
+                await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
+                await message.reply_text('Tafadhali hujajiunga na kifurushi chochote cha kwetu jiunge kwanza ndio tutawezesha email yako kupata huduma zetu')
         else:
             await add_user(hjkl,nyva)
             await message.reply_text(f'Tafadhali Tuma tena email yako kwa changamoto yyte join kikundi chetu {gd["group"].split("##")[1]}')         
