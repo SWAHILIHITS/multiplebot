@@ -275,7 +275,7 @@ async def get_filter_results(query,group_id,nyva):
     return files
 async def is_subscribed(bot, query,channel):
     try:
-        user = await bot.get_chat_member(channel, query.from_user.id)
+        user = await bot.get_chat_member(channel, query)
     except UserNotParticipant:
         pass
     except Exception as e:
