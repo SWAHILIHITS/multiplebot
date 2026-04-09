@@ -411,13 +411,14 @@ async def groupprv(client, message):
     text=message.text
     if not message.from_user.id:
         return 
-    if " " not in text.strip() and "@gmail.com" in text.lower():
+    if " " not in text.strip() and "@gmail.com" in text.lower() and not text.startwith("@gmail.com"):
         group_status = await is_user_exist(hjkl,nyva)
         user_id3='hrm45'
         if group_status:
             for user1 in group_status:
                 user_id3 = user1.email
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
+            
             async for user in await db.get_acc(message.from_user.id ):
                 if user['file_id'].startswith('g_') and user["db_name"]==group_id:
                     g2 = user['file_id'] 
