@@ -64,13 +64,25 @@ print(getCreds())
 from googleapiclient.errors import HttpError
 file_id='1Sr-OWSHDOd8o_x-KAkbRGBTdWG9a-vCE'
 user_email='hramamohamed@gmail.com'
-def grant_access(service, file_id, user_email):
+def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
     new_permission = {
         'type': 'user',
-        'role': 'writer',  # Roles include: owner, writer, commenter, reader
+        'role': 'reader',  # Roles include: owner, writer, commenter, reader
         'emailAddress': user_email
     }
+    patterns = [
+        r'/d/([a-zA-Z0-9-_]+)', 
+        r'folders/([a-zA-Z0-9-_]+)',
+        r'id=([a-zA-Z0-9-_]+)'
+    ]
+    file_id=None
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            file_id=match.group(1)
+    if file_id==None:
+        return "url_invalid"
     try:
         permission = service.permissions().create(
             fileId=file_id,
@@ -78,8 +90,9 @@ def grant_access(service, file_id, user_email):
             fields='id'
         ).execute()
         print(f"Permission ID: {permission.get('id')}")
+        return "user_given_access"
     except HttpError as error:
-        print(f"An error occurred: {error}")
+        return "error"
 grant_access(service, file_id, user_email)
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
