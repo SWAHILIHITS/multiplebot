@@ -2,6 +2,7 @@ from info import filters,CHANNELS,OWNER_ID
 import uuid
 import time,re,os,asyncio
 from plugins.base_command import btn22
+from plugins.pm_filter import getCreds,grant_access
 from pyrogram.errors import ChatAdminRequired,FloodWait
 from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like
 from botii  import Bot0
@@ -902,6 +903,7 @@ async def cb_handler(client, query):
                 prc2 = files.price
                 name = files.text.split('.dd#.',1)[0]
                 grp = files.grp
+                descp=files.descp
             ban_status = await db.get_db_status(group_id,nyva)  
             group_id2 = int(ban_status['group'].split('##')[0])
             if tme=="wk0":
@@ -943,17 +945,53 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id = ( int(msg1) ),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tafadhali tunaomba ututumie email yako ili tukuwezeshe kutumia gdrive yetu:Tuma email tu bila neno jengne \n email yako \nMfano\nmohamed@gmail.com "
                         )
                 elif '@gmail.com' in email:
+                    cvz='yas'
+                    group_id=int(group_id)
                     if tme == 'm':
-                        await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
-                            )
-                        await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
-                        )
+                        if "google" in descp.split(".dd#.")[2] and ban_status['token'] != 'hrm45':
+                            service = getCreds(ban_status['token'],query.from_user.id)
+                            if service=='auth_error' or service=='token_error':
+                                await client.send_message(chat_id=query.from_user.id,text=f'tafadhali token imeexpire tengeneza mpya')
+                            fvc=grant_access(service, descp.split(".dd#.")[2], email)
+                            if fvc != 'user_given_access':
+                                await client.send_message(chat_id=query.from_user.id,text=f'tafadhali hakiki email yake{email} au link yako kama inafanya kaz nmeshindwa kumuwezesha{name} link ni {descp.split(".dd#.")[2]}')
+                            else:
+                                cvz="no"
+                                hjgh = f'{fileid]}##{msg1}'
+                                await add_user(hjgh,nyva)
+                                filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                                filter["tme"] = 1000
+                                await User.collection.update_one({'_id':hjgh},{'$set': filter})
+                                await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie au series {name} endelea kufurahia huduma zetu')
+                        if cvz != "no":
+                            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
+                                )
+                            await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
+                                )
                     else:
-                        await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye {ban_status[msg2].split('#@')[0]}"
+                        if "google" in ban_status[msg2].split('#@')[3] and ban_status['token'] != 'hrm45':
+                            service = getCreds(ban_status['token'],group_id)
+                            if service=='auth_error' or service=='token_error':
+                                await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
+                            
+                            fvc=grant_access(service, ban_status[msg2].split('#@')[3], email)
+                            if 'user_given_access' not in fvc:
+                                await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{email} au link yako kama inafanya kaz nmeshindwa kumuwezesha{ban_status[msg2].split('#@')[0]} link ni {ban_status[msg2].split('#@')[3]}')
+                            
+                            else:
+                                cvz="no"
+                                hjgh = f'{msg2}##{msg1}'
+                                await add_user(hjgh,nyva)
+                                filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                                filter["tme"] = 1000
+                                await User.collection.update_one({'_id':hjgh},{'$set': filter})
+                                await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye kifurusshi {ban_status[msg2].split('#@')[0]} endelea kufurahia huduma zetu')
+                        if cvz != "no":
+                            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye {ban_status[msg2].split('#@')[0]}"
 
-                            )
-                        await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
-                        )
+                                )
+                            await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
+                                )
             except:
                 await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tafadhali tunaomba ututumie email yako ili tukuwezeshe kutumia gdrive yetu:"
                     )
