@@ -188,9 +188,10 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                     return
                 tokeni='hrm45'
+                token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
+                    
                 if ab['token'] !='hrm45':
                     a,b = funask()
-                    token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
                     id1=token11.id+1
                     while a==False:
                         try:
