@@ -424,6 +424,7 @@ async def groupprv(client, message):
             for user1 in group_status:
                 user_id3 = user1.email
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
+            cvb="yas"
             async for user in await db.get_acc(message.from_user.id ):
                 if user['file_id'].startswith('g_') and user["db_name"]==group_id and user_id3 != text.lower():
                     g2 = user['file_id'] 
@@ -440,6 +441,7 @@ async def groupprv(client, message):
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text.lower()} link ni {gd[g2].split('#@')[3]}')
                             continue
                         else:
+                            cvb="no"
                             await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{sd}\n"
@@ -448,6 +450,8 @@ async def groupprv(client, message):
                     for sd1 in sd:
                         text78=sd1.text.split('.dd#.')[0]
                         descp=sd1.descp
+                    if not sd:
+                        comtinue
                     if "google" in descp.split(".dd#.")[2] and gd['token'] != 'hrm45':
                         service = getCreds(gd['token'],group_id)
                         if service=='auth_error' or service=='token_error':
@@ -460,6 +464,7 @@ async def groupprv(client, message):
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
                             continue
                         else:
+                            cvb="no"
                             await message.reply_text(f'Tumeshaiwezesha kwenye movie {text78} endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{text78}\n"
@@ -471,7 +476,7 @@ async def groupprv(client, message):
                 if await db.is_email_exist(message.from_user.id,group_id):
                     await message.reply_text(f'Tafadhali subir kidogo tutakupa taarifa tutakaipo iwezesha')
                     await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
-            else:
+            elif cvb=="yas":
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                 await message.reply_text('Tafadhali hujajiunga na kifurushi chochote cha kwetu jiunge kwanza ndio tutawezesha email yako kupata huduma zetu')
