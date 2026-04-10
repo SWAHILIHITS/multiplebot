@@ -931,7 +931,7 @@ async def cb_handler(client, query):
                 for fls in dtails:
                     email = fls.email
                 if email=='hrm45':
-                    await client.send_message(chat_id = ( int(msg1) ),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tafadhali tunaomba ututumie email yako ili tukuwezeshe kutumia gdrive yetu:Tuma neno \n\weka email yako \nMfano\n\weka mohamed@gmail.com "
+                    await client.send_message(chat_id = ( int(msg1) ),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tafadhali tunaomba ututumie email yako ili tukuwezeshe kutumia gdrive yetu:Tuma email tu bila neno jengne \n email yako \nMfano\nmohamed@gmail.com "
                         )
                 elif '@gmail.com' in email:
                     if tme == 'm':
