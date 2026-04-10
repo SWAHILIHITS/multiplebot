@@ -761,7 +761,15 @@ async def del_filter(client, message):
     details = await  get_filter_results(query,message.from_user.id,nyva)
     filter['group_id'] = message.from_user.id
     found =await Media.count_documents(filter)
+    
     if int(found) ==1:
+        count34=await db.total_acc_file(dt.id)
+        if count!=0:
+            await message.reply_text(
+                f"<code>{text.split('.dd#.')[0]}</code>  siwez kufuta kuna wateja wamelipia hii movie/series kwa urahis edit poster husika kuibadilisha unavyotaka.",
+                quote=True
+            )
+            return
         for dt in details:
             for ad in await  get_filter_results(dt.id,message.from_user.id,nyva):
                 await Media.collection.delete_one({'_id':ad.id})
@@ -771,7 +779,7 @@ async def del_filter(client, message):
                 quote=True
             )
     else:
-        await message.reply_text("Couldn't find that filter!", quote=True)
+        await message.reply_text("samahani mpendwa nmepata matokeo mengi tumia edit baada ya kusearch kupitia button ya edit", quote=True)
         
 @Bot0.on_message(filters.private & filters.command('filters'))
 async def get_all(client, message):
