@@ -5,7 +5,7 @@ from datetime import datetime,timedelta
 import time
 from plugins.database import db
 from info import filters,CHANNELS
-from utils import save_file,add_user,Media,User,is_user_exist, get_filter_results ,get_file_details,is_group_exist,User,Likes
+from utils import save_file,add_user,Media,User,is_user_exist, get_filter_results ,get_file_details,is_group_exist,User,Like
 from pyrogram.types import CallbackQuery,InlineKeyboardMarkup,InlineKeyboardButton
 from plugins.helper_funcs import (
     generate_button,
@@ -774,7 +774,7 @@ async def del_filter(client, message):
             for ad in await  get_filter_results(dt.id,message.from_user.id,nyva):
                 await Media.collection.delete_one({'_id':ad.id})
             await Media.collection.delete_one(filter)
-            await Media.collection.delete_many({'file_id':dt.id})
+            await Like.collection.delete_many({'file_id':dt.id})
             await message.reply_text(
                 f"<code>{text.split('.dd#.')[0]}</code>  deleted successful.",
                 quote=True
