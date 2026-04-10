@@ -13,15 +13,15 @@ from google.auth.transport.requests import Request
 from google.auth import exceptions
 from google.oauth2.credentials import Credentials
 
-def getCreds(token):
+def getCreds(tokeni,group_id):
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
     creds = None
     SCOPES = 'https://www.googleapis.com/auth/drive'
 
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(f'{group_id}.pickle'):
+        with open(f'{group_id}.pickle', 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -31,7 +31,7 @@ def getCreds(token):
             try:
                 creds = Credentials(
                     token=None,  # Hatuna access token ya sasa, tunataka mpya
-                    refresh_token=token,
+                    refresh_token=tokeni,
                     token_uri="https://oauth2.googleapis.com/token",
                     client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
                     client_secret="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",
@@ -47,7 +47,7 @@ def getCreds(token):
                     return 'token_error'
                     # Save the credentials for the next run
                 return 'token_error'
-        with open('token.pickle', 'wb') as token:
+        with open(f'{group_id}.pickle', 'wb') as token:
             pickle.dump(creds, token)
     service = build('drive', 'v3', credentials=creds)
     return service
