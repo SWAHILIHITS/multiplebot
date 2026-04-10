@@ -954,7 +954,7 @@ Bonyeza button hapo chini kusoma hitimisho la huduma zetu """
                                         caption = media.caption,
                                     )
                                     media.caption = f'{media.caption}\n🌟 @{nyva} 'if media.caption else '🌟 @{nyva}'
-                                    await save_file(f'+{icount}.{strid}.{stridm.split("-")[1]}', media.caption, [], media.file_id, media.file_type, stridm,query.from_user.id,'d.dd#.data',0,f'{ab}')
+                                    await save_file(f'+{icount}.{strid}.{stridm.split("-")[1]}', media.caption, [], media.file_id, media.file_type, stridm,query.from_user.id,'d.dd#.data',0,f'{ab}',nyva,0)
                                 except Exception as e :
                                     await client .send_cached_media(
                                         chat_id = query.from_user.id,
