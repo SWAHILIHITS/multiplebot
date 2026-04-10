@@ -62,8 +62,9 @@ for file in file_list:
     print(file['name'])
 print(getCreds()) 
 from googleapiclient.errors import HttpError
-file_id='1Sr-OWSHDOd8o_x-KAkbRGBTdWG9a-vCE'
+url ='https://drive.google.com/drive/folders/1z7rX0tV8neadNGcTxImGo9s47u7tYRMl'
 user_email='hramamohamed@gmail.com'
+url2="https://drive.google.com/file/d/18j6lh-pL2CSRBj_6fo9G9s2qJ7o61jU_/view?usp=drivesdk"
 def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
     new_permission = {
@@ -71,6 +72,8 @@ def grant_access(service, url, user_email):
         'role': 'reader',  # Roles include: owner, writer, commenter, reader
         'emailAddress': user_email
     }
+    
+    # Regex for standard file links (/d/ID) and folder links (/folders/ID)
     patterns = [
         r'/d/([a-zA-Z0-9-_]+)', 
         r'folders/([a-zA-Z0-9-_]+)',
@@ -89,11 +92,14 @@ def grant_access(service, url, user_email):
             body=new_permission,
             fields='id'
         ).execute()
+        
         print(f"Permission ID: {permission.get('id')}")
         return "user_given_access"
     except HttpError as error:
         return "error"
-grant_access(service, file_id, user_email)
+        print(f"An error occurred: {error}")
+grant_access(service, url, user_email)
+grant_access(service, url2, user_email)
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
