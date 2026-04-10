@@ -429,7 +429,7 @@ async def groupprv(client, message):
                     g2 = user['file_id'] 
                     sd = gd[g2].split('#@')[0]
                     if "google" in gd[g2].split('#@')[3] and gd['token'] != 'hrm45':
-                        service = getCreds(gd['token'])
+                        service = getCreds(gd['token'],group_id)
                         if service=='auth_error' or service=='token_error':
                             text1+=f"{sd}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
@@ -449,7 +449,7 @@ async def groupprv(client, message):
                         text78=sd1.text.split('.dd#.')[0]
                         descp=sd1.descp
                     if "google" in descp.split(".dd#.")[2] and gd['token'] != 'hrm45':
-                        service = getCreds(gd['token'])
+                        service = getCreds(gd['token'],group_id)
                         if service=='auth_error' or service=='token_error':
                             text1+=f"{text78}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
