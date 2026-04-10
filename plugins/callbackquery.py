@@ -205,7 +205,14 @@ async def cb_handler(client, query):
                                 id1=id1+1
                         except:
                             a=False
-                    tokeni=token1.text
+                    
+                    if token1.text.lower() == "sina":
+                        tokeni = 'hrm45'
+                    elif 'google' in token1.text.lower():
+                        tokeni=token1.text
+                    else:
+                        tokeni= 'hrm45'
+                        await client.send_message(chat_id = query.from_user.id,text=f"nmekuekea hujajaza link yoyote ya gdrivr folder hukutuma link kamili ya gdrive folder bonyeza rud nyuma huko chini kuanza upya")
                     await token11.delete()
                     await token1.delete()
                 await mkv1.delete()
