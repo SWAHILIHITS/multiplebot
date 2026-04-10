@@ -188,20 +188,19 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                     return
                 tokeni='hrm45'
-                token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
-                    
                 if ab['token'] !='hrm45':
+                    token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
                     a,b = funask()
                     id1=token11.id+1
                     while a==False:
                         try:
                             token1 = await client.get_messages("me",id1)
-                            if mkv6.text!=None:
+                            if token1.text!=None:
                                 a=True
                             if (time.time()-b)>(3*60):
                                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                                 return
-                            if mkv6.from_user.id != query.from_user.id :
+                            if token1.from_user.id != query.from_user.id :
                                 a=False
                                 id1=id1+1
                         except:
