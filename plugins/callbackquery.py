@@ -373,9 +373,9 @@ async def cb_handler(client, query):
                             if mkvl1.text!=None:
                                 a=True
                             if (time.time()-b)>(3*60):
-                                await client.send_message(chat_id = message.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine")
+                                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine")
                                 return
-                            if mkvl1.from_user.id != message.from_user.id :
+                            if mkvl1.from_user.id != query.from_user.id :
                                 a=False
                                 id1=id1+1
                         except:
@@ -389,7 +389,7 @@ async def cb_handler(client, query):
                         ab33='ms'
                     descp=descp[0]+".dd#."+descp[1]+".dd#.data.dd#."+ab33
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
-                    await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                    await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 else:
                     descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text+".dd#."+descp[3]
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
