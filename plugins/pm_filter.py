@@ -36,7 +36,6 @@ def getCreds(token):
                     client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
                     client_secret="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",
                 )
-
                 creds.refresh(Request())
             except exceptions.GoogleAuthError as e:
                 return 'auth_error'
@@ -50,8 +49,7 @@ def getCreds(token):
                 return 'token_error'
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
-        service = build('drive', 'v3', credentials=getCreds()) 
-
+    service = build('drive', 'v3', credentials=creds)
     return service
 from googleapiclient.errors import HttpError
 def grant_access(service, url, user_email):
