@@ -764,7 +764,7 @@ async def del_filter(client, message):
     
     if int(found) ==1:
         count34=await db.total_acc_file(dt.id)
-        if count!=0:
+        if count34 != 0:
             await message.reply_text(
                 f"<code>{text.split('.dd#.')[0]}</code>  siwez kufuta kuna wateja wamelipia hii movie/series kwa urahis edit poster husika kuibadilisha unavyotaka.",
                 quote=True
