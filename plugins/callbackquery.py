@@ -364,7 +364,7 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine")
                     return
                 if mkv.text.lower()=="video":
-                    mkv22 = await client.send_message(text=f'Samahani kidogo naomba utume neno m kama hii n singo movie au s kama n series ',chat_id = message.from_user.id)
+                    mkv22 = await client.send_message(text=f'Samahani kidogo naomba utume neno m kama hii n singo movie au s kama n series ',chat_id = query.from_user.id)
                     a,b = funask()
                     id1 = mkv22.id+1
                     while a==False:
