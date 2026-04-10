@@ -81,7 +81,7 @@ def grant_access(service, url, user_email):
         ).execute()
         
         print(f"Permission ID: {permission.get('id')}")
-        return "user_given_access"
+        return f"{Fileid}##{permission.get('id')}##user_given_access"
     except HttpError as error:
         return "error"
         print(f"An error occurred: {error}")
@@ -436,12 +436,17 @@ async def groupprv(client, message):
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             continue
                         fvc=grant_access(service, gd[g2].split('#@')[3], text.lower())
-                        if fvc != 'user_given_access':
+                        if 'user_given_access' not in fvc:
                             text1+=f"{sd}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text.lower()} link ni {gd[g2].split('#@')[3]}')
                             continue
                         else:
                             cvb="no"
+                            hjgh = f'{user['file_id']}##{message.from_user.id}'
+                            await add_user(hjgh,nyva)
+                            filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                            filter["tme"] = 1000
+                            await User.collection.update_one({'_id':hjgh},{'$set': filter})
                             await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{sd}\n"
@@ -465,7 +470,12 @@ async def groupprv(client, message):
                             continue
                         else:
                             cvb="no"
-                            await message.reply_text(f'Tumeshaiwezesha kwenye movie {text78} endelea kufurahia huduma zetu')
+                            hjgh = f'{user['file_id']}##{message.from_user.id}'
+                            await add_user(hjgh,nyva)
+                            filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                            filter["tme"] = 1000
+                            await User.collection.update_one({'_id':hjgh},{'$set': filter})
+                            await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{text78}\n"
             if user_id3 == text.lower():
