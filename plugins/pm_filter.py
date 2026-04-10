@@ -431,8 +431,8 @@ async def groupprv(client, message):
                     g2 = user['file_id'] 
                     sd = gd[g2].split('#@')[0]
                     if "google" in gd[g2].split('#@')[3] and gd['token'] != 'hrm45':
+                        service = getCreds(gd['token'])
                         if service=='auth_error' or service=='token_error':
-                            service = getCreds(gd['token'])
                             text1+=f"{sd}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             continue
