@@ -100,12 +100,9 @@ class Database:
     async def delete_acc(self, id):
         await self.fls.delete_many({'id': id})
 
-    async def delete_acc_many(self, file_id):
-        await self.fls.delete_many({'file_id': file_id})
-
-    async def get_acc_file(self,id):
-        all_users = self.fls.find({'file_id': id})
-        return all_users
+    async def total_acc_file(self,id):
+        count = self.fls.count_documents({'file_id': id})
+        return count
 
     async def get_user(self,id,bot):
         filter={'id': int(id)}
