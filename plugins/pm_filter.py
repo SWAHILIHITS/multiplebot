@@ -436,7 +436,7 @@ async def groupprv(client, message):
                             text1+=f"{sd}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             continue
-                        fvc=grant_access(service, gd[g2].split('#@')[3], text.lower{})
+                        fvc=grant_access(service, gd[g2].split('#@')[3], text.lower())
                         if fvc != 'user_given_access':
                             text1+=f"{sd}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text.lower()} link ni {gd[g2].split('#@')[3]}')
@@ -456,7 +456,7 @@ async def groupprv(client, message):
                             text1+=f"{text78}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             continue
-                        fvc=grant_access(service, descp.split(".dd#.")[2], text.lower{})
+                        fvc=grant_access(service, descp.split(".dd#.")[2], text.lower())
                         if fvc != 'user_given_access':
                             text1+=f"{text78}\n"
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
