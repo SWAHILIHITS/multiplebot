@@ -20,7 +20,15 @@ Jinsi ya kujiunga na maelezo zaidi bonyeza about batan
 HELP_MESSAGE = f"""<b><u>Main Commands</u></b>
 ○ <b>/add</b> <i>[jina wakilishi la data husika] [message or reply to message]</i>
     <i>ongeza data za kawaida (ambazo hazina download button) kwenye database Mfano /add msaada</i>
-    
+
+○ <b>/ongeza</b>
+    <i>Tuma poster kwa kuzigawanya iii iende katika kikundi husika Mfano /ongeza imetafsiriwa  hiitapeleka posta zote zilizo tafsiriwa</i>
+
+
+○ <b>/token</b> <i>ikifuatiwa na token</i>
+    <i>Hii ni kuadd token ili kuwapa user access ya gdrive yako Mfano /token gdgjeyajkhakjhcvt</i>
+
+
 ○ <b>/adddata</b>[jina wakilishi la data husika] [message or reply to message]</i>
     <i><i>ongeza data za biashara(movie,Series n.k )(ambazo zina download button) kwenye database Mfano /adddata soz</i>
     

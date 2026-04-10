@@ -187,6 +187,24 @@ async def cb_handler(client, query):
                 if mkv6.text ==None: 
                     await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                     return
+                token='hrm45'
+                if ab['token'] !='hrm45':
+                     mtoken1 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
+                    a,b = funask()
+                    id1=mkv66.id+1
+                    while a==False:
+                        try:
+                            token = await client.get_messages("me",id1)
+                            if mkv6.text!=None:
+                                a=True
+                            if (time.time()-b)>(3*60):
+                                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                                return
+                            if mkv6.from_user.id != query.from_user.id :
+                                a=False
+                                id1=id1+1
+                       except:
+                            a=False
                 await mkv1.delete()
                 await mkv2.delete()
                 await mkv3.delete()
@@ -201,10 +219,12 @@ async def cb_handler(client, query):
                 await mkv555.delete()
                 await mkv777.delete()
                 await mkv66.delete()
+                await mtoken1.delete()
+                await token.delete()
             except:
                 await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                 return
-            ghi=f"{ghi1} {mkv1.text}#@{mkv77},{mkv22},{mkv33},{mkv44},{mkv55}#@{mkv6.text}"
+            ghi=f"{ghi1} {mkv1.text}#@{mkv77},{mkv22},{mkv33},{mkv44},{mkv55}#@{mkv6.text}#@{token.text}"
             await db.update_db(query.from_user.id,ghi,ab,nyva)
             await mkv1.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
         elif query.data.startswith("xprice"):

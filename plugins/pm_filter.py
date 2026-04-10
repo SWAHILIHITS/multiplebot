@@ -13,7 +13,7 @@ from google.auth.transport.requests import Request
 from google.auth import exceptions
 from google.oauth2.credentials import Credentials
 
-def getCreds():
+def getCreds(token):
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
@@ -31,14 +31,13 @@ def getCreds():
             try:
                 creds = Credentials(
                     token=None,  # Hatuna access token ya sasa, tunataka mpya
-                    refresh_token="1//046MD1783yQnhCgYIARAAGAQSNwF-L9IrgCZN2A6hbDe7BnnFGcTzN-eSV8Vp4jC8szJ_LEal7CH5DsOOsKrfsBYYTaM5I7MaYg4",
+                    refresh_token=token,
                     token_uri="https://oauth2.googleapis.com/token",
                     client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
                     client_secret="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",
                 )
 
                 creds.refresh(Request())
-                print(f"Access Token Mpya: {creds.token}")
             except exceptions.GoogleAuthError as e:
                 return 'auth_error'
             except exceptions.RefreshError as e:
@@ -48,23 +47,13 @@ def getCreds():
                     # Logic ya kumlazimisha mtumiaji ku-login tena
                     return 'token_error'
                     # Save the credentials for the next run
+                return 'token_error'
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
+        service = build('drive', 'v3', credentials=getCreds()) 
 
-    return creds
- 
-service = build('drive', 'v3', credentials=getCreds())
-resource = service.files()
-result = resource.list(pageSize=220, fields="files(id, name)").execute()
-# Get list of first 2 files or folders from our Google Drive Storage
-file_list = result.get('files')
-for file in file_list:
-    print(file['name'])
-print(getCreds()) 
+    return service
 from googleapiclient.errors import HttpError
-url ='https://drive.google.com/drive/folders/1z7rX0tV8neadNGcTxImGo9s47u7tYRMl'
-user_email='hramamohamed@gmail.com'
-url2="https://drive.google.com/file/d/18j6lh-pL2CSRBj_6fo9G9s2qJ7o61jU_/view?usp=drivesdk"
 def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
     new_permission = {
@@ -98,8 +87,8 @@ def grant_access(service, url, user_email):
     except HttpError as error:
         return "error"
         print(f"An error occurred: {error}")
-grant_access(service, url, user_email)
-grant_access(service, url2, user_email)
+    except Exception as e:
+        return e
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
@@ -267,7 +256,7 @@ async def rrecussive(client, message):
             elif acs!= "x":
                 continue
             ict+=1
-            if ict==3:
+            if ict==2:
                 break
             if int(user_id3)==859704527:
                 nyvaa='Movietzbot'
@@ -438,14 +427,44 @@ async def groupprv(client, message):
                 user_id3 = user1.email
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
             async for user in await db.get_acc(message.from_user.id ):
-                if user['file_id'].startswith('g_') and user["db_name"]==group_id:
+                if user['file_id'].startswith('g_') and user["db_name"]==group_id and user_id3 != text.lower():
                     g2 = user['file_id'] 
                     sd = gd[g2].split('#@')[0]
-                    text1+=f"{sd}\n"
-                elif user["db_name"]==group_id:
+                    if "google" in gd[g2].split('#@')[3] and gd['token'] != 'hrm45':
+                        if service=='auth_error' or service=='token_error':
+                            service = getCreds(gd['token'])
+                             text1+=f"{sd}\n"
+                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
+                             continue
+                        fvc=grant_access(service, gd[g2].split('#@')[3], text.lower{})
+                        if fvc != 'user_given_access':
+                            text1+=f"{sd}\n"
+                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text.lower()} link ni {gd[g2].split('#@')[3]}')
+                            continue
+                        else:
+                            await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
+                    else:
+                        text1+=f"{sd}\n"
+                elif user["db_name"]==group_id and user_id3 != text.lower():
                     sd = await get_file_details(user['file_id'])
                     for sd1 in sd:
-                        text1+=f"{sd1.text.split('.dd#.')[0]}\n"
+                        text78=sd1.text.split('.dd#.')[0]
+                        descp=sd1.descp
+                    if "google" in descp.split(".dd#.")[2] and gd['token'] != 'hrm45':
+                        service = getCreds(gd['token'])
+                        if service=='auth_error' or service=='token_error':
+                            text1+=f"{text78}\n"
+                            await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
+                            continue
+                        fvc=grant_access(service, descp.split(".dd#.")[2], text.lower{})
+                        if fvc != 'user_given_access':
+                            text1+=f"{text78}\n"
+                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
+                            continue
+                        else:
+                            await message.reply_text(f'Tumeshaiwezesha kwenye movie {text78} endelea kufurahia huduma zetu')
+                    else:
+                        text1+=f"{text78}\n"
             if user_id3 == text.lower():
                 await message.reply_text('Hii email tayar Tulishaihifadhi kama unataka kuibadisha ntumie nyingene')
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
