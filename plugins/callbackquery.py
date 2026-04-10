@@ -189,9 +189,9 @@ async def cb_handler(client, query):
                     return
                 token='hrm45'
                 if ab['token'] !='hrm45':
-                    mtoken1 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
+                    token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
                     a,b = funask()
-                    id1=mtoken1.id+1
+                    id1=token11.id+1
                     while a==False:
                         try:
                             token1 = await client.get_messages("me",id1)
@@ -206,7 +206,7 @@ async def cb_handler(client, query):
                         except:
                             a=False
                     token=token1.text
-                    await mtoken1.delete()
+                    await token11.delete()
                     await token1.delete()
                 await mkv1.delete()
                 await mkv2.delete()
