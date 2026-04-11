@@ -469,7 +469,7 @@ async def groupprv(client, message):
                         fvc=str(fvc)
                         if 'user_given_access' not in fvc:
                             text1+=f"{text78}\n"
-                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
+                            await client.send_message(chat_id=group_id,text=f'{fvc}tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
                             continue
                         else:
                             cvb="no"
