@@ -82,13 +82,13 @@ def grant_access(service, url, user_email):
         
         print(f"Permission ID: {permission.get('id')}")
         
-        text41=f"{Fileid}##{permission.get('id')}##user_given_access"
-        return str(text41)
+        return f"{file_id}##{permission.get('id')}##user_given_access"
+        
     except HttpError as error:
         return "error"
         print(f"An error occurred: {error}")
     except Exception as e:
-        return e
+        return str(e)
 @Bot0.on_message(filters.command("token"))
 async def addtoken(client, message):
     botusername=await client.get_me()
@@ -466,7 +466,7 @@ async def groupprv(client, message):
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             continue
                         fvc=grant_access(service, descp.split(".dd#.")[2], text.lower())
-                        fvc=str(fvc)
+                        
                         if 'user_given_access' not in fvc:
                             text1+=f"{text78}\n"
                             await client.send_message(chat_id=group_id,text=f'{fvc}tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
