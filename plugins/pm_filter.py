@@ -479,7 +479,7 @@ async def groupprv(client, message):
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
                             await message.reply_text(f'Tumeshaiwezesha kwenye movie au series\n     **{text78}**  \n endelea kufurahia huduma zetu')
-                    else:
+                    elif "google" in descp.split(".dd#.")[2]:
                         text1+=f"{text78}\n"
             if user_id3 == text.lower():
                 await message.reply_text('Hii email tayar Tulishaihifadhi kama unataka kuibadisha ntumie nyingene')
