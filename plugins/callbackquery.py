@@ -963,8 +963,8 @@ async def cb_handler(client, query):
                                 filter["tme"] = 1000
                                 await User.collection.update_one({'_id':hjgh},{'$set': filter})
                                 await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie au series \n **{name}** endelea kufurahia huduma zetu')
-                        if cvz != "no":
-                            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
+                        if cvz != "no" and "google" in descp.split(".dd#.")[2] :
+                            await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake \n**{email}** kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
                                 )
                             await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
                                 )
