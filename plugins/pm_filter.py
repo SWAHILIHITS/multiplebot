@@ -446,6 +446,7 @@ async def groupprv(client, message):
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
                             await add_user(hjgh,nyva)
+                            await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
@@ -475,6 +476,7 @@ async def groupprv(client, message):
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
                             await add_user(hjgh,nyva)
+                            await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
