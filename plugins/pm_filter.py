@@ -81,7 +81,9 @@ def grant_access(service, url, user_email):
         ).execute()
         
         print(f"Permission ID: {permission.get('id')}")
-        return f"{Fileid}##{permission.get('id')}##user_given_access"
+        
+        text41=f"{Fileid}##{permission.get('id')}##user_given_access"
+        return str(text41)
     except HttpError as error:
         return "error"
         print(f"An error occurred: {error}")
