@@ -953,7 +953,7 @@ async def cb_handler(client, query):
                             if service=='auth_error' or service=='token_error':
                                 await client.send_message(chat_id=query.from_user.id,text=f'tafadhali token imeexpire tengeneza mpya')
                             fvc=grant_access(service, descp.split(".dd#.")[2], email)
-                            if 'user_given_access' not in fvc::
+                            if 'user_given_access' not in fvc:
                                 await client.send_message(chat_id=query.from_user.id,text=f'tafadhali hakiki email yake{email} au link yako kama inafanya kaz nmeshindwa kumuwezesha{name} link ni {descp.split(".dd#.")[2]}')
                             else:
                                 cvz="no"
