@@ -440,7 +440,7 @@ async def groupprv(client, message):
                         fvc=grant_access(service, gd[g2].split('#@')[3], text.lower())
                         if 'user_given_access' not in fvc:
                             text1+=f"{sd}\n"
-                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text.lower()} link ni {gd[g2].split('#@')[3]}')
+                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake  \n**{text.lower()}**  \n au link yako kama inafanya kaz nmeshindwa kumuwezesha   **{text.lower()}** link ni \n**{gd[g2].split('#@')[3]}**')
                             continue
                         else:
                             cvb="no"
@@ -449,7 +449,7 @@ async def groupprv(client, message):
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
-                            await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
+                            await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi \n **{sd}** \n endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{sd}\n"
                 elif user["db_name"]==group_id and user_id3 != text.lower():
@@ -458,7 +458,7 @@ async def groupprv(client, message):
                         text78=sd1.text.split('.dd#.')[0]
                         descp=sd1.descp
                     if not sd:
-                        comtinue
+                        continue
                     if "google" in descp.split(".dd#.")[2] and gd['token'] != 'hrm45':
                         service = getCreds(gd['token'],group_id)
                         if service=='auth_error' or service=='token_error':
@@ -469,7 +469,7 @@ async def groupprv(client, message):
                         
                         if 'user_given_access' not in fvc:
                             text1+=f"{text78}\n"
-                            await client.send_message(chat_id=group_id,text=f'{fvc}tafadhali hakiki email yake{text.lower()} au link yako kama inafanya kaz nmeshindwa kumuwezesha{text78} link ni {descp.split(".dd#.")[2]}')
+                            await client.send_message(chat_id=group_id,text=f'{fvc}tafadhali hakiki email yake \n **{text.lower()}**\n au link yako kama inafanya kaz nmeshindwa kumuwezesha. **{text78}**  link ni \n**{descp.split(".dd#.")[2]}**')
                             continue
                         else:
                             cvb="no"
@@ -478,7 +478,7 @@ async def groupprv(client, message):
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
-                            await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi {sd} endelea kufurahia huduma zetu')
+                            await message.reply_text(f'Tumeshaiwezesha kwenye movie au series\n     **{text78}**  \n endelea kufurahia huduma zetu')
                     else:
                         text1+=f"{text78}\n"
             if user_id3 == text.lower():
@@ -488,7 +488,7 @@ async def groupprv(client, message):
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                 if await db.is_email_exist(message.from_user.id,group_id):
                     await message.reply_text(f'Tafadhali subir kidogo tutakupa taarifa tutakaipo iwezesha')
-                    await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
+                    await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done kama umejiunga n gdrive hakiki token ili akusaidie kuruhusu haraka..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
             elif cvb=="yas":
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
