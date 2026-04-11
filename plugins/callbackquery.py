@@ -954,7 +954,7 @@ async def cb_handler(client, query):
                                 await client.send_message(chat_id=query.from_user.id,text=f'tafadhali token imeexpire tengeneza mpya')
                             fvc=grant_access(service, descp.split(".dd#.")[2], email)
                             if 'user_given_access' not in fvc:
-                                await client.send_message(chat_id=query.from_user.id,text=f'tafadhali hakiki email yake{email} au link yako kama inafanya kaz nmeshindwa kumuwezesha{name} link ni {descp.split(".dd#.")[2]}')
+                                await client.send_message(chat_id=query.from_user.id,text=f'tafadhali hakiki email yake \n **{email}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{name}** link ni \n **{descp.split(".dd#.")[2]}**')
                             else:
                                 cvz="no"
                                 hjgh = f'{fileid}##{msg1}'
@@ -962,7 +962,7 @@ async def cb_handler(client, query):
                                 filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                                 filter["tme"] = 1000
                                 await User.collection.update_one({'_id':hjgh},{'$set': filter})
-                                await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie au series {name} endelea kufurahia huduma zetu')
+                                await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie au series \n **{name}** endelea kufurahia huduma zetu')
                         if cvz != "no":
                             await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
                                 )
@@ -976,7 +976,7 @@ async def cb_handler(client, query):
                             
                             fvc=grant_access(service, ban_status[msg2].split('#@')[3], email)
                             if 'user_given_access' not in fvc:
-                                await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake{email} au link yako kama inafanya kaz nmeshindwa kumuwezesha{ban_status[msg2].split('#@')[0]} link ni {ban_status[msg2].split('#@')[3]}')
+                                await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake **{email}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{ban_status[msg2].split('#@')[0]}** link ni\n  **{ban_status[msg2].split('#@')[3]}**')
                             
                             else:
                                 cvz="no"
