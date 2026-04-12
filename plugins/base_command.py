@@ -630,8 +630,8 @@ async def cb_handler(client, query):
                     reply_markup=InlineKeyboardMarkup(
                         [
                             [
-                                InlineKeyboardButton("🇹🇿 TANZANIA", callback_data =f"tzn##tsh id2"),
-                                InlineKeyboardButton("🇰🇪 KENYA",callback_data =f"tzn##ksh id2" )
+                                InlineKeyboardButton("🇹🇿 TANZANIA", callback_data =f"tzn##tsh {id2}"),
+                                InlineKeyboardButton("🇰🇪 KENYA",callback_data =f"tzn##ksh {id2}" )
                             ]
                         ]
                     )
