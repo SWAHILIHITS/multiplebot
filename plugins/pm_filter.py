@@ -52,6 +52,25 @@ def getCreds(tokeni,group_id):
     service = build('drive', 'v3', credentials=creds)
     return service
 from googleapiclient.errors import HttpError
+def grant_access(service, url, user_email):   
+    try:
+        # 1. Find the permission ID for the specific email address
+        permissions = service.permissions().list(fileId=folder_id, fields="permissions(id, emailAddress)").execute()  
+        target_perm_id = None
+        for perm in permissions.get('permissions', []):
+            if perm.get('emailAddress').lower() == user_email:
+                target_perm_id = perm.get('id')
+                break
+
+        if target_perm_id:
+            # 2. Delete the permission
+            service.permissions().delete(fileId=folder_id, permissionId=target_perm_id).execute()
+            print(f"Successfully removed access for: {user_email}")
+        else:
+            print(f"No permission found for {user_email} on this folder.")
+
+    except HttpError as error:
+        print(f"An error occurred: {error}")
 def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
     new_permission = {
