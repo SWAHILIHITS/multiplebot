@@ -52,7 +52,7 @@ def getCreds(tokeni,group_id):
     service = build('drive', 'v3', credentials=creds)
     return service
 from googleapiclient.errors import HttpError
-def grant_access(service, url, user_email):   
+def remove_access_all(service, folder_id, user_email):   
     try:
         # 1. Find the permission ID for the specific email address
         permissions = service.permissions().list(fileId=folder_id, fields="permissions(id, emailAddress)").execute()  
@@ -65,12 +65,22 @@ def grant_access(service, url, user_email):
         if target_perm_id:
             # 2. Delete the permission
             service.permissions().delete(fileId=folder_id, permissionId=target_perm_id).execute()
-            print(f"Successfully removed access for: {user_email}")
+            print(f"Successfully removed access")
         else:
-            print(f"No permission found for {user_email} on this folder.")
+            print(f"No permission found for on this folder.")
 
     except HttpError as error:
         print(f"An error occurred: {error}")
+def remove_access(service, url, per_id):   
+    try:
+        # 1. Find the permission ID for the specific email address
+        # 2. Delete the permission
+        service.permissions().delete(fileId=url, permissionId=per_id).execute()
+        print(f"Successfully removed access")
+        return "success"
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        return "failed"
 def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
     new_permission = {
@@ -464,7 +474,11 @@ async def groupprv(client, message):
                         else:
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
-                            await add_user(hjgh,nyva)
+                            found = await User.collection.find_one({"id":hjgh})
+                            if found:
+                                fjc=remove_access(service,fvc.split("##")[0],fvc.split("##")[1])
+                            else:
+                                await add_user(hjgh,nyva)
                             await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
@@ -494,7 +508,11 @@ async def groupprv(client, message):
                         else:
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
-                            await add_user(hjgh,nyva)
+                            found = await User.collection.find_one({"id":hjgh})
+                            if found:
+                                fjc=remove_access(service,fvc.split("##")[0],fvc.split("##")[1])
+                            else:
+                                await add_user(hjgh,nyva)
                             await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                             filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                             filter["tme"] = 1000
