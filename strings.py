@@ -1,0 +1,97 @@
+
+from pyrogram import __version__
+from info import (
+    OWNER_ID,
+    CUSTOM_START_MESSAGE
+)
+
+if CUSTOM_START_MESSAGE:
+    START_MESSAGE = CUSTOM_START_MESSAGE
+else:
+    START_MESSAGE = """<b>Hello {mention}</b>,
+Mimi ni robot wa kuhifadhi media,text n.k,
+unaweza kuvipata kwa kutuma neno lolote kwenye group ambalo mimi nipo au kisha ntakupa movie/series ukiwa inline mode au kwenye kikundi na nkuletea unachotaka hapo shart kiwe kwenye database ya admin husika,
+
+bonyeza help kuweza kujua jinsi ya kuongeza data<b>(ni kwa admins waliopo kwenye database yetu tu ndiyo wataiona hii help button)</b> 
+
+Jinsi ya kujiunga na maelezo zaidi bonyeza about batan
+"""
+
+HELP_MESSAGE = f"""<b><u>Main Commands</u></b>
+○ <b>/add</b> <i>[jina wakilishi la data husika] [message or reply to message]</i>
+    <i>ongeza data za kawaida (ambazo hazina download button) kwenye database Mfano /add msaada</i>
+
+○ <b>/ongeza</b>
+    <i>Tuma poster kwa kuzigawanya iii iende katika kikundi husika Mfano /ongeza imetafsiriwa  hiitapeleka posta zote zilizo tafsiriwa</i>
+
+
+○ <b>/token</b> <i>ikifuatiwa na token</i>
+    <i>Hii ni kuadd token ili kuwapa user access ya gdrive yako Mfano /token gdgjeyajkhakjhcvt</i>
+
+
+○ <b>/adddata</b>[jina wakilishi la data husika] [message or reply to message]</i>
+    <i><i>ongeza data za biashara(movie,Series n.k )(ambazo zina download button) kwenye database Mfano /adddata soz</i>
+    
+○ <b>/delete</b> <i>[neno la data uliyotaka kufuta]</i>
+    <i>kufuta data kutoka kwenye database Mfano /delete soz</i>
+    
+○ <b>/edit_admin</b>
+    <i>Ni kwa ajili ya setting kama kuweka vifurushi,mawasiliano n.k</i>
+    
+○ <b>/filters</b>
+    <i>kuangalia data zote ulizotuma kwenye database</i>
+    
+○ <b>/salio</b>
+    <i>kuangalua maendeleo yako kwenye huduma zetu</i>
+   """ 
+ABOUT_MESSAGE = f"""💥💥💥💥💥💥💥💥💥💥💥
+         MWONGOZO MFUPI
+
+Bot hii imetngenezwa na
+<b>○ Imetengenezwa na: <a href='tg://user?id={OWNER_ID}'>HASSAN RANADHANI</a>
+
+Ilikuweza kutumia huyu robot kwenye group lako bonyeza maneno Hassan Ramadhan hapo juu kisha tuma njoo tuma nshtuwe nkupe muongozo.
+
+    🌸🌸Gharama🌸🌸
+wiki ya kwanza ni ofa  ili kujifunza jinsi ya kumtumia lakini baada ya hapo ni sh 5000 kila mwezi.
+gharama hizi ni kwa ajili ya kulipia utumiaji Wa robot telegram
+
+    🤷‍♂🤷‍♂Jinsi ya kumuunga
+Ukishaongezwa kwenye list ya admin wetu utaarifiwa kisha baada ya hapo utatuma command /niunge kwenye group lako iliaweze kufanya kazi kwa data utakazo MPA.
+
+
+Kwa msaada zaidi : <a href='tg://user?id={OWNER_ID}'>BONYEZA HAPA </a></b>
+"""
+
+MARKDOWN_HELP = """<b><u>Markdown Formatting</u></b>
+○ <b>Bold Words</b> :
+    format: <code>*Bold Text*</code>
+    show as: <b>Bold Text</b>
+    
+○ <b>Italic Text</b>
+    format: <code>_Italic Text_</code>
+    show as: <i>Italic Text</i>
+    
+○ <b>Code Words</b>
+    format: <code>`Code Text`</code>
+    show as: <code>Code Text</code>
+    
+○ <b>Under Line</b>
+    format: <code>__UnderLine Text__</code>
+    show as: <u>UnderLine Text</u>
+    
+○ <b>StrikeThrough</b>
+    format: <code>~StrikeThrough Text~</code>
+    show as: <s>StrikeThrough Text</s>
+    
+○ <b>Hyper Link</b>
+    format: <code>[Text](https://t.me/CodeXBotz)</code>
+    show as: <a href='https://t.me/CodeXBotz'>Text</a>
+    
+○ <b>Buttons</b>
+    <u>Url Button</u>:
+    <code>[Button Text](buttonurl:https://t.me/CoddeXBotz)</code>
+    <u>Alert Button</u>:
+    <code>[Button Text](buttonalert:Alert Text)</code>
+    <u>In Sameline</u>:
+    <code>[Button Text](buttonurl:https://t.me/CodeXBotz:same)</code></i>"""
