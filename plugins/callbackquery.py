@@ -189,33 +189,32 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id = query.from_user.id,text=f"umetuma ujumbe ambao s sahihi,Kama hujaelewa jinsi tafadhal mcheki msimamiz @hrm45 akusaidie bonyeza rudi nyuma uanze upya kutengeneza kifurushi",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'kundii')]]))
                     return
                 tokeni='hrm45'
-                if ab['token'] !='hrm45':
-                    token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
-                    a,b = funask()
-                    id1=token11.id+1
-                    while a==False:
-                        try:
-                            token1 = await client.get_messages("me",id1)
-                            if token1.text!=None:
-                                a=True
-                            if (time.time()-b)>(3*60):
-                                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
-                                return
-                            if token1.from_user.id != query.from_user.id :
-                                a=False
-                                id1=id1+1
-                        except:
+                token11 = await client.send_message(chat_id = query.from_user.id,text=f'Naomba link ya google drivefolder itakayo wakilisha kifuruxhi hiki. kama huna tuma neno **sina**')   
+                a,b = funask()
+                id1=token11.id+1
+                while a==False:
+                    try:
+                        token1 = await client.get_messages("me",id1)
+                        if token1.text!=None:
+                            a=True
+                        if (time.time()-b)>(3*60):
+                            await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 3 iliniweze kuhudumia na wengine",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                            return
+                        if token1.from_user.id != query.from_user.id :
                             a=False
+                            id1=id1+1
+                    except:
+                        a=False
                     
-                    if token1.text.lower() == "sina":
-                        tokeni = 'hrm45'
-                    elif 'google' in token1.text.lower():
-                        tokeni=token1.text
-                    else:
-                        tokeni= 'hrm45'
-                        await client.send_message(chat_id = query.from_user.id,text=f"nmekuekea hujajaza link yoyote ya gdrivr folder hukutuma link kamili ya gdrive folder bonyeza rud nyuma huko chini kuanza upya")
-                    await token11.delete()
-                    await token1.delete()
+                if token1.text.lower() == "sina":
+                    tokeni = 'hrm45'
+                elif 'google' in token1.text.lower():
+                    tokeni=token1.text
+                else:
+                    tokeni= 'hrm45'
+                    await client.send_message(chat_id = query.from_user.id,text=f"nmekuekea hujajaza link yoyote ya gdrivr folder hukutuma link kamili ya gdrive folder bonyeza rud nyuma huko chini kuanza upya")
+                await token11.delete()
+                await token1.delete()
                 await mkv1.delete()
                 await mkv2.delete()
                 await mkv3.delete()
@@ -338,9 +337,11 @@ async def cb_handler(client, query):
             botusername=await client.get_me()
             nyva=botusername.username  
             nyva=str(nyva)
+            group_id = await db.is_bot_exist(nyva)
             filedetails = await get_file_details(query.data.split(" ",1)[1])
             await query.answer(f'{query.data.split(" ",1)[1]}')
             for files in filedetails:
+                textx=files.text.split('.dd#.')[0]
                 descp=files.descp
             descp=descp.split(".dd#.")
             if descp[2]!="data":
@@ -392,7 +393,39 @@ async def cb_handler(client, query):
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
                     await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 else:
-                    descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text+".dd#."+descp[3]
+                    if "google" in mkv.text.lower():
+                        fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
+                        if fgh:
+                            for userx in fghx:
+                                fx_user=userx.user_id
+                                fx_bot=userx.bot_link
+                                service = getCreds(ban_status['token'],group_id)
+                                hjgh = f'{query.data.split(" ",1)[1]}##{fx_user}'
+                                if service=='auth_error' or service=='token_error':
+                                    await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
+                                hjkl = f'{group_id}##{fx_user}'
+                                dtailsx = await is_user_exist(hjkl,nyva)
+                                for flsx in dtailsx:
+                                    emailx = flsx.email
+
+                                if emailx=='hrm45':
+                                    await client.get_messages(chat_id=int(fx_user),text=f"Tafadhali add email yako tuweze kukuwezesha Tumebadilisha link kwenye movie \n **{textx}**")
+                                fvc=grant_access(service, mkv.text.lower(), emailx)
+                                if 'user_given_access' not in fvc:
+                                     await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake **{emailx}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{textx}** link ni\n  **{mkv.text}**')
+                                else:
+                                    cvz="no"
+                                    found = await User.collection.find_one({"id":hjgh})
+                                    if not found:
+                                        await add_user(hjgh,nyva)
+                                    filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                                    filter["tme"] = 1000
+                                    await User.collection.update_one({'_id':hjgh},{'$set': filter})
+                                    await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie {textx} baada ya kubadilisha link nyengine endelea kufurahia huduma zetu')
+                                if cvz!= 'no':
+                                    await client.send_message(chat_id = int(group_id),text=f'Tafadhali muwezeshee \n**{emailx}** kwenye movie {textx} baada ya kubadilisha link nyengine kuwa {mkv.text}endelea kufurahia huduma zetu')
+                                
+                    descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
                     await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
             elif descp[3]=="m":
@@ -403,12 +436,81 @@ async def cb_handler(client, query):
                         InlineKeyboardButton(f"📡720p", callback_data =f"3hmuv##720 {fileid}")
                     ],
                     [
+                        InlineKeyboardButton(f"💥  badlisha kuwa link", callback_data =f"xfiile {fileid}")
                         InlineKeyboardButton(f"💥  DONE", callback_data =f"close")
                     ]
                 ])
                 await query.edit_message_reply_markup(reply_markup=reply_markup)
             elif descp[3]=="ms":
                 await query.edit_message_reply_markup(reply_markup=btn22(nyva,"series",f"3hsss##{ query.data.split(' ',1)[1] }"))
+        elif query.data.startswith("xfiile")
+            botusername=await client.get_me()
+            nyva=botusername.username  
+            nyva=str(nyva)
+            group_id = await db.is_bot_exist(nyva)
+            filedetails = await get_file_details(query.data.split(" ",1)[1])
+            await query.answer(f'{query.data.split(" ",1)[1]}')
+            for files in filedetails:
+                descp=files.descp  
+                textx=files.text.split('.dd#.')[0]
+            descp=descp.split(".dd#.")
+            a=False
+            b=time.time()
+            mkv1 = await client.send_message(chat_id = query.from_user.id,text=f'⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️\nNtumie link ya movie au series hii **{textx}** ')
+            id1=mkv1.id+1
+            while a==False:
+                try:
+                    mkv = await client.get_messages("me",id1)
+                    if mkv.text!=None:
+                        a=True
+                    
+                    if (time.time()-b)>100:
+                        mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 1 iliniweze kuhudumia na wengine")
+                        return
+                    if mkv.from_user.id != query.from_user.id :
+                        a=False
+                        id1=id1+1
+                except:
+                    a=False
+            if mkv.text==None:
+                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingine")
+                return
+            if "google" in mkv.text.lower():
+                fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
+                if fgh:
+                    for userx in fghx:
+                        fx_user=userx.user_id
+                        fx_bot=userx.bot_link
+                        service = getCreds(ban_status['token'],group_id)
+                        hjgh = f'{query.data.split(" ",1)[1]}##{fx_user}'
+                        if service=='auth_error' or service=='token_error':
+                            await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
+                        hjkl = f'{group_id}##{fx_user}'
+                        dtailsx = await is_user_exist(hjkl,nyva)
+                        for flsx in dtailsx:
+                            emailx = flsx.email
+
+                        if emailx=='hrm45':
+                            await client.get_messages(chat_id=int(fx_user),text=f"Tafadhali add email yako tuweze kukuwezesha Tumebadilisha link kwenye movie \n **{textx}**")
+                        fvc=grant_access(service, mkv.text.lower(), emailx)
+                        if 'user_given_access' not in fvc:
+                            await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake **{emailx}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{textx}** link ni\n  **{mkv.text}**')
+                        else:
+                            cvz="no"
+                            found = await User.collection.find_one({"id":hjgh})
+                            if not found:
+                                await add_user(hjgh,nyva)
+                            filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
+                            filter["tme"] = 1000
+                            await User.collection.update_one({'_id':hjgh},{'$set': filter})
+                            await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie {textx} baada ya kubadilisha link nyengine endelea kufurahia huduma zetu')
+                        if cvz!= 'no':
+                            await client.send_message(chat_id = int(group_id),text=f'Tafadhali muwezeshee \n**{emailx}** kwenye movie {textx} baada ya kubadilisha link nyengine kuwa {mkv.text}endelea kufurahia huduma zetu')
+                                
+            descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
+            await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+        
         elif query.data.startswith("xdescp"): 
             filedetails = await get_file_details(query.data.split(" ",1)[1])
             await query.answer(f'{query.data.split(" ",1)[1]}')
@@ -950,6 +1052,7 @@ async def cb_handler(client, query):
                     if tme == 'm':
                         if "google" in descp.split(".dd#.")[2] and ban_status['token'] != 'hrm45':
                             service = getCreds(ban_status['token'],query.from_user.id)
+                            hjgh = f'{fileid}##{msg1}'
                             if service=='auth_error' or service=='token_error':
                                 await client.send_message(chat_id=query.from_user.id,text=f'tafadhali token imeexpire tengeneza mpya')
                             fvc=grant_access(service, descp.split(".dd#.")[2], email)
@@ -957,13 +1060,21 @@ async def cb_handler(client, query):
                                 await client.send_message(chat_id=query.from_user.id,text=f'tafadhali hakiki email yake \n **{email}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{name}** link ni \n **{descp.split(".dd#.")[2]}**')
                             else:
                                 cvz="no"
-                                hjgh = f'{fileid}##{msg1}'
                                 await add_user(hjgh,nyva)
                                 filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                                 filter["tme"] = 1000
                                 await User.collection.update_one({'_id':hjgh},{'$set': filter})
                                 await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye movie au series \n **{name}** endelea kufurahia huduma zetu')
                         if cvz != "no" and "google" in descp.split(".dd#.")[2] :
+                            hjgh = f'{fileid}##{msg1}'
+                            found = await User.collection.find_one({"id":hjgh})
+                            filter={'email':email}
+                            filter["tme"] = 2000
+                            if found:
+                            await User.collection.update_one({'_id':hjgh},{'$set':filter})
+                            else:
+                                await add_user(hjgh,nyva)
+                                await User.collection.update_one({'_id':hjgh},{'$set':filter})
                             await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake \n**{email}** kwenye movie \n**{files.text.split('.dd#.')[0]}\n"
                                 )
                             await client.send_message(chat_id = (int(msg1)),text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 Tumefanikiwa kuiwezesha email yako endelea kufurahia huduma zetu:"
@@ -971,6 +1082,7 @@ async def cb_handler(client, query):
                     else:
                         if "google" in ban_status[msg2].split('#@')[3] and ban_status['token'] != 'hrm45':
                             service = getCreds(ban_status['token'],group_id)
+                            hjgh = f'{msg2}##{msg1}'
                             if service=='auth_error' or service=='token_error':
                                 await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
                             
@@ -980,13 +1092,21 @@ async def cb_handler(client, query):
                             
                             else:
                                 cvz="no"
-                                hjgh = f'{msg2}##{msg1}'
                                 await add_user(hjgh,nyva)
                                 filter={'email':f"{fvc.split("##")[0]}##{fvc.split("##")[1]}"}
                                 filter["tme"] = 1000
                                 await User.collection.update_one({'_id':hjgh},{'$set': filter})
                                 await client.send_message(chat_id = int(msg1),text=f'Tumeshaiwezesha kwenye kifurusshi {ban_status[msg2].split('#@')[0]} endelea kufurahia huduma zetu')
-                        if cvz != "no":
+                        if cvz != "no" and "google" in ban_status[msg2].split('#@')[3]:
+                            hjgh = f'{msg2}##{msg1}'
+                            found = await User.collection.find_one({"id":hjgh})
+                            filter={'email':email}
+                            filter["tme"] = 2000
+                            if found:
+                            await User.collection.update_one({'_id':hjgh},{'$set':filter})
+                            else:
+                                await add_user(hjgh,nyva)
+                                await User.collection.update_one({'_id':hjgh},{'$set':filter})
                             await client.send_message(chat_id = query.from_user.id,text=f"🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿 mteja {ttl.mention} muwezeshee email yake {email} kwenye {ban_status[msg2].split('#@')[0]}"
 
                                 )

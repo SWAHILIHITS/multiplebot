@@ -92,6 +92,11 @@ class Database:
     async def get_all_users(self):
         all_users = self.col.find({})
         return all_users
+    async def get_all_acc_file_id(self,fileid,group_id):
+        filter={'db_name': group_id}
+        filter["file_id"]= fileid
+        all_users = self.fls.find({filter})
+        return all_users
 
     async def get_all_acc(self):
         all_users = self.fls.find({})

@@ -484,7 +484,7 @@ async def groupprv(client, message):
                             filter["tme"] = 1000
                             await User.collection.update_one({'_id':hjgh},{'$set': filter})
                             await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi \n **{sd}** \n endelea kufurahia huduma zetu')
-                    else:
+                    elif "google" in gd[g2].split('#@')[3]:
                         text1+=f"{sd}\n"
                 elif user["db_name"]==group_id and user_id3 != text.lower():
                     sd = await get_file_details(user['file_id'])
@@ -525,6 +525,15 @@ async def groupprv(client, message):
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
+                hjgh = f'{user['file_id']}##{message.from_user.id}'
+                found = await User.collection.find_one({"id":hjgh})
+                filter={'email':f"{text.lower()}"}
+                filter["tme"] = 2000
+                if found:
+                    await User.collection.update_one({'_id':hjgh},{'$set':filter})
+                else:
+                    await add_user(hjgh,nyva)
+                    await User.collection.update_one({'_id':hjgh},{'$set':filter})
                 if await db.is_email_exist(message.from_user.id,group_id):
                     await message.reply_text(f'Tafadhali subir kidogo tutakupa taarifa tutakaipo iwezesha')
                     await client.send_message(chat_id=group_id,text=f'Tafadhal iwezeshe email hii **{message.text.strip()}** \n kisha ondoa uwezo kwenye email hii **{user_id3}**\n**Kisha baada ya kumaliza kumuwekea access bonyeza done kama umejiunga n gdrive hakiki token ili akusaidie kuruhusu haraka..**\n{text1}',reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Done', callback_data =f'3hdone {message.from_user.id}')]]))
