@@ -443,7 +443,7 @@ async def cb_handler(client, query):
                 await query.edit_message_reply_markup(reply_markup=reply_markup)
             elif descp[3]=="ms":
                 await query.edit_message_reply_markup(reply_markup=btn22(nyva,"series",f"3hsss##{ query.data.split(' ',1)[1] }"))
-        elif query.data.startswith("xfiile")
+        elif query.data.startswith("xfiile"):
             botusername=await client.get_me()
             nyva=botusername.username  
             nyva=str(nyva)
