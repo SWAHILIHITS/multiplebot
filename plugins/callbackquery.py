@@ -436,7 +436,7 @@ async def cb_handler(client, query):
                         InlineKeyboardButton(f"📡720p", callback_data =f"3hmuv##720 {fileid}")
                     ],
                     [
-                        InlineKeyboardButton(f"💥  badlisha kuwa link", callback_data =f"xfiile {fileid}")
+                        InlineKeyboardButton(f"💥  badlisha kuwa link", callback_data =f"xfiile {fileid}"),
                         InlineKeyboardButton(f"💥  DONE", callback_data =f"close")
                     ]
                 ])
