@@ -16,7 +16,7 @@ async def handle_admin_status(bot, cmd):
             all_users=await db.get_all_banned_users()
             async for user in all_users:
                 if  user['db_status']['bot_link']!= nyva:
-                    continue  
+                    continue   
                 ban_status = await db.get_ban_status(user['id'],nyva)
                 if ban_status["is_banned"]:
                     if ban_status["ban_duration"] < (datetime.now() - datetime.fromisoformat(ban_status["banned_on"])).days:
