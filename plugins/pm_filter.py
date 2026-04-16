@@ -474,6 +474,7 @@ async def groupprv(client, message):
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
             cvb="yas"
             async for user in await db.get_acc(message.from_user.id ):
+                cvb='no'
                 if user['file_id'].startswith('g_') and user["db_name"]==group_id and user_id3 != text.lower():
                     g2 = user['file_id'] 
                     sd = gd[g2].split('#@')[0]
@@ -547,6 +548,7 @@ async def groupprv(client, message):
                             await message.reply_text(f'Tumeshaiwezesha kwenye movie au series\n     **{text78}**  \n endelea kufurahia huduma zetu')
                     elif "google" in descp.split(".dd#.")[2]:
                         text1+=f"{text78}\n"
+                    
             if user_id3 == text.lower():
                 await message.reply_text('Hii email tayar Tulishaihifadhi kama unataka kuibadisha ntumie nyingene')
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
