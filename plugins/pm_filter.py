@@ -473,6 +473,7 @@ async def groupprv(client, message):
                 user_id3 = user1.email
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
             cvb="yas"
+            cvcb ="yas"
             async for user in await db.get_acc(message.from_user.id ):
                 if user['file_id'].startswith('g_') and user["db_name"]==group_id and user_id3 != text.lower():
                     g2 = user['file_id'] 
@@ -510,6 +511,7 @@ async def groupprv(client, message):
                         text1+=f"{sd}\n"
                     else:
                         cvb='no'
+                        cvcb ="no"
                 elif user["db_name"]==group_id and user_id3 != text.lower():
                     sd = await get_file_details(user['file_id'])
                     for sd1 in sd:
@@ -551,6 +553,7 @@ async def groupprv(client, message):
                         text1+=f"{text78}\n"
                     else:
                         cvb="no"
+                        cvcb ="no"
             if user_id3 == text.lower():
                 await message.reply_text('Hii email tayar Tulishaihifadhi kama unataka kuibadisha ntumie nyingene')
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
@@ -572,7 +575,7 @@ async def groupprv(client, message):
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                 await message.reply_text('Tafadhali hujajiunga na kifurushi chochote cha kwetu jiunge kwanza ndio tutawezesha email yako kupata huduma zetu')
-            elif cvb== 'no':
+            elif cvcb== 'no':
                 await message.reply_text('Tumeibadilisha/kuiwezexha kikamilifu lkn kwa baadhi ya vifurushi ulivyo lipia haitatumika')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                
