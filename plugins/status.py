@@ -3,6 +3,7 @@ from datetime import datetime
 import time
 import asyncio
 from plugins.database import db
+from plugins.pm_filter import getCreds,get_access_id,remove_access_email,remove_access
 from utils import is_user_exist,get_file_details,add_user
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 async def handle_admin_status(bot, cmd):
@@ -11,7 +12,7 @@ async def handle_admin_status(bot, cmd):
         nyva=botusername.username  
         nyva=str(nyva)
         while a=='start':
-            asyncio.sleep(18000)
+            asyncio.sleep(180)
             all_users=await db.get_all_banned_users()
             async for user in all_users:
                 if  user['bot_link']!= nyva:
@@ -33,10 +34,12 @@ async def handle_admin_status(bot, cmd):
                         continue
                     if user['file_id'].startswith('g_'):
                         abc=f"{abc2[user['file_id']].split('#@')[0]} kimeisha"
+                        descp=abc2[user['file_id']].split('#@')[3]
                     else:
                         abn=await get_file_details(user['file_id'])
                         for file in abn:
                             abc=f"{file.text.split('.dd#.')[0]} mda wake wa kuipakua umeisha" 
+                            descp=file.descp.split(".dd#.")[2]
                     if nyva ==abc2["bot_link"]:
                         hjkl=f'{user["db_name"]}##{user["user_id"]}'
                         if not await is_user_exist(hjkl,nyva):
@@ -45,13 +48,30 @@ async def handle_admin_status(bot, cmd):
                         for gvb in gdh:
                             gdhz=gvb.email
                         try:
+                            hjgh = f'{user['file_id']}##{user['user_id']}'
+                            found = await User.collection.find_one({"_id":hjgh})
+                            service = getCreds(abc2['token'],int(user["db_name"]))
+                            if service=='auth_error' or service=='token_error':
+                                await client.send_message(chat_id= int(user["db_name"]),text=f'tafadhali token imeexpire tengeneza mpya')
+                            if found and (service!='auth_error' or service!='token_error'):
+                                await bot.send_message(chat_id=int(user['user_id']),text=f"{abc} tafadhali jiunge kuendelea kupata huduma zetu kwa bei nafuu")
+                                if found['tme'] == 1000:
+                                    fvx=found['email']
+                                    fjc=remove_access(service,fvx.split("##")[0],fvx.split("##")[1])
+                                elif found['tme']==2000:
+                                    fvx=found['email']
+                                    fghk=get_access_id(f'{descp}')
+                                    if fghk!="url_invalid":
+                                        fjc=remove_access_email(service,fghk,fvx)
+                            elif "google" in descp.lower():
+                                await bot.send_message(chat_id=int(user['user_id']),text=f"{abc} tafadhali jiunge kuendelea kupata huduma zetu kwa bei nafuu")
+                                await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali naomba uondoe uwezo wakuacces mda wake umeisha kutumia \n{abc}\nkwa email\n**{gdhz}**\n kama uliadd kwa email kama sivyo bonyeza close",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Close",callback_data="close")]]))
+                            else:
+                                await bot.send_message(chat_id=int(user['user_id']),text=f"{abc} tafadhali jiunge kuendelea kupata huduma zetu kwa bei nafuu")
                             await db.delete_acc(user['id'])
-                            await bot.send_message(chat_id=int(user['user_id']),text=f"{abc} tafadhali jiunge kuendelea kupata huduma zetu kwa bei nafuu")
-                            await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali naomba uondoe uwezo wakuacces mda wake umeisha kutumia \n{abc}\nkwa email\n**{gdhz}**\n kama uliadd kwa email kama sivyo bonyeza close",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Close",callback_data="close")]]))
                         except Exception as e:
                             await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali tuma huu kwa msimamizi wangu aweze rekebisha hili tatizo {e}")
-                    elif int(user['db_name'])==1956847728 :
-                        await db.delete_acc(user['id'])
+                    
                     asyncio.sleep(1) 
                 
                     
