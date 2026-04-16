@@ -479,7 +479,7 @@ async def groupprv(client, message):
                         else:
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
-                            found = await User.collection.find_one({"id":hjgh})
+                            found = await User.collection.find_one({"_id":hjgh})
                             if found:
                                 fjc=remove_access(service,fvc.split("##")[0],fvc.split("##")[1])
                             else:
