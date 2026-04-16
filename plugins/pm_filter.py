@@ -481,11 +481,11 @@ async def groupprv(client, message):
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
                             found = await User.collection.find_one({"_id":hjgh})
                             if found:
-                                if found.tme == 1000:
-                                    fvx=found.email
+                                if found['tme'] == 1000:
+                                    fvx=found['email']
                                     fjc=remove_access(service,fvx.split("##")[0],fvx.split("##")[1])
-                                elif found.tme==2000:
-                                    fvx=found.email
+                                elif found['tme']==2000:
+                                    fvx=found['email']
                                     fjc=remove_access_email(service,fvc.split("##")[0],fvx)
                             else:
                                 await add_user(hjgh,nyva)
@@ -520,11 +520,11 @@ async def groupprv(client, message):
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
                             found = await User.collection.find_one({"_id":hjgh})
                             if found:
-                                if found.tme == 1000:
-                                    fvx=found.email
+                                if found['tme'] == 1000:
+                                    fvx=found['email']
                                     fjc=remove_access(service,fvx.split("##")[0],fvx.split("##")[1])
-                                elif found.tme==2000:
-                                    fvx=found.email
+                                elif found['tme']==2000:
+                                    fvx=found['email']
                                     fjc=remove_access_email(service,fvc.split("##")[0],fvx)
                             else:
                                 await add_user(hjgh,nyva)
