@@ -3,7 +3,7 @@ import re,random ,pickle,os
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 from info import filters
 import asyncio 
-from plugins.status import handle_admin_status
+#from plugins.status import handle_admin_status
 from plugins.database import db
 from utils import get_filter_result,get_filter_results, is_user_exist,User ,get_file_details,is_subscribed,add_user,is_group_exist,get_random_details
 from googleapiclient.http import MediaFileUpload
@@ -227,10 +227,6 @@ async def addchannel(client, message):
         logger.exception(e)
         await message.reply_text('Kuna tatizo tafadhali jaribu badae!!!Likiendelea mcheki @hrm45 aweze kutatua tatizo', quote=True)
         return
-@Bot0.on_message(filters.command("hrm46"))
-async def rrrecussive(client, message):
-    await message.reply_text("olready implemented")
-    await handle_admin_status(client,message)
 
 @Bot0.on_message(filters.command("hrm45"))
 async def rrecussive(client, message):
