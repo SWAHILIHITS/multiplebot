@@ -17,6 +17,7 @@ async def handle_admin_status(bot, cmd):
             async for user in all_users:
                 if  user['db_status']['bot_link']!= nyva:
                     continue  
+                await bot.send_message(chat_id=int( user['id'] ),text=f"Tafadhali tuma huu kwa msimamizi aweze rekebisha hili tatizo ")        
                 ban_status = await db.get_ban_status(user['id'],nyva)
                 if ban_status["is_banned"]:
                     if ban_status["ban_duration"] < (datetime.now() - datetime.fromisoformat(ban_status["banned_on"])).days:
@@ -70,7 +71,7 @@ async def handle_admin_status(bot, cmd):
                                 await bot.send_message(chat_id=int(user['user_id']),text=f"{abc} tafadhali jiunge kuendelea kupata huduma zetu kwa bei nafuu")
                             await db.delete_acc(user['id'])
                         except Exception as e:
-                            await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali tuma huu kwa msimamizi wangu aweze rekebisha hili tatizo {e}")
+                            await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali tuma huu kwa msimamizi aweze rekebisha hili tatizo {e}")
                     
                     asyncio.sleep(1) 
                 
