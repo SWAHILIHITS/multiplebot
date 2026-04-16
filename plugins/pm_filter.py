@@ -38,14 +38,19 @@ def getCreds(tokeni,group_id):
                 )
                 creds.refresh(Request())
             except exceptions.GoogleAuthError as e:
+                with open(f'{group_id}.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
                 return 'auth_error'
             except exceptions.RefreshError as e:
                 # Google SDK huweka 'invalid_grant' ndani ya ujumbe wa kosa
                 if "invalid_grant" in str(e).lower():    
                     print("Refresh Token haitumiki tena. Tafadhali ingia upya.")
                     # Logic ya kumlazimisha mtumiaji ku-login tena
+                    
                     return 'token_error'
                     # Save the credentials for the next run
+                with open(f'{group_id}.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
                 return 'token_error'
         with open(f'{group_id}.pickle', 'wb') as token:
             pickle.dump(creds, token)
