@@ -57,6 +57,22 @@ def getCreds(tokeni,group_id):
     service = build('drive', 'v3', credentials=creds)
     return service
 from googleapiclient.errors import HttpError
+def get_access_id(url):
+    patterns = [
+        r'/d/([a-zA-Z0-9-_]+)', 
+        r'folders/([a-zA-Z0-9-_]+)',
+        r'id=([a-zA-Z0-9-_]+)'
+    ]
+    file_id=None
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            file_id=match.group(1)
+    if file_id==None:
+        return "url_invalid"
+    else:
+        return file_id
+    
 def remove_access_email(service, folder_id, user_email):   
     try:
         # 1. Find the permission ID for the specific email address
