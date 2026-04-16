@@ -474,7 +474,6 @@ async def groupprv(client, message):
             text1='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n'
             cvb="yas"
             async for user in await db.get_acc(message.from_user.id ):
-                cvb='no'
                 if user['file_id'].startswith('g_') and user["db_name"]==group_id and user_id3 != text.lower():
                     g2 = user['file_id'] 
                     sd = gd[g2].split('#@')[0]
@@ -509,6 +508,8 @@ async def groupprv(client, message):
                             await message.reply_text(f'Tumeshaiwezesha kwenye kifurusshi \n **{sd}** \n endelea kufurahia huduma zetu')
                     elif "google" in gd[g2].split('#@')[3]:
                         text1+=f"{sd}\n"
+                    else:
+                        cvb='no'
                 elif user["db_name"]==group_id and user_id3 != text.lower():
                     sd = await get_file_details(user['file_id'])
                     for sd1 in sd:
@@ -548,7 +549,8 @@ async def groupprv(client, message):
                             await message.reply_text(f'Tumeshaiwezesha kwenye movie au series\n     **{text78}**  \n endelea kufurahia huduma zetu')
                     elif "google" in descp.split(".dd#.")[2]:
                         text1+=f"{text78}\n"
-                    
+                    else:
+                        cvb="no"
             if user_id3 == text.lower():
                 await message.reply_text('Hii email tayar Tulishaihifadhi kama unataka kuibadisha ntumie nyingene')
             elif text1 !='TAFADHALI MPE ACCESS YA SERIES/MOVIE/VIFURUSHI HIVI\n':
@@ -570,6 +572,10 @@ async def groupprv(client, message):
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                 await message.reply_text('Tafadhali hujajiunga na kifurushi chochote cha kwetu jiunge kwanza ndio tutawezesha email yako kupata huduma zetu')
+            elif cvb== 'no':
+                await message.reply_text('Tumeibadilisha/kuiwezexha kikamilifu lkn kwa baadhi ya vifurushi ulivyo lipia haitatumika')
+                await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
+               
         else:
             await add_user(hjkl,nyva)
             await message.reply_text(f'Tafadhali Tuma tena email yako kwa changamoto yyte join kikundi chetu {gd["group"].split("##")[1]}')         
