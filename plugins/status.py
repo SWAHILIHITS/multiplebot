@@ -15,7 +15,7 @@ async def handle_admin_status(bot, cmd):
             asyncio.sleep(180)
             all_users=await db.get_all_banned_users()
             async for user in all_users:
-                if  user['bot_link']!= nyva:
+                if  user['db_status']['bot_link']!= nyva:
                     continue  
                 ban_status = await db.get_ban_status(user['id'],nyva)
                 if ban_status["is_banned"]:
