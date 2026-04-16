@@ -12,7 +12,7 @@ async def handle_admin_status(bot, cmd):
         nyva=botusername.username  
         nyva=str(nyva)
         while a=='start':
-            asyncio.sleep(180)
+            await asyncio.sleep(60)
             all_users=await db.get_all_banned_users()
             async for user in all_users:
                 if  user['db_status']['bot_link']!= nyva:
@@ -73,6 +73,6 @@ async def handle_admin_status(bot, cmd):
                         except Exception as e:
                             await bot.send_message(chat_id=int( user['db_name'] ),text=f"Tafadhali tuma huu kwa msimamizi aweze rekebisha hili tatizo {e}")
                     
-                    asyncio.sleep(1) 
+                    await asyncio.sleep(5) 
                 
                     
