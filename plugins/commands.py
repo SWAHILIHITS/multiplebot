@@ -3,6 +3,7 @@ import uuid
 import io 
 from datetime import datetime,timedelta
 import time
+from plugins.status import handle_admin_status
 from plugins.database import db
 from info import filters,CHANNELS
 from utils import save_file,add_user,Media,User,is_user_exist, get_filter_results ,get_file_details,is_group_exist,User,Like
@@ -16,7 +17,10 @@ import os
 import logging
 logger = logging.getLogger(__name__)
 BOT ={}
-
+@Bot0.on_message(filters.command("hrm46"))
+async def rrrecussive(client, message):
+    await message.reply_text("olready implemented")
+    await handle_admin_status(client,message)
 @Bot0.on_message(filters.command('total') & filters.owner)
 async def total(bot, message):
     """Show total files in database"""
