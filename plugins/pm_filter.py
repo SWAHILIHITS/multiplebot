@@ -57,7 +57,7 @@ def getCreds(tokeni,group_id):
     service = build('drive', 'v3', credentials=creds)
     return service
 from googleapiclient.errors import HttpError
-def remove_access_all(service, folder_id, user_email):   
+def remove_access_email(service, folder_id, user_email):   
     try:
         # 1. Find the permission ID for the specific email address
         permissions = service.permissions().list(fileId=folder_id, fields="permissions(id, emailAddress)").execute()  
@@ -481,7 +481,12 @@ async def groupprv(client, message):
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
                             found = await User.collection.find_one({"_id":hjgh})
                             if found:
-                                fjc=remove_access(service,fvc.split("##")[0],fvc.split("##")[1])
+                                if found.tme == 1000:
+                                    fvx=found.email
+                                    fjc=remove_access(service,fvx.split("##")[0],fvx.split("##")[1])
+                                elif found.tme==2000:
+                                    fvx=found.email
+                                    fjc=remove_access_email(service,fvc.split("##")[0],fvx)
                             else:
                                 await add_user(hjgh,nyva)
                             await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
@@ -513,9 +518,14 @@ async def groupprv(client, message):
                         else:
                             cvb="no"
                             hjgh = f'{user['file_id']}##{message.from_user.id}'
-                            found = await User.collection.find_one({"id":hjgh})
+                            found = await User.collection.find_one({"_id":hjgh})
                             if found:
-                                fjc=remove_access(service,fvc.split("##")[0],fvc.split("##")[1])
+                                if found.tme == 1000:
+                                    fvx=found.email
+                                    fjc=remove_access(service,fvx.split("##")[0],fvx.split("##")[1])
+                                elif found.tme==2000:
+                                    fvx=found.email
+                                    fjc=remove_access_email(service,fvc.split("##")[0],fvx)
                             else:
                                 await add_user(hjgh,nyva)
                             await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
@@ -531,7 +541,7 @@ async def groupprv(client, message):
                 await message.reply_text('Tumeibadilisha kikamilifu')
                 await User.collection.update_one({'_id':hjkl},{'$set':{'email':text.lower()}})
                 hjgh = f'{user['file_id']}##{message.from_user.id}'
-                found = await User.collection.find_one({"id":hjgh})
+                found = await User.collection.find_one({"_id":hjgh})
                 filter={'email':f"{text.lower()}"}
                 filter["tme"] = 2000
                 if found:
