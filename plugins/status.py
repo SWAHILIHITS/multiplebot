@@ -1,4 +1,4 @@
-from info import CHANNELS ,OWNER_ID
+from info import CHANNELS ,OWNER_ID 
 from datetime import datetime 
 import time
 import asyncio
