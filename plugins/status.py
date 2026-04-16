@@ -4,7 +4,7 @@ import time
 import asyncio
 from plugins.database import db
 from plugins.pm_filter import getCreds,get_access_id,remove_access_email,remove_access
-from utils import is_user_exist,get_file_details,add_user
+from utils import is_user_exist,get_file_details,add_user,User
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 async def handle_admin_status(bot, cmd):
         a='start'
