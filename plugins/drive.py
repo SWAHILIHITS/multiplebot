@@ -69,7 +69,7 @@ async def addfilesondrive(client, message):
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 # If it's a folder, we must recurse inside to check for missing files
                 print(f"  [Exists] Folder '{name}' - Checking contents...")
-                recursive_copy(service, item['id'], dest_items[name]['id'])
+                await recursive_copy(service, item['id'], dest_items[name]['id'])
             else:
                 # If it's a file, skip it
                 print(f"  [Skipping] File '{name}' already exists.")
@@ -92,7 +92,7 @@ async def addfilesondrive(client, message):
             ).execute()
             
             # Recurse into the newly created folder
-            recursive_copy(service, item['id'], new_folder['id'])
+            await recursive_copy(service, item['id'], new_folder['id'])
             
         else:
             # Copy file
@@ -120,7 +120,7 @@ async def recursive_copy(service, source_id, dest_id):
             if item['mimeType'] == 'application/vnd.google-apps.folder':
                 # If it's a folder, we must recurse inside to check for missing files
                 print(f"  [Exists] Folder '{name}' - Checking contents...")
-                recursive_copy(service, item['id'], dest_items[name]['id'])
+                await recursive_copy(service, item['id'], dest_items[name]['id'])
             else:
                 # If it's a file, skip it
                 print(f"  [Skipping] File '{name}' already exists.")
@@ -143,7 +143,7 @@ async def recursive_copy(service, source_id, dest_id):
             ).execute()
             
             # Recurse into the newly created folder
-            recursive_copy(service, item['id'], new_folder['id'])
+            await recursive_copy(service, item['id'], new_folder['id'])
             
         else:
             # Copy file
