@@ -43,7 +43,7 @@ async def addfilesondrive(client, message):
     except:
         await client.send_message(chat_id=message.from_user.id,text=f'tafadhali tume /gdrive source_link dest_link ')
         return
-    gd=await db.get_db_status(int(user_id3),nyva)
+    gd=await db.get_db_status(message.from_user.id,nyva)
     service=getCreds(gd["token"],message.from_user.id)
     if service=='auth_error' or service=='token_error':
         await client.send_message(chat_id=message.from_user.id,text=f'tafadhali token imeexpire tengeneza mpya')
