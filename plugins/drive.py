@@ -1,5 +1,5 @@
 import os
-from plugins.pm_filter import getCreds,get_acces_id
+from plugins.pm_filter import getCreds,get_access_id
 from info import filters
 from botii import Bot0
 import asyncio 
