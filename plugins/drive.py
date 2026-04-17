@@ -156,4 +156,4 @@ def recursive_copy(service, source_id, dest_id):
                     supportsAllDrives=True
                 ).execute()
             except Exception as e:
-                print(f"   Error copying {name}: {e}")")
+                print(f"   Error copying {name}: {e}")
