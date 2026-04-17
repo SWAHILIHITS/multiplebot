@@ -37,7 +37,7 @@ async def addfilesondrive(client, message):
     status = await db.is_admin_exist(message.from_user.id,nyva) 
     if not status:
         return
-    text1=message.strip()
+    text1=message.text.strip()
     try:
         ab1,ab2,ab3=text1.split(" ")
     except:
