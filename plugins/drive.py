@@ -156,5 +156,4 @@ def recursive_copy(service, source_id, dest_id):
                     supportsAllDrives=True
                 ).execute()
             except Exception as e:
-                await client.send_message(chat_id=message.from_user.id,text=f'error {e}')
                 print(f"   Error copying {name}: {e}")
