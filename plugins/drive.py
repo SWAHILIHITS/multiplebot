@@ -111,6 +111,7 @@ async def addfilesondrive(client, message):
             except Exception as e:
                 print(f"   Error copying {name}: {e}")
 async def recursive_copy(service, source_id, dest_id):
+    await asyncio.sleep(1)
     source_items = get_folder_contents(service, source_id)
     dest_items = get_folder_contents(service, dest_id)
     for name, item in source_items.items():
