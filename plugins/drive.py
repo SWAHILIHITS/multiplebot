@@ -78,7 +78,7 @@ async def addfilesondrive(client, message):
         # 3. Copy or Create Missing Items
         if item['mimeType'] == 'application/vnd.google-apps.folder':
             # Create new folder in destination
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.33)
             print(f"  [Creating] Folder '{name}'")
             folder_metadata = {
                 'name': name,
@@ -96,7 +96,7 @@ async def addfilesondrive(client, message):
             
         else:
             # Copy file
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.33)
             print(f"  [Copying] File '{name}'")
             file_metadata = {
                 'name': name,
@@ -111,7 +111,7 @@ async def addfilesondrive(client, message):
             except Exception as e:
                 print(f"   Error copying {name}: {e}")
 async def recursive_copy(service, source_id, dest_id):
-    await asyncio.sleep(0.25)
+    
     source_items = get_folder_contents(service, source_id)
     dest_items = get_folder_contents(service, dest_id)
     for name, item in source_items.items():
@@ -130,7 +130,7 @@ async def recursive_copy(service, source_id, dest_id):
         # 3. Copy or Create Missing Items
         if item['mimeType'] == 'application/vnd.google-apps.folder':
             # Create new folder in destination
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.33)
             print(f"  [Creating] Folder '{name}'")
             folder_metadata = {
                 'name': name,
@@ -148,7 +148,7 @@ async def recursive_copy(service, source_id, dest_id):
             
         else:
             # Copy file
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.33)
             print(f"  [Copying] File '{name}'")
             file_metadata = {
                 'name': name,
