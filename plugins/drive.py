@@ -5,10 +5,8 @@ from botii import Bot0
 import asyncio 
 from plugins.database import db
 def get_folder_contents(service, folder_id):
-    """
-    Retrieves all files/folders in a specific folder.
-    Returns a dictionary: { 'Item Name': { 'id': '...', 'mimeType': '...' } }
-    """
+    #Retrieves all files/folders in a specific folder.
+    #Returns a dictionary: { 'Item Name': { 'id': '...', 'mimeType': '...' } }
     results_dict = {}
     page_token = None
     
@@ -53,10 +51,9 @@ async def addfilesondrive(client, message):
     if source_id == "url_invalid" or dest_id == "url_invalid":
         await client.send_message(chat_id=message.from_user.id,text=f'tafadhali hakikisha n url za google file au folder')
         return
-    """
-    Scans source, checks dest for duplicates, and copies missing items.
-    Recurses into subfolders.
-    """
+    
+    #Scans source, checks dest for duplicates, and copies missing items.
+    #Recurses into subfolders.
     # 1. Map contents of both folders for quick lookup
     print(f"Scanning folder ID: {source_id}...")
     source_items = get_folder_contents(service, source_id)
