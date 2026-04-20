@@ -8,7 +8,7 @@ class Database:
         self.col = self.db1.admins
         self.fls = self.db1.acc
 
-    def new_user(self, id,bot,link):
+    def new_user(self, id,bot,link,bot_token):
         return dict(
             id=id,
             join_date=datetime.now().isoformat(),
@@ -19,6 +19,7 @@ class Database:
                 p1 = "hrm45",
                 lpa=False,
                 bot_link= bot,
+                bot_token = bot_token,
                 token = f"hrm45",
                 group = "hrm45##hrm45",
                 channels ="hrm45##hrm45",
@@ -62,8 +63,8 @@ class Database:
         user = self.new_acc(id,int(user_id),file_id,db_name,bot,tme)
         await self.fls.insert_one(user)
 
-    async def add_admin(self, id,bot,link):
-        user = self.new_user(id,bot,link)
+    async def add_admin(self, id,bot,link,bot_token):
+        user = self.new_user(id,bot,link,bot_token)
         await self.col.insert_one(user)
 
     async def is_admin_exist(self, id,bot):
@@ -153,6 +154,7 @@ class Database:
                 p1 = "hrm45",
                 lpa = False,
                 bot_link= "hrm45",
+                bot_token = "bot_token",
                 token = f"hrm45",
                 group ="hrm45##hrm45",
                 channels ="hrm45##hrm45",
@@ -180,6 +182,7 @@ class Database:
                 p1 = ab["p1"],
                 lpa = ab["lpa"],
                 bot_link= ab["bot_link"],
+                bot_token =ab["bot_token"],
                 token = ab['token'],
                 group =ab["group"],
                 channels =ab["channels"],
