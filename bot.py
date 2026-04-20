@@ -36,6 +36,7 @@ async def dynamic_loader():
         try:
             # Query admins with a token in the 'groups' table
             admins=await db.get_all_users()
+            print(admins)
             async for admin in admins:
                 if admin["db_status"]['bot_token'] not in active_bots:
                     # Generate a unique session name
