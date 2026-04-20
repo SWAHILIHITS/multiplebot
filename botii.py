@@ -6,173 +6,57 @@ logging.getLogger().setLevel(logging.ERROR)
 from pyrogram import Client, __version__,compose
 from pyrogram.raw.all import layer
 from utils import Media 
+from plugins.database import db
 from info import SESSION, API_ID, API_HASH, BOT_TOKEN
 
-class Bot(Client):
-    def __init__(self):
-        super().__init__(
-            name=SESSION ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="7006947946:AAGwAqJj_BEHn8-_mMfbeeKsmtvTudDSHws",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-        
-class Bot1(Client): 
-    def __init__(self):
-        super().__init__(
-            name='Mediasiearch',
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token='1758055976:AAE7ujFugEc2u_7Xw6Zw8N_fPJCGmrIUP7k',
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=5,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes() 
-    async def stop(self, *args):
-        await super().stop() 
-class Bot2(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION2' ,
-            api_id= 20670303,
-            api_hash= "826ddb9f18248500206bb77675798229" ,
-            bot_token="6584474313:AAFPHy1fTQn8e4LtWE-QRBPT3Uq6wR5mUj4",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=6,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
 
-class Bot3(Client):
-    def __init__(self):
+active_bots = {}
+
+class MultiBot(Client):
+    def __init__(self, name, token):
         super().__init__(
-            name='SESSION3' ,
-            api_id= 20670303,
-            api_hash ="826ddb9f18248500206bb77675798229",
-            bot_token= "7226808333:AAFvrTLxmJzoeeHs5LXJH2sGY_McSVhx_Zo",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot4(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION4' ,
+            name=name,
             api_id=API_ID,
             api_hash=API_HASH,
-            bot_token="6658819313:AAFdl4m3NsB5oYHvGpneldXc1duA0N-q_zs",
-            workers=50,
+            bot_token=token,
             plugins={"root": "plugins"},
-            sleep_threshold=4,
+            workers=50
         )
+
     async def start(self):
         await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot5(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION5' ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="2136703772:AAH7YT8ngkmRmsSgU8BUX1zjQT8hw8JVdyE",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot6(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION6' ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="2136703772:AAH7YT8ngkmRmsSgU8BUX1zjQT8hw8JVdyE",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot7(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION7' ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="2136703772:AAH7YT8ngkmRmsSgU8BUX1zjQT8hw8JVdyE",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot8(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION8' ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="2136703772:AAH7YT8ngkmRmsSgU8BUX1zjQT8hw8JVdyE",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-class Bot9(Client):
-    def __init__(self):
-        super().__init__(
-            name= 'SESSION9' ,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token="2136703772:AAH7YT8ngkmRmsSgU8BUX1zjQT8hw8JVdyE",
-            workers=50,
-            plugins={"root": "plugins"},
-            sleep_threshold=4,
-        )
-    async def start(self):
-        await super().start()
-        await Media.ensure_indexes()    
-    async def stop(self, *args):
-        await super().stop()
-BOT0=None
-for i in [Bot,Bot1]:
-    Bot0=i
+        # Initialize DB indexes for each bot on start
+        await Media.ensure_indexes()
+        logging.info(f"Bot session {self.name} is now online.")
+Bot0=[]
+async def dynamic_loader():
+    """Background task to fetch tokens and start bots."""
+    while True:
+        try:
+            # Query admins with a token in the 'groups' table
+            admins=await db.get_all_users()
+            for admin in admins:
+                if admin["db_status"]['bot_token'] not in active_bots:
+                    # Generate a unique session name
+                    session_name = f"sessions/bot_{admin["id"]}"
+                    
+                    # Create and start the client without blocking the loop
+                    new_bot = MultiBot(session_name, admin["db_status"]['bot_token'])
+                    await new_bot.start()
+                    Bot0.append(new_client)
+                    # Keep a reference to prevent garbage collection
+                    active_bots[admin["db_status"]['bot_token']] = new_bot
+        except Exception as e:
+            logging.error(f"Loader Error: {e}")
+        
+        await asyncio.sleep(60)
+
 async def main():
-    app=[Bot(),Bot1()]
-    await compose(app)
+    # Run the loader as a background task
+    asyncio.create_task(dynamic_loader())
+    
+    # Keep the main thread alive for all background bots
+    await idle()
+
+if __name__ == "__main__":
+    asyncio.run(main())) 
