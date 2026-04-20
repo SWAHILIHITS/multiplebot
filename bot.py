@@ -10,7 +10,6 @@ from utils import Media
 from plugins.database import db
 from info import SESSION, API_ID, API_HASH, BOT_TOKEN
 
-
 active_bots = {}
 
 class MultiBot(Client):
