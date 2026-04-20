@@ -13,25 +13,37 @@ from plugins.database import db
 ACTIVE_TASKS = {}
 
 def get_duration(start_time):
+    """Formats the elapsed time into a readable string."""
     seconds = int(time.time() - start_time)
     mins, secs = divmod(seconds, 60)
     hours, mins = divmod(mins, 60)
     return f"{hours}h {mins}m {secs}s" if hours > 0 else f"{mins}m {secs}s"
 
+def get_gb(bytes_size):
+    """Converts bytes to Gigabytes (GB)."""
+    return round(bytes_size / (1024**3), 2)
+
 async def execute_with_retry(request_func, client, user_id):
-    """Executes Google API calls with exponential backoff for rate limits."""
+    """Executes Google API calls with exponential backoff. Cancels task after 5 failures."""
     max_retries = 5
     for n in range(max_retries):
         try:
             return await asyncio.get_event_loop().run_in_executor(None, request_func.execute)
         except googleapiclient.errors.HttpError as error:
             status = error.resp.status
-            reason = error.error_details[0].get('reason') if error.error_details else ""
+            details = error.error_details[0] if error.error_details else {}
+            reason = details.get('reason', "")
 
+            # Handle Rate Limits
             if status in [403, 429] and reason in ["rateLimitExceeded", "userRateLimitExceeded"]:
+                if n == max_retries - 1:
+                    # Final retry failed: notify user and signal total cancellation
+                    await client.send_message(user_id, "❌ **Kikomo cha GDrive kimefikiwa!** Majaribio 5 yamefeli. Kazi inasitishwa kabisa.")
+                    return "CANCEL_ALL"
+                
                 wait_time = (2 ** n) + random.random()
                 try:
-                    await client.send_message(user_id, f"⚠️ Limit hit. Retrying in {wait_time:.1f}s...")
+                    await client.send_message(user_id, f"⚠️ Limit hit. Jaribio {n+1}/{max_retries}. Inasubiri {wait_time:.1f}s...")
                 except: pass
                 await asyncio.sleep(wait_time)
                 continue
@@ -43,12 +55,13 @@ async def execute_with_retry(request_func, client, user_id):
     return None
 
 def get_folder_contents(service, folder_id):
+    """Lists files including their size metadata."""
     results_dict = {}
     page_token = None
     while True:
         response = service.files().list(
             q=f"'{folder_id}' in parents and trashed = false",
-            fields="nextPageToken, files(id, name, mimeType)",
+            fields="nextPageToken, files(id, name, mimeType, size)",
             pageToken=page_token,
             supportsAllDrives=True,
             includeItemsFromAllDrives=True
@@ -60,7 +73,7 @@ def get_folder_contents(service, folder_id):
     return results_dict
 
 async def recursive_copy(service, source_id, dest_id, client, user_id, stats, progress_msg, start_time):
-    # Cancel Check
+    """Recursively copies files and folders while tracking size and rate limits."""
     if ACTIVE_TASKS.get(user_id) == "CANCELLED":
         return
 
@@ -79,28 +92,40 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
             folder_metadata = {'name': name, 'parents': [dest_id], 'mimeType': 'application/vnd.google-apps.folder'}
             req = service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True)
             new_folder = await execute_with_retry(req, client, user_id)
+            
+            if new_folder == "CANCEL_ALL":
+                ACTIVE_TASKS[user_id] = "CANCELLED"
+                return
+                
             if new_folder and new_folder != "PERMISSION_DENIED":
                 await recursive_copy(service, item['id'], new_folder['id'], client, user_id, stats, progress_msg, start_time)
         else:
             file_metadata = {'name': name, 'parents': [dest_id]}
             req = service.files().copy(fileId=item['id'], body=file_metadata, supportsAllDrives=True)
             res = await execute_with_retry(req, client, user_id)
+            
+            if res == "CANCEL_ALL":
+                ACTIVE_TASKS[user_id] = "CANCELLED"
+                return
+                
             if res and res != "PERMISSION_DENIED":
                 stats['copied'] += 1
+                stats['total_bytes'] += int(item.get('size', 0))
 
         # Notification Logic (Every 10 items)
         total = stats['copied'] + stats['skipped']
         if total > 0 and total % 10 == 0 and total != stats.get('last_notified', 0):
             stats['last_notified'] = total
             duration = get_duration(start_time)
+            size_gb = get_gb(stats['total_bytes'])
             btn = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha (Cancel)", callback_data=f"stop_gd_{user_id}")]])
             try:
                 await progress_msg.edit(
-                    f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n⏭️ Skipped: `{stats['skipped']}`\n⏱️ Time: `{duration}`\n📊 Total: `{total}`",
+                    f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n⏭️ Skipped: `{stats['skipped']}`\n📦 Size: `{size_gb} GB`\n⏱️ Time: `{duration}`",
                     reply_markup=btn
                 )
             except: pass
-        await asyncio.sleep(0.2)
+        await asyncio.sleep(0.3)
 
 @Bot0.on_message(filters.command("gdrive"))
 async def addfilesondrive(client, message):
@@ -129,16 +154,18 @@ async def addfilesondrive(client, message):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha (Cancel)", callback_data=f"stop_gd_{user_id}")]])
     )
     
-    stats = {'copied': 0, 'skipped': 0, 'last_notified': 0}
+    # Initialize stats with total_bytes
+    stats = {'copied': 0, 'skipped': 0, 'last_notified': 0, 'total_bytes': 0}
 
     try:
         await recursive_copy(service, source_id, dest_id, client, user_id, stats, progress_msg, start_time)
         
+        final_gb = get_gb(stats['total_bytes'])
         if ACTIVE_TASKS.get(user_id) == "CANCELLED":
-            await progress_msg.edit(f"🛑 **Kazi Imesitishwa!**\nItems Copied: `{stats['copied']}`")
+            await progress_msg.edit(f"🛑 **Kazi Imesitishwa!**\nFiles Copied: `{stats['copied']}`\nSize: `{final_gb} GB`")
         else:
             await progress_msg.edit(
-                f"✅ **Kazi Imekamilika!**\n\n📁 Files Copied: `{stats['copied']}`\n⏭️ Skipped: `{stats['skipped']}`\n⏱️ Total Time: `{get_duration(start_time)}`"
+                f"✅ **Kazi Imekamilika!**\n\n📁 Files Copied: `{stats['copied']}`\n⏭️ Skipped: `{stats['skipped']}`\n📦 Total Size: `{final_gb} GB`\n⏱️ Total Time: `{get_duration(start_time)}`"
             )
     except Exception as e:
         await message.reply(f"❌ Error: `{str(e)}`")
