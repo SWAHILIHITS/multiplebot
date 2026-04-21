@@ -957,18 +957,18 @@ async def ban(c,m):
             ban_log_text += f"\n\nNmeshindwa kumtaarifu tafadhali jaribu tena! \n\n`{traceback.format_exc()}`"
         adminexist=await db.is_admin_exist(user_id,username1)
         if not adminexist :
-            mkv22 = await client.send_message(text='Naomba untumie token ya rbt huyu',chat_id = message.from_user.id)
+            mkv22 = await c.send_message(text='Naomba untumie token ya rbt huyu',chat_id = m.from_user.id)
             a,b = funask()
             id1 = mkv22.id+1
             while a==False:
                 try:
-                    mkvg = await client.get_messages("me",id1)
+                    mkvg = await c.get_messages("me",id1)
                     if mkvg.text!=None:
                         a=True
                     if (time.time()-b)>(120):
-                        await client.send_message(chat_id = message.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 2 iliniweze kuhudumia na wengine")
+                        await c.send_message(chat_id = m.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 2 iliniweze kuhudumia na wengine")
                         return
-                    if mkvg.from_user.id != message.from_user.id :
+                    if mkvg.from_user.id != m.from_user.id :
                         a=False
                         id1=id1+1
                 except:
