@@ -28,6 +28,8 @@ class MultiBot(Client):
         # Initialize DB indexes for each bot on start
         await Media.ensure_indexes()
         logging.info(f"Bot session {self.name} is now online.")
+    async def stop(self, *args):
+        await super().stop()
 Bot1=[]
 async def dynamic_loader():
     """Background task to fetch tokens and start bots."""
@@ -37,7 +39,7 @@ async def dynamic_loader():
             admins=await db.get_all_users()
             
             async for admin in admins:
-                
+                ban_sts = await db.get_ban_status(admin["id"],admin["db_status"]["bot_link"])
                 if admin["db_status"]["bot_token"] not in active_bots:
                     # Generate a unique session name
                     session_name = f"bot_{admin["id"]}"
@@ -47,6 +49,9 @@ async def dynamic_loader():
                     await new_bot.start()
                     # Keep a reference to prevent garbage collection
                     active_bots[admin["db_status"]["bot_token"]] = new_bot
+                if not ban_sts["is_banned"]:
+                    new_bot = MultiBot(session_name,admin["db_status"]["bot_token"])
+                    await new_bot.stop()
         except Exception as e:
             logging.error(f"Loader Error: {e}")
         
