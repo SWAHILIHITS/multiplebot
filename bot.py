@@ -52,9 +52,7 @@ async def dynamic_loader():
             logging.error(f"Loader Error: {e}")
         
         await asyncio.sleep(60)
-Bot0=None
-for i in Bot1:
-    Bot0=i
+Bot0=MultiBot
 async def main():
     # Run the loader as a background task
     asyncio.create_task(dynamic_loader())
