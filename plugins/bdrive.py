@@ -6,7 +6,7 @@ import googleapiclient.errors
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from plugins.pm_filter import getCreds, get_access_id
 from info import filters
-from botii import Bot0
+from bot import Bot0
 from plugins.database import db
 
 # Global tracker for cancel logic
