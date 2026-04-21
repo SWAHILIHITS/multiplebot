@@ -28,7 +28,7 @@ class MultiBot(Client):
         # Initialize DB indexes for each bot on start
         await Media.ensure_indexes()
         logging.info(f"Bot session {self.name} is now online.")
-Bot0=[]
+Bot1=[]
 async def dynamic_loader():
     """Background task to fetch tokens and start bots."""
     while True:
@@ -45,14 +45,16 @@ async def dynamic_loader():
                     # Create and start the client without blocking the loop
                     new_bot = MultiBot(session_name, admin["db_status"]["bot_token"])
                     await new_bot.start()
-                    Bot0=new_bot
+                    Bot1.append(MultiBot)
                     # Keep a reference to prevent garbage collection
                     active_bots[admin["db_status"]["bot_token"]] = new_bot
         except Exception as e:
             logging.error(f"Loader Error: {e}")
         
         await asyncio.sleep(60)
-
+Bot0=None
+for i in Bot1:
+    Bot0=i
 async def main():
     # Run the loader as a background task
     asyncio.create_task(dynamic_loader())
