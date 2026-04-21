@@ -5,7 +5,7 @@ from plugins.base_command import btn22
 from plugins.pm_filter import getCreds,grant_access
 from pyrogram.errors import ChatAdminRequired,FloodWait
 from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like,User
-from botii  import Bot0
+from bot  import Bot0
 import requests
 from plugins.database import db
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery,ForceReply,ChatPermissions
