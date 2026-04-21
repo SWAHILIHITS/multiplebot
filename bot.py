@@ -43,7 +43,7 @@ async def dynamic_loader():
                     session_name = f"bot_{admin["id"]}"
                     
                     # Create and start the client without blocking the loop
-                    new_bot = MultiBot(session_name, admin["db_status"]["bot_token"])
+                    new_bot = MultiBot(session_name, "7006947946:AAGwAqJj_BEHn8-_mMfbeeKsmtvTudDSHws")
                     await new_bot.start()
                     Bot1.append(MultiBot)
                     # Keep a reference to prevent garbage collection
