@@ -957,9 +957,25 @@ async def ban(c,m):
             ban_log_text += f"\n\nNmeshindwa kumtaarifu tafadhali jaribu tena! \n\n`{traceback.format_exc()}`"
         adminexist=await db.is_admin_exist(user_id,username1)
         if not adminexist :
+            mkv22 = await client.send_message(text='Naomba untumie token ya rbt huyu',chat_id = message.from_user.id)
+            a,b = funask()
+            id1 = mkv22.id+1
+            while a==False:
+                try:
+                    mkvg = await client.get_messages("me",id1)
+                    if mkvg.text!=None:
+                        a=True
+                    if (time.time()-b)>(120):
+                        await client.send_message(chat_id = message.from_user.id,text=f" Tafadhali anza upya jitahidi kutuma ujumbe ndani ya dakika 2 iliniweze kuhudumia na wengine")
+                        return
+                    if mkvg.from_user.id != message.from_user.id :
+                        a=False
+                        id1=id1+1
+                except:
+                    a=False
             strid = str(uuid.uuid4())
             ts=await c.get_users(user_id)
-            await db.add_admin(user_id,username1.strip(),f'https://t.me/{ts.username}')
+            await db.add_admin(user_id,username1.strip(),f'https://t.me/{ts.username}',mkvg.text.strip())
             await db.add_acc(strid,user_id,"all",user_id,username1.strip(),9999)
         await db.ban_user(user_id, ban_duration,username1.strip())
         print(ban_log_text)
@@ -973,7 +989,7 @@ async def ban(c,m):
             quote=True
         )
 
-@Bot0.on_message(filters.private & filters.command('salio'))
+@Bot0.on_message(filters.private & (filters.command('salio') | filters.regex("^salio$")))
 async def get_statuss(bot,message):
     botusername=await bot.get_me()
     nyva=botusername.username  
