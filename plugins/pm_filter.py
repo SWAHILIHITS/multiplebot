@@ -1,4 +1,4 @@
-from botii import Bot0 
+from bot import Bot0 
 import re,random ,pickle,os
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 from info import filters
