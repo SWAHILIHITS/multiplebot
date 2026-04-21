@@ -45,7 +45,7 @@ async def dynamic_loader():
                     # Create and start the client without blocking the loop
                     new_bot = MultiBot(session_name, admin["db_status"]["bot_token"])
                     await new_bot.start()
-                    Bot0.append(new_client)
+                    Bot0=new_bot
                     # Keep a reference to prevent garbage collection
                     active_bots[admin["db_status"]["bot_token"]] = new_bot
         except Exception as e:
