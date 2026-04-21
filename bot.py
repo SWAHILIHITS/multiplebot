@@ -50,6 +50,7 @@ async def dynamic_loader():
                     # Keep a reference to prevent garbage collection
                     active_bots[admin["db_status"]["bot_token"]] = new_bot
                 if not ban_sts["is_banned"]:
+                    session_name = f"bot_{admin["id"]}"
                     new_bot = MultiBot(session_name,admin["db_status"]["bot_token"])
                     await new_bot.stop()
         except Exception as e:
