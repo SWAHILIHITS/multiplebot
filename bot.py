@@ -40,7 +40,7 @@ async def dynamic_loader():
                 print(admin["db_status"]["bot_token"])
                 if admin["db_status"]["bot_token"] not in active_bots:
                     # Generate a unique session name
-                    session_name = f"sessions/bot_{admin["id"]}"
+                    session_name = f"bot_{admin["id"]}"
                     
                     # Create and start the client without blocking the loop
                     new_bot = MultiBot(session_name, admin["db_status"]["bot_token"])
