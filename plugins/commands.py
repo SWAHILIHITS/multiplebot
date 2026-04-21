@@ -1,4 +1,4 @@
-from botii  import Bot0
+from bot  import Bot0
 import uuid 
 import io 
 from datetime import datetime,timedelta
