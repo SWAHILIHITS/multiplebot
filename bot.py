@@ -37,17 +37,17 @@ async def dynamic_loader():
             admins=await db.get_all_users()
             print(admins)
             async for admin in admins:
-                print(admin["db_status"])
-                if admin["db_status"]['bot_token'] not in active_bots:
+                print(admin["db_status"]["bot_token"])
+                if admin["db_status"]["bot_token"] not in active_bots:
                     # Generate a unique session name
                     session_name = f"sessions/bot_{admin["id"]}"
                     
                     # Create and start the client without blocking the loop
-                    new_bot = MultiBot(session_name, admin["db_status"]['bot_token'])
+                    new_bot = MultiBot(session_name, admin["db_status"]["bot_token"])
                     await new_bot.start()
                     Bot0.append(new_client)
                     # Keep a reference to prevent garbage collection
-                    active_bots[admin["db_status"]['bot_token']] = new_bot
+                    active_bots[admin["db_status"]["bot_token"]] = new_bot
         except Exception as e:
             logging.error(f"Loader Error: {e}")
         
