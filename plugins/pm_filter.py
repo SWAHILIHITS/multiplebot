@@ -206,7 +206,7 @@ async def addchannel(client, message):
         st = await client.get_chat_member(group_id, "me")
         st.status=(f"{st.status}".split(".")[1])
         if st.status == "ADMINISTRATOR":
-            if message.command[1].lower() in "imetafsiriwa haijatafsiriwa movie series auto murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six fingers hero":
+            if message.command[1].lower() in "imetafsiriwa haijatafsiriwa movie series auto murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six_fingers hero":
                 abf=message.command[1].strip()
                 hjkl1 = f'{group_id}##{abf.lower()}'
                 if not await is_user_exist(hjkl1,nyva):
@@ -217,7 +217,7 @@ async def addchannel(client, message):
                     await message.reply_text("Samahani hich kikundi tumeshakiadd", quote=True)
             else:
                 await message.reply_text(
-                    f"tafadhali anza na neno /ongeza kisha neno mfano /ongeza Imetafsiriwa \n\nManeno yapo aina 5 tu.\n 1.Imetafsiriwa\n2.haijatafsiriwa \n3.movie\n4.series \nauto\nkwa maelekezo zaid mchek @hrm45 akuelekeze",
+                    f"tafadhali anza na neno /ongeza kisha neno mfano /ongeza Imetafsiriwa \n\nManeno yapo aina 20 tu.\nImetafsiriwa haijatafsiriwa movie series auto murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six_fingers hero \n kwa maelekezo zaid mchek @hrm45 akuelekeze",
                     quote=True
                 )
                 return
