@@ -355,7 +355,7 @@ async def new_filtervip(client, message):
         if fileid:
             data1=await is_group_exist("channel",nyva)
             abz=[]
-            hanz="haijatafsiriwa imetafsiriwa movie series murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six fingers hero"
+            hanz="haijatafsiriwa imetafsiriwa movie series murphy vasco ally msati meccky macky ommy babu skills black mjukuu nasry saiguy sureboy juma Karim khan prabas six_fingers hero"
             hanz=hanz.lower().strip()
             hanz=hanz.split(' ')
             for dta1 in data1:
