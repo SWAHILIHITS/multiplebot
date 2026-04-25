@@ -112,6 +112,7 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
             else:
                 stats['failed'] += 1
         else:
+            await asyncio.sleep(0.1)
             file_metadata = {'name': name, 'parents': [dest_id]}
             req = service.files().copy(fileId=real_id, body=file_metadata, supportsAllDrives=True)
             res = await execute_with_retry(req, client, user_id)
@@ -132,7 +133,7 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
                     reply_markup=btn
                 )
             except: pass
-            await asyncio.sleep(1.5) # Sleep to avoid Telegram flood limits
+            #await asyncio.sleep(1.5) # Sleep to avoid Telegram flood limits
 
 @Bot0.on_message(filters.command("gdrive"))
 async def addfilesondrive(client, message):
