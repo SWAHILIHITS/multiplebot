@@ -124,6 +124,26 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
                 )
             except: pass
             await asyncio.sleep(1.2)
+async def progress_for_pyrogram(current, total, ud_type, message, start):
+    """Helper for real-time progress bar during Telegram downloads."""
+    now = time.time()
+    diff = now - start
+    if round(diff % 5.0) == 0 or current == total:
+        percentage = current * 100 / total
+        speed = current / diff
+        time_to_completion = round((total - current) / speed)
+        
+        # Visual Progress Bar
+        completed_blocks = int(percentage // 10)
+        bar = "█" * completed_blocks + "░" * (10 - completed_blocks)
+        
+        progress_str = f"**{ud_type}**\n`[{bar}] {round(percentage, 2)}%`"
+        tmp = f"\n📦 Size: `{get_gb(current)} GB / {get_gb(total)} GB`"
+        
+        try:
+            await message.edit(f"{progress_str}{tmp}")
+        except:
+            pass
 
 @Bot0.on_message(filters.command("gdrive"))
 async def addfilesondrive(client, message):
@@ -131,51 +151,100 @@ async def addfilesondrive(client, message):
     if not await db.is_admin_exist(message.from_user.id, bot_info.username): return
 
     args = message.text.split(" ")
-    if len(args) < 3:
-        return await message.reply('Tuma: `/gdrive source_url dest_url`')
-
-    gd = await db.get_db_status(message.from_user.id, bot_info.username)
-    service = getCreds(gd["token"], message.from_user.id)
-    
-    source_id = get_access_id(args[1])
-    dest_id = get_access_id(args[2])
-    
-    msg_check = await message.reply("🔍 **Validating...**")
-    
-    v_src, src_meta = await validate_id(service, source_id, "Source")
-    v_dest, dest_meta = await validate_id(service, dest_id, "Destination")
-    
-    if not v_src or not v_dest:
-        return await msg_check.edit(src_meta if not v_src else dest_meta)
-    
     user_id = message.from_user.id
-    ACTIVE_TASKS[user_id] = "RUNNING"
-    stats = {'copied': 0, 'skipped': 0, 'total_bytes': 0, 'failed': 0}
-    start_time = time.time()
-
-    src_real_id = src_meta['id']
-    src_real_mime = src_meta['mimeType']
-    if src_real_mime == 'application/vnd.google-apps.shortcut':
-        details = src_meta.get('shortcutDetails', {})
-        src_real_id = details.get('targetId', src_real_id)
-        src_real_mime = details.get('targetMimeType', src_real_mime)
-
-    await msg_check.edit(f"🚀 **Kazi Inaanza...**\n📂 Jina: `{src_meta['name']}`\n📂 Aina: `{'Folder' if src_real_mime == 'application/vnd.google-apps.folder' else 'File'}`")
-
-    if src_real_mime == 'application/vnd.google-apps.folder':
-        await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
-    else:
-        file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
-        req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
-        res = await execute_with_retry(req, user_id)
-        if res and res != "ERROR":
-            stats['copied'] += 1
-            stats['total_bytes'] += int(src_meta.get('size', 0) or 0)
-        else: stats['failed'] += 1
+    gd = await db.get_db_status(user_id, bot_info.username)
+    service = getCreds(gd["token"], user_id)
     
-    final_status = "✅ Imekamilika!" if ACTIVE_TASKS.get(user_id) != "CANCELLED" else "🛑 Imesitishwa!"
-    await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}`")
-    ACTIVE_TASKS.pop(user_id, None)
+    # Check for Service Failure
+    if service in ['auth_error', 'token_error']:
+        return await message.reply('❌ **Fail:** Token expired. Please login again.')
+
+    # --- CASE 1: Telegram to GDrive ---
+    if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
+        if len(args) < 2:
+            return await message.reply('Tuma: `/gdrive dest_url` (Reply on file)')
+        
+        dest_id = get_access_id(args[1])
+        media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
+        file_name = media.file_name or "telegram_file"
+        
+        msg_check = await message.reply(f"📥 **Inaanza kupakua...**\n📂 File: `{file_name}`")
+        start_time = time.time()
+        
+        # Download with Progress Bar
+        try:
+            local_path = await client.download_media(
+                message.reply_to_message,
+                progress=progress_for_pyrogram,
+                progress_args=("📥 Inapakua...", msg_check, start_time)
+            )
+        except Exception as e:
+            return await msg_check.edit(f"❌ **Download Failed:** {str(e)}")
+        
+        if not local_path or not os.path.exists(local_path):
+            return await msg_check.edit("❌ **Fail:** File haikupatikana baada ya download.")
+
+        # Upload to Drive
+        await msg_check.edit("📤 **Inatuma kwenda Google Drive...**")
+        file_metadata = {'name': file_name, 'parents': [dest_id]}
+        media_body = MediaFileUpload(local_path, resumable=True)
+        
+        try:
+            uploaded = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: service.files().create(body=file_metadata, media_body=media_body, supportsAllDrives=True).execute()
+            )
+            await msg_check.edit(f"✅ **Imekamilika!**\n📂 Jina: `{file_name}`\n🆔 ID: `{uploaded.get('id')}`")
+        except Exception as e:
+            await msg_check.edit(f"❌ **Upload Failed:** {str(e)}")
+        finally:
+            if os.path.exists(local_path): 
+                os.remove(local_path)
+
+    # --- CASE 2: Clone GDrive to GDrive ---
+    else:
+        if len(args) < 3:
+            return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.')
+
+        source_id = get_access_id(args[1])
+        dest_id = get_access_id(args[2])
+        
+        msg_check = await message.reply("🔍 **Validating...**")
+        v_src, src_meta = await validate_id(service, source_id, "Source")
+        v_dest, _ = await validate_id(service, dest_id, "Destination")
+        
+        if not v_src or not v_dest:
+            return await msg_check.edit("❌ **Validation Failed:** Tafadhali kagua ID za Drive zako.")
+        
+        # ... [Rest of cloning logic as before] ...
+
+        user_id = message.from_user.id
+        ACTIVE_TASKS[user_id] = "RUNNING"
+        stats = {'copied': 0, 'skipped': 0, 'total_bytes': 0, 'failed': 0}
+        start_time = time.time()
+
+        src_real_id = src_meta['id']
+        src_real_mime = src_meta['mimeType']
+        if src_real_mime == 'application/vnd.google-apps.shortcut':
+            details = src_meta.get('shortcutDetails', {})
+            src_real_id = details.get('targetId', src_real_id)
+            src_real_mime = details.get('targetMimeType', src_real_mime)
+
+        await msg_check.edit(f"🚀 **Kazi Inaanza...**\n📂 Jina: `{src_meta['name']}`\n📂 Aina: `{'Folder' if src_real_mime == 'application/vnd.google-apps.folder' else 'File'}`")
+
+        if src_real_mime == 'application/vnd.google-apps.folder':
+            await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
+        else:
+            file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
+            req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
+            res = await execute_with_retry(req, user_id)
+            if res and res != "ERROR":
+                stats['copied'] += 1
+                stats['total_bytes'] += int(src_meta.get('size', 0) or 0)
+            else: stats['failed'] += 1
+    
+        final_status = "✅ Imekamilika!" if ACTIVE_TASKS.get(user_id) != "CANCELLED" else "🛑 Imesitishwa!"
+        await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}`")
+        ACTIVE_TASKS.pop(user_id, None)
 
 @Bot0.on_callback_query(filters.regex(r"^stop_gd_(\d+)$"))
 async def stop_gdrive_task(client, query):
