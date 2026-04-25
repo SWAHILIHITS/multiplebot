@@ -1,5 +1,4 @@
 requests
-pydrive2
 google-auth-oauthlib
 google-api-python-client
 google-auth
@@ -8,7 +7,7 @@ httplib2
 oauth2client
 imgbbpy
 telegraph  
-pyrogram == 2.0.106
+pyrogram[tgcrypto]==2.0.106
 pymongo[srv]
 motor
 marshmallow
