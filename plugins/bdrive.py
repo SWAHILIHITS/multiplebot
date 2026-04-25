@@ -3,9 +3,9 @@ import time
 import random
 import asyncio
 import googleapiclient.errors
+from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from plugins.pm_filter import getCreds, get_access_id
-from info import filters
 from bot import Bot0
 from plugins.database import db
 
@@ -35,7 +35,6 @@ async def validate_id(service, file_id, name_type):
         if metadata.get('trashed'):
             return False, f"❌ **{name_type} Error:** Ipo kwenye Trash."
         
-        # Destination MUST be a folder
         if name_type == "Destination" and metadata['mimeType'] != 'application/vnd.google-apps.folder':
             return False, "❌ **Error:** Destination lazima iwe Folder!"
             
@@ -45,7 +44,7 @@ async def validate_id(service, file_id, name_type):
     except Exception as e:
         return False, f"❌ **Error:** {str(e)}"
 
-async def execute_with_retry(request_func, client, user_id):
+async def execute_with_retry(request_func, user_id):
     max_retries = 5
     for n in range(max_retries):
         try:
@@ -88,9 +87,7 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
     for name, item in source_items.items():
         if ACTIVE_TASKS.get(user_id) == "CANCELLED": break
 
-        # Resolve Shortcut to Original File
-        real_id = item['id']
-        real_mime = item['mimeType']
+        real_id, real_mime = item['id'], item['mimeType']
         if real_mime == 'application/vnd.google-apps.shortcut':
             details = item.get('shortcutDetails')
             if details:
@@ -105,21 +102,20 @@ async def recursive_copy(service, source_id, dest_id, client, user_id, stats, pr
         elif real_mime == 'application/vnd.google-apps.folder':
             folder_metadata = {'name': name, 'parents': [dest_id], 'mimeType': 'application/vnd.google-apps.folder'}
             req = service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True)
-            new_folder = await execute_with_retry(req, client, user_id)
+            new_folder = await execute_with_retry(req, user_id)
             if new_folder and new_folder != "ERROR":
                 await recursive_copy(service, real_id, new_folder['id'], client, user_id, stats, progress_msg, start_time)
             else: stats['failed'] += 1
         else:
             file_metadata = {'name': name, 'parents': [dest_id]}
             req = service.files().copy(fileId=real_id, body=file_metadata, supportsAllDrives=True)
-            res = await execute_with_retry(req, client, user_id)
+            res = await execute_with_retry(req, user_id)
             if res and res != "ERROR":
                 stats['copied'] += 1
                 stats['total_bytes'] += int(item.get('size', 0) or 0)
             else: stats['failed'] += 1
 
-        total = stats['copied'] + stats['skipped'] + stats['failed']
-        if total % 10 == 0:
+        if (stats['copied'] + stats['skipped'] + stats['failed']) % 10 == 0:
             btn = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{user_id}")]])
             try:
                 await progress_msg.edit(
@@ -140,9 +136,7 @@ async def addfilesondrive(client, message):
 
     gd = await db.get_db_status(message.from_user.id, bot_info.username)
     service = getCreds(gd["token"], message.from_user.id)
-    if service in ['auth_error', 'token_error']:
-        return await message.reply('Token expired. Please login again.')
-
+    
     source_id = get_access_id(args[1])
     dest_id = get_access_id(args[2])
     
@@ -159,7 +153,6 @@ async def addfilesondrive(client, message):
     stats = {'copied': 0, 'skipped': 0, 'total_bytes': 0, 'failed': 0}
     start_time = time.time()
 
-    # Determine if Source is File or Folder (Handle Shortcuts)
     src_real_id = src_meta['id']
     src_real_mime = src_meta['mimeType']
     if src_real_mime == 'application/vnd.google-apps.shortcut':
@@ -170,30 +163,28 @@ async def addfilesondrive(client, message):
     await msg_check.edit(f"🚀 **Kazi Inaanza...**\n📂 Jina: `{src_meta['name']}`\n📂 Aina: `{'Folder' if src_real_mime == 'application/vnd.google-apps.folder' else 'File'}`")
 
     if src_real_mime == 'application/vnd.google-apps.folder':
-        # Start recursive folder copy
         await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
     else:
-        # Direct File Copy
         file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
         req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
-        res = await execute_with_retry(req, client, user_id)
+        res = await execute_with_retry(req, user_id)
         if res and res != "ERROR":
             stats['copied'] += 1
             stats['total_bytes'] += int(src_meta.get('size', 0) or 0)
         else: stats['failed'] += 1
     
     final_status = "✅ Imekamilika!" if ACTIVE_TASKS.get(user_id) != "CANCELLED" else "🛑 Imesitishwa!"
-    await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱️ Time: `{get_duration(start_time)}`")
+    await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}`")
     ACTIVE_TASKS.pop(user_id, None)
 
 @Bot0.on_callback_query(filters.regex(r"^stop_gd_(\d+)$"))
-async def stop_gdrive_copy(client, query):
-    user_id = int(query.data.split("_")[-1])
-    if query.from_user.id != user_id:
-        return await query.answer("⚠️ Not your task!", show_alert=True)
-    if user_id in ACTIVE_TASKS:
-        ACTIVE_TASKS[user_id] = "CANCELLED"
-        await query.answer("🛑 Stopping task...")
-        await query.edit_message_text("🛑 **Hali:** Inasitisha kazi... Tafadhali subiri.")
+async def stop_gdrive_task(client, query):
+    user_id_in_data = int(query.data.split("_")[-1])
+    if query.from_user.id != user_id_in_data:
+        return await query.answer("❌ Huna ruhusa ya kusitisha kazi hii!", show_alert=True)
+
+    if ACTIVE_TASKS.get(user_id_in_data) == "RUNNING":
+        ACTIVE_TASKS[user_id_in_data] = "CANCELLED"
+        await query.answer("🛑 Inasitishwa... Tafadhali subiri.", show_alert=True)
     else:
-        await query.answer("ℹ️ Kazi tayari imeshaisha.", show_alert=True)
+        await query.answer("⚠️ Kazi tayari imeshaisha au imesitishwa.", show_alert=True)
