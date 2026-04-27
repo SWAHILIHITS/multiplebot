@@ -1103,7 +1103,7 @@ def btn22(ab6,ab22,ab43):
                 InlineKeyboardButton(f"{ab10}", callback_data =f"{ab43} s{ab11}")
             ])
         ab9=ab9+1
-    ab.append([InlineKeyboardButton(f"kuwa link", url=f"xfiile {ab43.split('##')[1]}")])
+    ab.append([InlineKeyboardButton(f"kuwa link", callback_data=f"xfiile {ab43.split('##')[1]}")])
     return InlineKeyboardMarkup(ab)
 def funask():
     a=False
