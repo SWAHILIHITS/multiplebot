@@ -338,6 +338,7 @@ async def cb_handler(client, query):
             nyva=botusername.username  
             nyva=str(nyva)
             group_id = await db.is_bot_exist(nyva)
+            gd=await db.get_db_status(group_id,nyva)
             filedetails = await get_file_details(query.data.split(" ",1)[1])
             await query.answer(f'{query.data.split(" ",1)[1]}')
             for files in filedetails:
@@ -395,11 +396,11 @@ async def cb_handler(client, query):
                 else:
                     if "google" in mkv.text.lower():
                         fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
-                        if fgh:
-                            for userx in fghx:
-                                fx_user=userx.user_id
-                                fx_bot=userx.bot_link
-                                service = getCreds(ban_status['token'],group_id)
+                        if fghx:
+                            async for userx in fghx:
+                                fx_user=userx["user_id"]
+                                fx_bot=userx["bot_link"]
+                                service = getCreds(gd['token'],group_id)
                                 hjgh = f'{query.data.split(" ",1)[1]}##{fx_user}'
                                 if service=='auth_error' or service=='token_error':
                                     await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
@@ -410,6 +411,7 @@ async def cb_handler(client, query):
 
                                 if emailx=='hrm45':
                                     await client.get_messages(chat_id=int(fx_user),text=f"Tafadhali add email yako tuweze kukuwezesha Tumebadilisha link kwenye movie \n **{textx}**")
+                                    continue
                                 fvc=grant_access(service, mkv.text.lower(), emailx)
                                 if 'user_given_access' not in fvc:
                                      await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake **{emailx}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{textx}** link ni\n  **{mkv.text}**')
@@ -449,6 +451,7 @@ async def cb_handler(client, query):
             nyva=botusername.username  
             nyva=str(nyva)
             group_id = await db.is_bot_exist(nyva)
+            gd=await db.get_db_status(group_id,nyva)
             filedetails = await get_file_details(query.data.split(" ",1)[1])
             await query.answer(f'{query.data.split(" ",1)[1]}')
             for files in filedetails:
@@ -479,10 +482,10 @@ async def cb_handler(client, query):
             if "google" in mkv.text.lower():
                 fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                 if fghx:
-                    for userx in fghx:
-                        fx_user=userx.user_id
-                        fx_bot=userx.bot_link
-                        service = getCreds(ban_status['token'],group_id)
+                    async for userx in fghx:
+                        fx_user=userx["user_id"]
+                        fx_bot=userx["bot_link"]
+                        service = getCreds(gd['token'],group_id)
                         hjgh = f'{query.data.split(" ",1)[1]}##{fx_user}'
                         if service=='auth_error' or service=='token_error':
                             await client.send_message(chat_id=group_id,text=f'tafadhali token imeexpire tengeneza mpya')
@@ -493,6 +496,7 @@ async def cb_handler(client, query):
 
                         if emailx=='hrm45':
                             await client.get_messages(chat_id=int(fx_user),text=f"Tafadhali add email yako tuweze kukuwezesha Tumebadilisha link kwenye movie \n **{textx}**")
+                            continue
                         fvc=grant_access(service, mkv.text.lower(), emailx)
                         if 'user_given_access' not in fvc:
                             await client.send_message(chat_id=group_id,text=f'tafadhali hakiki email yake **{emailx}** au link yako kama inafanya kaz nmeshindwa kumuwezesha \n **{textx}** link ni\n  **{mkv.text}**')
