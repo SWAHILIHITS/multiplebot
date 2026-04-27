@@ -9,8 +9,7 @@ import requests
 import json
 from info import DB2, COLLECTION_NAME
 
-COLLECTION_NAME_2="groups"
-COLLECTION_NAME_3="likes"
+COLLECTION_NAME_2="groups""
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -27,17 +26,13 @@ class Media(Document):
     file = fields.StrField(required=True)
     type = fields.StrField(required=True)
     group_id = fields.IntField(required=True)
-    descp = fields.StrField(required=True)
-    price = fields.StrField(required=True)
     grp = fields.StrField(required=True)
-    nyva = fields.StrField(required=True)
-    lks = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME
 @imdb.register
 class User(Document):
     id = fields.StrField(attribute='_id')
-    rbt =fields.StrField(required=True)
+    grp =fields.StrField(required=True)
     email = fields.StrField(required=True)
     tme = fields.IntField(required=True)
     class Meta:
@@ -47,7 +42,7 @@ async def add_user(id,sts):
     try:
         data = User(
             id = id,
-            rbt = sts,
+            grp = sts,
             email = 'hrm45',
             tme=0
         )
@@ -61,34 +56,9 @@ async def add_user(id,sts):
         else:
             logger.info("group is saved in database")
 
-async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
+async def save_file(text,reply,btn,file,type,id,user_id,grp):
     """Save file in database"""
-    if type=='Video':
-        file, file_ref = unpack_new_file_id(file)
-    text = str(text).lower()
-    fdata = {'text': text}
-    button = f'{btn}'
-    button = button.replace('pyrogram.types.InlineKeyboardButton', 'InlineKeyboardButton')
-    fdata['group_id'] = user_id
-    fdata['nyva'] = nyva
-    found = await Media.find_one(fdata)
-    if found and prc=='chec':
-        return "hrm46"
-    elif prc =='chec':
-        return
-    if found and prc=='hrm46':
-        dtav =await get_filter_results(text,user_id,nyva)
-        for dt3 in dtav:
-            details = await  get_filter_results(id,user_id,nyva)
-            for dt in details:
-                for ad in await get_file_details(dt.id):
-                    await Media.collection.delete_one({'_id':ad.id})
-        await Media.collection.delete_one(fdata)
-        return
-    fdata['file']= file
-    found2 = await Media.find_one(fdata)
-    if found2 and prc=='hrm4666':
-        return "already saved"
+    "
     try:
         file = Media(
             id=id,
@@ -98,11 +68,8 @@ async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
             file= str(file),
             type=str(type),
             group_id =user_id,
-            descp=descp,
-            price = str(prc),
-            grp = grp,
-            nyva = str(nyva),
-            lks = lks
+            grp=grp
+            
        )
     except ValidationError:
         logger.exception('Error occurred while saving file in database')
