@@ -396,8 +396,12 @@ async def cb_handler(client, query):
                 else:
                     if "google" in mkv.text.lower():
                         fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
+                        await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin1e")
+               
                         if fghx:
                             async for userx in fghx:
+                                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin2e")
+               
                                 fx_user=userx["user_id"]
                                 fx_bot=userx["bot_link"]
                                 service = getCreds(gd['token'],group_id)
