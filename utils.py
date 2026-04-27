@@ -1,9 +1,6 @@
 import re  
 import base64   
 import logging
-from struct import pack
-from pyrogram.errors import UserNotParticipant
-from pyrogram.file_id import FileId
 from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from marshmallow.exceptions import ValidationError
@@ -37,12 +34,6 @@ class Media(Document):
     lks = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME
-@likes.register
-class Like(Document):
-    id = fields.StrField(attribute='_id')
-    file_id =fields.StrField(required=True)
-    class Meta:
-        collection_name = COLLECTION_NAME_3       
 @imdb.register
 class User(Document):
     id = fields.StrField(attribute='_id')
@@ -51,29 +42,6 @@ class User(Document):
     tme = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME_2
-
-async def add_likes(id,id1):
-    try:
-        data = Like(
-            id = id,
-            file_id = id1,
-        )
-    except ValidationError:
-        logger.exception('Error occurred while saving group in database')
-    else:
-        try:
-            await data.commit()
-        except DuplicateKeyError:
-            logger.warning("already saved in database")
-            await Like.collection.delete_one({'_id':id})
-            filter = {'file_id':id1}
-            count = await Like.count_documents(filter)
-            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
-        else:
-            logger.info("group is saved in database")
-            filter = {'file_id':id1}
-            count = await Like.count_documents(filter)
-            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
 
 async def add_user(id,sts):
     try:
@@ -273,18 +241,7 @@ async def get_filter_results(query,group_id,nyva):
     cursor.sort('text', 1)
     files = await cursor.to_list(length=int(total_results))
     return files
-async def is_subscribed(bot, query,channel):
-    try:
-        user = await bot.get_chat_member(channel, query)
-    except UserNotParticipant:
-        pass
-    except Exception as e:
-        logger.exception(e)
-    else:
-        if not user.status == 'kicked':
-            return True
 
-    return False
 async def is_user_exist(query,rbt):
     filter = {'id': query}
     filter['rbt'] = rbt
@@ -316,39 +273,3 @@ async def get_file_details(query):
     cursor = Media.find(filter)
     filedetails = await cursor.to_list(length=1)
     return filedetails
-
-def encode_file_id(s: bytes) -> str:
-    r = b""
-    n = 0
-
-    for i in s + bytes([22]) + bytes([4]):
-        if i == 0:
-            n += 1
-        else:
-            if n:
-                r += b"\x00" + bytes([n])
-                n = 0
-
-            r += bytes([i])
-
-    return base64.urlsafe_b64encode(r).decode().rstrip("=")
-
-
-def encode_file_ref(file_ref: bytes) -> str:
-    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
-
-
-def unpack_new_file_id(new_file_id):
-    """Return file_id, file_ref"""
-    decoded = FileId.decode(new_file_id)
-    file_id = encode_file_id(
-        pack(
-            "<iiqq",
-            int(decoded.file_type),
-            decoded.dc_id,
-            decoded.media_id,
-            decoded.access_hash
-        )
-    )
-    file_ref = encode_file_ref(decoded.file_reference)
-    return file_id, file_ref
