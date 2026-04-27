@@ -1059,7 +1059,7 @@ def btn22(nyva,ab22,ab43):
             ])
         ab9=ab9+1
     ab.append([
-                InlineKeyboardButton(f"kuwa link", url=f"xfiile {ab43.split('##')[1]}"),
+                InlineKeyboardButton(f"kuwa link", callback_data=f"xfiile {ab43.split('##')[1]}"),
                 InlineKeyboardButton(f"rudi nyuma", url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{ab43.split('##')[1]}")
         ])
     return InlineKeyboardMarkup(ab)
