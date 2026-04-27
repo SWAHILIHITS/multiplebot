@@ -478,7 +478,7 @@ async def cb_handler(client, query):
                 return
             if "google" in mkv.text.lower():
                 fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
-                if fgh:
+                if fghx:
                     for userx in fghx:
                         fx_user=userx.user_id
                         fx_bot=userx.bot_link
