@@ -1,6 +1,9 @@
 import re  
 import base64   
 import logging
+from struct import pack
+from pyrogram.errors import UserNotParticipant
+from pyrogram.file_id import FileId
 from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from marshmallow.exceptions import ValidationError
@@ -9,7 +12,8 @@ import requests
 import json
 from info import DB2, COLLECTION_NAME
 
-COLLECTION_NAME_2="groups""
+COLLECTION_NAME_2="groups"
+COLLECTION_NAME_3="likes"
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -26,23 +30,56 @@ class Media(Document):
     file = fields.StrField(required=True)
     type = fields.StrField(required=True)
     group_id = fields.IntField(required=True)
+    descp = fields.StrField(required=True)
+    price = fields.StrField(required=True)
     grp = fields.StrField(required=True)
+    nyva = fields.StrField(required=True)
+    lks = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME
+@likes.register
+class Like(Document):
+    id = fields.StrField(attribute='_id')
+    file_id =fields.StrField(required=True)
+    class Meta:
+        collection_name = COLLECTION_NAME_3       
 @imdb.register
 class User(Document):
     id = fields.StrField(attribute='_id')
-    grp =fields.StrField(required=True)
+    rbt =fields.StrField(required=True)
     email = fields.StrField(required=True)
     tme = fields.IntField(required=True)
     class Meta:
         collection_name = COLLECTION_NAME_2
 
+async def add_likes(id,id1):
+    try:
+        data = Like(
+            id = id,
+            file_id = id1,
+        )
+    except ValidationError:
+        logger.exception('Error occurred while saving group in database')
+    else:
+        try:
+            await data.commit()
+        except DuplicateKeyError:
+            logger.warning("already saved in database")
+            await Like.collection.delete_one({'_id':id})
+            filter = {'file_id':id1}
+            count = await Like.count_documents(filter)
+            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
+        else:
+            logger.info("group is saved in database")
+            filter = {'file_id':id1}
+            count = await Like.count_documents(filter)
+            await Media.collection.update_one({'_id':id}, {'$set':{'lks':count}})
+
 async def add_user(id,sts):
     try:
         data = User(
             id = id,
-            grp = sts,
+            rbt = sts,
             email = 'hrm45',
             tme=0
         )
@@ -56,9 +93,34 @@ async def add_user(id,sts):
         else:
             logger.info("group is saved in database")
 
-async def save_file(text,reply,btn,file,type,id,user_id,grp):
+async def save_file(text,reply,btn,file,type,id,user_id,descp,prc,grp,nyva,lks):
     """Save file in database"""
-    "
+    if type=='Video':
+        file, file_ref = unpack_new_file_id(file)
+    text = str(text).lower()
+    fdata = {'text': text}
+    button = f'{btn}'
+    button = button.replace('pyrogram.types.InlineKeyboardButton', 'InlineKeyboardButton')
+    fdata['group_id'] = user_id
+    fdata['nyva'] = nyva
+    found = await Media.find_one(fdata)
+    if found and prc=='chec':
+        return "hrm46"
+    elif prc =='chec':
+        return
+    if found and prc=='hrm46':
+        dtav =await get_filter_results(text,user_id,nyva)
+        for dt3 in dtav:
+            details = await  get_filter_results(id,user_id,nyva)
+            for dt in details:
+                for ad in await get_file_details(dt.id):
+                    await Media.collection.delete_one({'_id':ad.id})
+        await Media.collection.delete_one(fdata)
+        return
+    fdata['file']= file
+    found2 = await Media.find_one(fdata)
+    if found2 and prc=='hrm4666':
+        return "already saved"
     try:
         file = Media(
             id=id,
@@ -68,8 +130,11 @@ async def save_file(text,reply,btn,file,type,id,user_id,grp):
             file= str(file),
             type=str(type),
             group_id =user_id,
-            grp=grp
-            
+            descp=descp,
+            price = str(prc),
+            grp = grp,
+            nyva = str(nyva),
+            lks = lks
        )
     except ValidationError:
         logger.exception('Error occurred while saving file in database')
@@ -208,7 +273,18 @@ async def get_filter_results(query,group_id,nyva):
     cursor.sort('text', 1)
     files = await cursor.to_list(length=int(total_results))
     return files
+async def is_subscribed(bot, query,channel):
+    try:
+        user = await bot.get_chat_member(channel, query)
+    except UserNotParticipant:
+        pass
+    except Exception as e:
+        logger.exception(e)
+    else:
+        if not user.status == 'kicked':
+            return True
 
+    return False
 async def is_user_exist(query,rbt):
     filter = {'id': query}
     filter['rbt'] = rbt
@@ -240,3 +316,39 @@ async def get_file_details(query):
     cursor = Media.find(filter)
     filedetails = await cursor.to_list(length=1)
     return filedetails
+
+def encode_file_id(s: bytes) -> str:
+    r = b""
+    n = 0
+
+    for i in s + bytes([22]) + bytes([4]):
+        if i == 0:
+            n += 1
+        else:
+            if n:
+                r += b"\x00" + bytes([n])
+                n = 0
+
+            r += bytes([i])
+
+    return base64.urlsafe_b64encode(r).decode().rstrip("=")
+
+
+def encode_file_ref(file_ref: bytes) -> str:
+    return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
+
+
+def unpack_new_file_id(new_file_id):
+    """Return file_id, file_ref"""
+    decoded = FileId.decode(new_file_id)
+    file_id = encode_file_id(
+        pack(
+            "<iiqq",
+            int(decoded.file_type),
+            decoded.dc_id,
+            decoded.media_id,
+            decoded.access_hash
+        )
+    )
+    file_ref = encode_file_ref(decoded.file_reference)
+    return file_id, file_ref
