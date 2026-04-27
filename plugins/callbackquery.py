@@ -395,9 +395,8 @@ async def cb_handler(client, query):
                     await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 else:
                     if "google" in mkv.text.lower():
-                        fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                         await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin1e")
-               
+                        fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                         if fghx:
                             async for userx in fghx:
                                 await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin2e")
