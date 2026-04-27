@@ -160,7 +160,7 @@ async def start_msg_admins(client, message):
                              
                 await client.send_message(
                     chat_id=cmd.from_user.id,
-                    text=f"Samahani **{cmd.from_user.first_name}**\n🚫nmeshindwa kukuruhusu kendelea kwa sababu muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama \n\n✅**Kisha baada ya kufanya malipo na kuthibitishiwa malipo yako na admin utabonyeza download hapo juu kuipata movie yako kama utalipia kifurushi utazipakua nyingine zaid kwenye kikundi....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi ",
+                    text=f"Habari **{cmd.from_user.first_name}**\n🚫nmeshindwa kukuruhusu kendelea kwa sababu muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama \n\n✅**Kisha baada ya malipo ya utabonyeza download hapo juu kuipata movie yako kama utalipia kifurushi utazipakua nyingine zaid kwenye kikundi/au kupitia **master link**....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi ",
                     disable_web_page_preview = True,
                     reply_markup=InlineKeyboardMarkup(
                         [
@@ -1059,6 +1059,7 @@ def btn22(nyva,ab22,ab43):
             ])
         ab9=ab9+1
     ab.append([
-                InlineKeyboardButton(f"rudi nyuma", url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{ab43.split('##')[1]}"),
+                InlineKeyboardButton(f"kuwa link", url=f"xfiile {ab43.split('##')[1]}"),
+                InlineKeyboardButton(f"rudi nyuma", url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{ab43.split('##')[1]}")
         ])
     return InlineKeyboardMarkup(ab)

@@ -428,6 +428,7 @@ async def cb_handler(client, query):
                     descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
                     await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            
             elif descp[3]=="m":
                 fileid=query.data.split(" ")[1]
                 reply_markup=InlineKeyboardMarkup([[
