@@ -429,7 +429,7 @@ async def cb_handler(client, query):
                                 if cvz!= 'no':
                                     await client.send_message(chat_id = int(group_id),text=f'Tafadhali muwezeshee \n**{emailx}** kwenye movie {textx} baada ya kubadilisha link nyengine kuwa {mkv.text}endelea kufurahia huduma zetu')
                                 
-                    descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
+                    descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#.s"
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
                     await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
             
@@ -515,7 +515,7 @@ async def cb_handler(client, query):
                         if cvz!= 'no':
                             await client.send_message(chat_id = int(group_id),text=f'Tafadhali muwezeshee \n**{emailx}** kwenye movie {textx} baada ya kubadilisha link nyengine kuwa {mkv.text}endelea kufurahia huduma zetu')
                                 
-            descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
+            descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#.s"
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
             await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         
