@@ -160,10 +160,11 @@ async def start_msg_admins(client, message):
                              
                 await client.send_message(
                     chat_id=cmd.from_user.id,
-                    text=f"Habari **{cmd.from_user.first_name}**\n🚫nmeshindwa kukuruhusu kendelea kwa sababu muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama \n\n✅**Kisha baada ya malipo ya utabonyeza download hapo juu kuipata movie yako kama utalipia kifurushi utazipakua nyingine zaid kwenye kikundi/au kupitia **master link**....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi ",
+                    text=f"Habari **{cmd.from_user.first_name}**\n🚫muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama kwa kulipia **manual(gharama nafuu lakin mpaka admin ahakiki muamala wako kupata access)**bonyeza lipia fasta kulipia **auto(n gharama itaongezeka kidogo kuliko huo wa manual ila hapa mfumo ndio unahakiki bila uwepo wa admin nwa haraka zaid baada ya malipo access tyr ushapata)** \n✅**kwa vifurushi utapewa **8master link** ili kupata access kwa haraka zaidi....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi",
                     disable_web_page_preview = True,
                     reply_markup=InlineKeyboardMarkup(
                         [
+                            [ InlineKeyboardButton("LIPIA FASTA", callback_data =f"tzn##tsh {file_id}")],
                             [
                                 InlineKeyboardButton("🇹🇿 TANZANIA", callback_data =f"tzn##tsh {file_id}"),
                                 InlineKeyboardButton("🇰🇪 KENYA",callback_data =f"tzn##ksh {file_id}" )
