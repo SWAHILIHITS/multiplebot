@@ -397,10 +397,11 @@ async def cb_handler(client, query):
                     if "google" in mkv.text.lower():
                         fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                         if fghx:
-                            cvz== 'yes'
+                            
                             async for userx in fghx:
                                 fx_user=userx["user_id"]
                                 fx_bot=userx["bot_link"]
+                                cvz='yes'
                                 service = getCreds(gd['token'],group_id)
                                 hjgh = f'{query.data.split(" ",1)[1]}##{fx_user}'
                                 if service=='auth_error' or service=='token_error':
@@ -483,8 +484,8 @@ async def cb_handler(client, query):
             if "google" in mkv.text.lower():
                 fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                 if fghx:
-                    cvz== 'yes'
                     async for userx in fghx:
+                        cvz= 'yes'
                         fx_user=userx["user_id"]
                         fx_bot=userx["bot_link"]
                         service = getCreds(gd['token'],group_id)
