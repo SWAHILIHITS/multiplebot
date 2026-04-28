@@ -268,7 +268,7 @@ async def cb_handler(client, query):
                 return
             ghi=f'{mkv.text}'
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'price':ghi}})
-            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         elif query.data.startswith("xlks"):
             id3=query.data.split(" ")[1]
             nyvaa=query.data.split(" ")[2]
@@ -303,7 +303,7 @@ async def cb_handler(client, query):
                 return
             ghi=f'{mkv.text.lower()}.dd#.{query.from_user.id}'
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'text':ghi}})
-            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         elif query.data.startswith("xcaption"):
             await query.answer('wait please')
             a=False
@@ -332,7 +332,7 @@ async def cb_handler(client, query):
                     f"Samahani hii caption n kubwa tafadhali ipunguze kisha edit tena")
                 return
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'reply':mkv.text}})
-            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         elif query.data.startswith("xfile"):
             botusername=await client.get_me()
             nyva=botusername.username  
@@ -392,7 +392,7 @@ async def cb_handler(client, query):
                         ab33='ms'
                     descp=descp[0]+".dd#."+descp[1]+".dd#.data.dd#."+ab33
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
-                    await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                    await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
                 else:
                     if "google" in mkv.text.lower():
                         fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
@@ -431,7 +431,7 @@ async def cb_handler(client, query):
                                 
                     descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
                     await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
-                    await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+                    await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
             
             elif descp[3]=="m":
                 fileid=query.data.split(" ")[1]
@@ -517,7 +517,7 @@ async def cb_handler(client, query):
                                 
             descp=descp[0]+".dd#."+descp[1]+".dd#."+mkv.text.lower()+".dd#."+descp[3]
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
-            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         
         elif query.data.startswith("xdescp"): 
             filedetails = await get_file_details(query.data.split(" ",1)[1])
@@ -548,7 +548,7 @@ async def cb_handler(client, query):
                 return
             descp=descp[0]+".dd#."+mkv.text+".dd#."+descp[2]+".dd#."+descp[3]
             await Media.collection.update_one({'_id':query.data.split(" ",1)[1]},{'$set':{'descp':descp}})
-            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
+            await mkv.reply_text(text=f"data updated successful ",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , url=f"https://t.me/{nyva}?start=xsubinps_-_-_-_{query.data.split(" ",1)[1]}")]]))
         elif query.data == "startup":
             botusername=await client.get_me()
             nyva=botusername.username  
