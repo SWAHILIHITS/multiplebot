@@ -160,7 +160,7 @@ async def start_msg_admins(client, message):
                              
                 await client.send_message(
                     chat_id=cmd.from_user.id,
-                    text=f"Habari **{cmd.from_user.first_name}**\n🚫muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama ila n kwa mfumo wa **manual(gharama nafuu lakin mpaka admin ahakiki muamala wako kupata access)**\n\nbonyeza 🚀 LIPIA FASTA kulipia kwa mfumo wa **auto(n gharama itaongezeka kidogo kuliko huo wa manual ila hapa mfumo ndio unahakiki bila uwepo wa admin nwa haraka zaid baada ya malipo access tyr ushapata)** \n✅**kwa vifurushi utapewa **8master link** ili kupata access kwa haraka zaidi....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi",
+                    text=f"Habari **{cmd.from_user.first_name}**\n🚫muv au sizon uliochagua ni za kulipia\n🏘Tafadhal chagua nchi uliopo kuweza kulipia uweze kuitazama ila n kwa mfumo wa **manual(gharama nafuu lakin mpaka admin ahakiki muamala wako kupata access)**\n\nbonyeza 🚀 LIPIA FASTA kulipia kwa mfumo wa **auto(n gharama itaongezeka kidogo kuliko huo wa manual ila hapa mfumo ndio unahakiki bila uwepo wa admin nwa haraka zaid baada ya malipo access tyr ushapata)** \n\n✅kwa vifurushi utapewa **master link** ili kupata access kwa haraka zaidi....\n\n🙇🙇‍♂** [BONYEZA HAPA](https://t.me/{lk.username})** kwa msaada/maelekezo zaidi",
                     disable_web_page_preview = True,
                     reply_markup=InlineKeyboardMarkup(
                         [
