@@ -104,6 +104,8 @@ def remove_access(service, url, per_id):
         return "failed"
 def grant_access(service, url, user_email):
     """Gives a specific user writer access to a file."""
+    if "gmail.com" not in user_email.lower():
+        return 'not_valid_email'
     new_permission = {
         'type': 'user',
         'role': 'reader',  # Roles include: owner, writer, commenter, reader
