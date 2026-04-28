@@ -395,12 +395,10 @@ async def cb_handler(client, query):
                     await mkv.reply_text(text=f"data updated successful bonyeza tena edit kuanza kutuma vipande",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi nyuma' , callback_data = 'zkb')]]))
                 else:
                     if "google" in mkv.text.lower():
-                        await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin1e")
                         fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                         if fghx:
+                            cvz== 'yes'
                             async for userx in fghx:
-                                await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali tuna maneno sio picha wala kingin2e")
-               
                                 fx_user=userx["user_id"]
                                 fx_bot=userx["bot_link"]
                                 service = getCreds(gd['token'],group_id)
@@ -485,6 +483,7 @@ async def cb_handler(client, query):
             if "google" in mkv.text.lower():
                 fghx = await db.get_all_acc_file_id(query.data.split(" ",1)[1],group_id)
                 if fghx:
+                    cvz== 'yes'
                     async for userx in fghx:
                         fx_user=userx["user_id"]
                         fx_bot=userx["bot_link"]
