@@ -8,8 +8,8 @@ API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NG
 
 payload = {
     "order_id": str(uuid.uuid4()),    # MANDATORY: Must be a unique UUID
-    "buyer_name": "Hassan mohamed",        # MANDATORY
-    "buyer_email": "hramamogamed@gmail.com", # MANDATORY
+    #"buyer_name": "Hassan mohamed",        # MANDATORY
+    #"buyer_email": "hramamogamed@gmail.com", # MANDATORY
     "buyer_phone": "0624667219",      # MANDATORY: 10 digits starting with 0
     "amount": 10000,                  # MANDATORY: Number, not string
     #"webhook_url": "https://yourdomain.com" # Recommended
