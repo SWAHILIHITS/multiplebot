@@ -1,6 +1,5 @@
 import requests
 import json
-print("ZenoPay Response:")
 # ZenoPay API endpoint for Mobile Money Tanzania
 API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
 
@@ -9,9 +8,9 @@ API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NG
 
 # Payment order payload
 payload = {
-    "order_id": "movietzbot0002",  # e.g., UUI
-    "buyer_name": "Hassan Mohamedi",           # REQUIRED
-    "buyer_email":"hramamohamed@gmail.com",
+    "order_id": "movietzbot0005",  # e.g., UUI
+    #"buyer_name": "Hassan Mohamedi",           # REQUIRED
+    #"buyer_email":"hramamohamed@gmail.com",
     "buyer_phone": "0624667219",  # Tanzanian format: 07XXXXXXXX
     "amount": 10000,  # Amount in TZS
 }
