@@ -15,7 +15,7 @@ payload = {
     "buyer_phone": "0624667219",  # Tanzanian format: 07XXXXXXXX
     "amount": 10000,  # Amount in TZS
 }
-
+print("ZenoPay Response:")
 # Request headers with API key
 headers = {
     "Content-Type": "application/json",
