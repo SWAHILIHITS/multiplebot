@@ -9,8 +9,8 @@ API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NG
 
 # Payment order payload
 payload = {
-    "order_id": "movietzbot0001",  # e.g., UUI
-    "buyer_phone": "255624667219",  # Tanzanian format: 07XXXXXXXX
+    "order_id": "movietzbot0002",  # e.g., UUI
+    "buyer_phone": "+255686466242",  # Tanzanian format: 07XXXXXXXX
     "amount": 10000,  # Amount in TZS
 }
 
