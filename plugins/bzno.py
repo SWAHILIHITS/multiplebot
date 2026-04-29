@@ -19,7 +19,7 @@ headers = {
     "Content-Type": "application/json",
     "x-api-key": API_KEY
 }
-
+print("tryinging")
 try:
     # Send POST request
     response = requests.post(API_URL, headers=headers, json=payload)
