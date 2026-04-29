@@ -1,42 +1,33 @@
 import requests
 import json
-# ZenoPay API endpoint for Mobile Money Tanzania
-API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+import uuid
 
-# Your API Key (store securely in production)
+API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+# Replace with your actual API Key
 API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
 
-# Payment order payload
 payload = {
-    "order_id": "movietzbot0005",  # e.g., UUI
-    #"buyer_name": "Hassan Mohamedi",           # REQUIRED
-    #"buyer_email":"hramamohamed@gmail.com",
-    "buyer_phone": "0624667219",  # Tanzanian format: 07XXXXXXXX
-    "amount": 10000,  # Amount in TZS
+    "order_id": str(uuid.uuid4()),    # MANDATORY: Must be a unique UUID
+    "buyer_name": "Hassan mohamed",        # MANDATORY
+    "buyer_email": "hramamogamed@gmail.com", # MANDATORY
+    "buyer_phone": "0624667219",      # MANDATORY: 10 digits starting with 0
+    "amount": 10000,                  # MANDATORY: Number, not string
+    #"webhook_url": "https://yourdomain.com" # Recommended
 }
-print("ZenoPay Response:")
-# Request headers with API key
+
 headers = {
     "Content-Type": "application/json",
     "x-api-key": API_KEY
 }
-print("tryinging")
 
 try:
-    # Send POST request
     response = requests.post(API_URL, headers=headers, json=payload)
-    response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+    
+    # If it's still 400, this will print the server's specific error message
+    if response.status_code != 200:
+        print(f"Error {response.status_code}: {response.text}")
+    else:
+        print("Success:", response.json())
 
-    # Parse JSON response
-    data = response.json()
-    print("ZenoPay Response:")
-    print(json.dumps(data, indent=4))
-
-except requests.exceptions.HTTPError as http_err:
-    print(f"[HTTP ERROR] {http_err}")
-except requests.exceptions.ConnectionError:
-    print("[CONNECTION ERROR] Failed to connect to ZenoPay API.")
-except requests.exceptions.Timeout:
-    print("[TIMEOUT ERROR] Request timed out.")
 except requests.exceptions.RequestException as e:
-    print(f"[REQUEST ERROR] {e}")
+    print(f"Connection failed: {e}")
