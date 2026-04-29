@@ -10,7 +10,7 @@ payload = {
     "order_id": order_id ,    # MANDATORY: Must be a unique UUID
     "buyer_name": "idd mohamed",        # MANDATORY
     "buyer_email": "hramamogamed@gmail.com", # MANDATORY
-    "buyer_phone": "0652470409",      # MANDATORY: 10 digits starting with 0
+    "buyer_phone": "0618802015",      # MANDATORY: 10 digits starting with 0
     "amount": 100,                  # MANDATORY: Number, not string
     #"webhook_url": "https://yourdomain.com" # Recommended
 }
