@@ -832,7 +832,7 @@ async def cb_handler(client, query):
                     await client.send_message(chat_id=query.from_user.id, text='Samahani,tuma namba bila kitu kingne.anza upya kwa kubonyeza download hapo juu')
                     await mkv.delete()
                     return
-                if (mkv.text.startswith('25') and len(mkv.text.strip()==12)) or (mkv.text.startswith("+25") and len(mkv.text.strip()==13))or (mkv.text.startswith("0") and len(mkv.text.strip()==10)):
+                if (mkv.text.startswith('25') and len(mkv.text.strip())==12) or (mkv.text.startswith("+25") and len(mkv.text.strip())==13)or (mkv.text.startswith("0") and len(mkv.text.strip())==10):
                     # Define the base and set variable
                     zno=mkv.text
                     for i in ["255","256","254","250","+255","+256","+254","+250"]:
