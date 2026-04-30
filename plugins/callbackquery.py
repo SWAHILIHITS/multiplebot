@@ -811,27 +811,33 @@ async def cb_handler(client, query):
                 await mkv1.delete
                 if mkv.text.startswith('25'):
                     if mkv.text.startswith('255'):
-                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        zno = "0" + mkv.removeprefix("255")
                         prc2=int(prc2)
+                        currency": "TZS"
                     elif mkv.text.startswith('254'):
-                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        zno = "0" + mkv.removeprefix("254")
                         prc2=int(prc2)//20
+                        currency": "KES"
                     elif mkv.text.startswith('256'):
-                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        zno = "0" + mkv.removeprefix("256")
+                        currency": "UGX"
                         prc2=int(prc2)//0.7
                     elif mkv.text.startswith('250'):
-                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        zno = "0" + mkv.removeprefix("250")
                         prc2=int(prc2)//1.7
+                        currency": "RWF"
                     else:
                         await client.send_message(chat_id = query.from_user.id,text='nmeshindwa kutambua country code yako tafadhal kwa sasa tunatumia codea za nchi 4 tu \n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda anza upya kubonyeza download hapo juu')
                         return
+                    API_URL = "https://zenoapi.com"  
                     API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
                     order_id=str(uuid.uuid4())
                     payload = {
                         "order_id": order_id ,    # MANDATORY: Must be a unique UUID
-                        "buyer_name": "idd mohamed",        # MANDATORY
+                        "buyer_name": "idd mohamed",  
+                        "currency": currency,
                         "buyer_email": "hramamogamed@gmail.com", # MANDATORY
-                        "buyer_phone": f'{mkv.text}',      # MANDATORY: 10 digits starting with 0
+                        "buyer_phone": zno,      # MANDATORY: 10 digits starting with 0
                         "amount": prc2,                  # MANDATORY: Number, not string
                         #"webhook_url": "https://yourdomain.com" # Recommended
                     }
@@ -845,7 +851,7 @@ async def cb_handler(client, query):
                         response = requests.post(API_URL, headers=headers, json=payload)
     
                         # If it's still 400, this will print the server's specific error message
-                        if response.status_code != 200:
+                        if response.status_code != 000:
                             print(f"Error {response.status_code}: {response.text}")
                         else:
                             print("Success:", response.json())
