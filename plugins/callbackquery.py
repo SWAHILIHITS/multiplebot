@@ -738,6 +738,12 @@ async def cb_handler(client, query):
             await client.send_message(chat_id = query.from_user.id,text=f"{kdflg}\nUmechagua**{data1.split('#@')[0]}**\n {data1.split('#@')[2]}\n Tafadhali bonyeza kitufe hapo chini kuweza kulipia muda utakao weza kupata huduma hii",
                     reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 {cvz} {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 {cvz} {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 {cvz} {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 {cvz} {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 {cvz} {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##{cvc} {fileid1}")]])
                 )
+        elif query.data.startswith("fst"):
+            await query.message.delete()
+            await client.send_message(chat_id=query.from_user.id,
+                    text = "Tafadhali chagua nchi uliopo kuendelea na hatua inayo fuata",
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("TANZANIA", callback_data=f"wiik2t {query.data.split(" ")}"),InlineKeyboardButton("KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("UGANDA", callback_data=f"wiik2u {query.data.split(" ")}"),InlineKeyboardButton("RWANDA", callback_data=f"wiik2r {query.data.split(" ")}")]]),   
+            )
         elif query.data.startswith("wiik2"):
             botusername=await client.get_me()
             nyva=botusername.username  
@@ -796,6 +802,7 @@ async def cb_handler(client, query):
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
             elif cvx == 'l':
+                cxd=query.data.split(" ")[0].split("iik2")[1]
                 mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako utakayo fanyia malipo unatoa 0 ya mwanzo kisha unaanza na country code bila kajumlisha ka mwanzo\n255 kwa tanzania\n254 kwa kenya\n256 kwa uganda \n 250 kwa rwanda \n\n **mfano 255679667219**')
                 a,b =funask()
                 id1=(mkv1.id)+1
@@ -815,26 +822,34 @@ async def cb_handler(client, query):
                     except:
                         a=False
                 await mkv1.delete()
-                if mkv.text.startswith('25'):
-                    # Define the base and set variables
+                try:
+                    if not mkv.text.startwith("+"):
+                        int(mkv.text)
+                    else:
+                        int(mkv.text.removeprefix(+))
+                if (mkv.text.startswith('25') & len(mkv.text.strip()==12)) or (mkv.text.startwith("+25") & len(mkv.text.strip()==13))or (mkv.text.startwith("0") & & len(mkv.text.strip()==10)):
+                    # Define the base and set variabl
+                    zno=mkv.text
+                    for i in ["255","256","254","250","+255","+256","+254","+250"]:
+                        try:
+                            zno = "0" + mkv.text.removeprefix(i)
+                            break
+                        except:
+                            continue
                     API_BASE = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-                    if mkv.text.startswith('255'):
-                        zno = "0" + mkv.text.removeprefix("255")
+                    if cxd=='t':
                         prc2 = int(prc2)
                         currency = "TZN"
                         
-                    elif mkv.text.startswith('254'):
-                        zno = "0" + mkv.text.removeprefix("254")
+                    elif cxd=='k':
                         prc2 = int(prc2) // 20
                         currency = "KES"
                         
-                    elif mkv.text.startswith('256'):
-                        zno = "0" + mkv.text.removeprefix("256")
+                    elif cxd=='u':
                         currency = "UGX"
                         prc2 = int(int(prc2) // 0.7)
                         
-                    elif mkv.text.startswith('250'):
-                        zno = "0" + mkv.text.removeprefix("250")
+                    elif cxd=='r':
                         prc2 = int(int(prc2) // 1.7)
                         currency = "RWF"
                         
@@ -1248,17 +1263,22 @@ async def cb_handler(client, query):
             )
                                     
 def replymkup2(msg2,msg4):
+    fileiid= msg4.split(".")[0]
+    fileid,cvx=fileiid.split("##")
     try:
         msg1 = msg2.split('tsh ')[1]
     except Exception:
         msg1 = msg2.split('ksh ')[1] 
         msg1=(int(msg1))//19
         msg2=f"{msg2.split('ksh ')[0]} Ksh {msg1}"
+    fgh="wiik2"
+    if cvx=='l':
+        fgh="fst"   
     msg1 =int(msg1)
     if msg1 == 0:
         return []
     else:
-        return [InlineKeyboardButton(f"{msg2}", callback_data=f"wiik2 {msg4}")]
+        return [InlineKeyboardButton(f"{msg2}", callback_data=f"{fgh} {msg4}")]
 
 def replymkup1(msg3,msg1,msg2):
     if msg3=="hrm45":
@@ -1266,7 +1286,7 @@ def replymkup1(msg3,msg1,msg2):
     elif msg3.split("#@")[1]=="0,0,0,0,0":
         return []
     else:
-        msg3=msg3.split("#@")[0]
+        msg3=msg3.split( #@")[0]
         return [InlineKeyboardButton(f"{msg3}", callback_data=f"wik {msg1} {msg2}")]
 def funask():
     a=False
