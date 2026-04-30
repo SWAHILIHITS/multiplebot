@@ -811,11 +811,11 @@ async def cb_handler(client, query):
                 await mkv1.delete()
                 if mkv.text.startswith('25'):
                     # Define the base and set variables
-                    API_BASE = "https://zenoapi.com"
+                    API_BASE = "https://zenopay.com/api/payments/checkout/"
                     if mkv.text.startswith('255'):
                         zno = "0" + mkv.text.removeprefix("255")
                         prc2 = int(prc2)
-                        currency = "TZS"
+                        currency = "KES"
                         endpoint = f"https://zenoapi.com/api/payments/mobile_money_tanzania"
                         payload = {
                             "buyer_name": "idd mohamed",
@@ -828,8 +828,8 @@ async def cb_handler(client, query):
                     elif mkv.text.startswith('254'):
                         zno = "0" + mkv.text.removeprefix("254")
                         prc2 = int(prc2) // 20
-                        currency = "KES"
-                        endpoint = f"{API_BASE}/mobile_money_kenya"
+                        currency = "TZS"
+                        endpoint = f"{API_BASE}"
                         payload = {
                             "buyer_name": "idd mohamed",
                             "currency": currency,
@@ -841,7 +841,7 @@ async def cb_handler(client, query):
                         zno = "0" + mkv.text.removeprefix("256")
                         currency = "UGX"
                         prc2 = int(int(prc2) // 0.7)
-                        endpoint = f"{API_BASE}/mobile_money_uganda"
+                        endpoint = f"{API_BASE}"
                         payload = {
                             "buyer_name": "idd mohamed",
                             "currency": currency,
