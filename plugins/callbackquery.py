@@ -816,37 +816,57 @@ async def cb_handler(client, query):
                         zno = "0" + mkv.text.removeprefix("255")
                         prc2 = int(prc2)
                         currency = "TZS"
-                        endpoint = f"{API_BASE}/mobile_money_tanzania"
+                        endpoint = f"https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        payload = {
+                            "buyer_name": "idd mohamed",
+                            "currency": currency,
+                            "buyer_email": "hramamogamed@gmail.com",
+                            "buyer_phone": zno,
+                            "amount": prc2,
+                            "order_id": str(uuid.uuid4())
+                        }
                     elif mkv.text.startswith('254'):
                         zno = "0" + mkv.text.removeprefix("254")
                         prc2 = int(prc2) // 20
                         currency = "KES"
                         endpoint = f"{API_BASE}/mobile_money_kenya"
+                        payload = {
+                            "buyer_name": "idd mohamed",
+                            "currency": currency,
+                            "buyer_email": "hramamogamed@gmail.com",
+                            "buyer_phone": zno,
+                            "amount": prc2,
+                        }
                     elif mkv.text.startswith('256'):
                         zno = "0" + mkv.text.removeprefix("256")
                         currency = "UGX"
                         prc2 = int(int(prc2) // 0.7)
                         endpoint = f"{API_BASE}/mobile_money_uganda"
+                        payload = {
+                            "buyer_name": "idd mohamed",
+                            "currency": currency,
+                            "buyer_email": "hramamogamed@gmail.com",
+                            "buyer_phone": zno,
+                            "amount": prc2,
+                        }
+                        
                     elif mkv.text.startswith('250'):
                         zno = "0" + mkv.text.removeprefix("250")
                         prc2 = int(int(prc2) // 1.7)
                         currency = "RWF"
                         endpoint = f"{API_BASE}/mobile_money_rwanda"
+                        payload = {
+                            "buyer_name": "idd mohamed",
+                            "currency": currency,
+                            "buyer_email": "hramamogamed@gmail.com",
+                            "buyer_phone": zno,
+                            "amount": prc2,
+                        }
                     else:
                         await client.send_message(chat_id=query.from_user.id, text='Nmeshindwa kutambua code yako. Tumia:\n255 (TZ)\n254 (KE)\n256 (UG)\n250 (RW)')
                         return
 
                     API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
-                    url = "https://zenopay.com/api/payments/checkout/"
-                    payload = {
-                         "buyer_name": "idd mohamed",
-                        "currency": currency,
-                        "buyer_email": "hramamogamed@gmail.com",
-                        "buyer_phone": zno,
-                        "amount": prc2,
-                        
-                    }
-
                     headers = {
                         "Content-Type": "application/json",
                         "x-api-key": API_KEY
@@ -855,7 +875,7 @@ async def cb_handler(client, query):
                     try:
                         
                         # Crucial: Use the 'endpoint' variable here
-                        response = requests.post(url, headers=headers, json=payload)
+                        response = requests.post(endpoint, headers=headers, json=payload)
                         res_data = response.json()
                         await mkv.delete()
                         if response.status_code == 200 and res_data.get("status") == "success":
