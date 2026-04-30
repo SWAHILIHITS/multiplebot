@@ -826,7 +826,7 @@ async def cb_handler(client, query):
                     if not mkv.text.startwith("+"):
                         int(mkv.text)
                     else:
-                        int(mkv.text.removeprefix(+))
+                        int(mkv.text.removeprefix("+"))
                 if (mkv.text.startswith('25') & len(mkv.text.strip()==12)) or (mkv.text.startwith("+25") & len(mkv.text.strip()==13))or (mkv.text.startwith("0") & & len(mkv.text.strip()==10)):
                     # Define the base and set variabl
                     zno=mkv.text
