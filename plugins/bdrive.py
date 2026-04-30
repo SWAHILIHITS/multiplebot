@@ -152,6 +152,7 @@ async def addfilesondrive(client, message):
     bot_info = await client.get_me()
     if not await db.is_admin_exist(message.from_user.id, bot_info.username): return
     text0=message.text.strip()
+    await message.reply(" ")
     try:
         args = text0.split(" ")
     except:
