@@ -822,7 +822,7 @@ async def cb_handler(client, query):
                     except:
                         a=False
                 await mkv1.delete()
-                mkv.text=mkv.text.strip()
+                mkv.text=mkv.text.replace(" ","")
                 try:
                     if not mkv.text.startswith("+"):
                         int(mkv.text)
