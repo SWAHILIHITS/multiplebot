@@ -803,7 +803,7 @@ async def cb_handler(client, query):
                 )
             elif cvx == 'l':
                 cxd=query.data.split(" ")[0].split("iik2")[1]
-                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako utakayo fanyia malipo unatoa 0 ya mwanzo kisha unaanza na country code bila kajumlisha ka mwanzo\n255 kwa tanzania\n254 kwa kenya\n256 kwa uganda \n 250 kwa rwanda \n\n **mfano 255679667219**')
+                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako yako utakayo fanyia malipo')
                 a,b =funask()
                 id1=(mkv1.id)+1
                 while a==False:
@@ -837,6 +837,7 @@ async def cb_handler(client, query):
                     zno=mkv.text
                     for i in ["255","256","254","250","+255","+256","+254","+250"]:
                         try:
+                            await client.send_message(chat_id=query.from_user.id, text='try1')
                             zno = "0" + mkv.text.removeprefix(i)
                             break
                         except:
@@ -861,14 +862,15 @@ async def cb_handler(client, query):
                     else:
                         await client.send_message(chat_id=query.from_user.id, text='Nmeshindwa kutambua code yako. Tumia:\n255 (TZ)\n254 (KE)\n256 (UG)\n250 (RW)')
                         return
+                    order_id = str(uuid.uuid4())
                     payload = {
-                            "buyer_name": "idd mohamed",
-                            "currency": currency,
-                            "buyer_email": "hramamogamed@gmail.com",
-                            "buyer_phone": zno,
-                            "amount": prc2,
-                            "order_id": str(uuid.uuid4())
-                        }
+                        "buyer_name": "idd mohamed",
+                        "currency": currency,
+                        "buyer_email": "hramamogamed@gmail.com",
+                        "buyer_phone": zno,
+                        "amount": prc2,
+                        "order_id": order_id
+                    }
                     API_KEY = details["zeno_api"]
                     headers = {
                         "Content-Type": "application/json",
