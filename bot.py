@@ -8,7 +8,6 @@ from pyrogram import idle,Client, __version__,compose
 from pyrogram.raw.all import layer
 from utils import Media 
 from plugins.database import db
-from plugins.bpay import API_URL
 from info import SESSION, API_ID, API_HASH, BOT_TOKEN
 
 active_bots = {}
