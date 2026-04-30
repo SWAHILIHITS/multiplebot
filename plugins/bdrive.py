@@ -195,7 +195,7 @@ async def addfilesondrive(client, message):
         if len(args) == 2:
             dest_id = get_access_id(args[1])
             file_metadata = {'name': file_name, 'parents': [dest_id]}  
-        if :
+        else:
             file_metadata = {'name': file_name}
         
         file_metadata = {'name': file_name, 'parents': [dest_id]}
