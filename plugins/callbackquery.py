@@ -496,7 +496,6 @@ async def cb_handler(client, query):
                         dtailsx = await is_user_exist(hjkl,nyva)
                         for flsx in dtailsx:
                             emailx = flsx.email
-
                         if emailx=='hrm45':
                             await client.get_messages(chat_id=int(fx_user),text=f"Tafadhali add email yako tuweze kukuwezesha Tumebadilisha link kwenye movie \n **{textx}**")
                             continue
@@ -789,7 +788,73 @@ async def cb_handler(client, query):
                 await client.send_message(chat_id=query.from_user.id,
                     text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Ksh {int(int(prc2)//19)}** Kwa wateja wetu wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[1]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
-                )     
+                )
+            elif cvx == 'l':
+                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako utakayo fanyia malipo unatoa 0 ya mwanzo kisha unaanza na country code bila jumlisha ya mwanzo\n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda \n\n **mfano 255679667219**')
+                a,b =funask()
+                id1=(mkv1.id)+1
+                while a==False:
+                    try:
+                        mkv = await client.get_messages("me",id1)
+                        if mkv.text!=None:
+                            a=True
+                    
+                        if (time.time()-b)>300:
+                            mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya kwa kubonyeza download hapo juu jitahidi kutuma namba yako ndani ya dakika 3 zingatia anza na country code bila kajumlisha",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tanzania {fileid}')]]))
+                            return
+
+                        if mkv.from_user.id != query.from_user.id :
+                            a=False
+                            id1=id1+1
+                    except:
+                        a=False
+                await mkv1.delete
+                if mkv.text.startswith('25'):
+                    if mkv.text.startswith('255'):
+                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        prc2=int(prc2)
+                    elif mkv.text.startswith('254'):
+                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        prc2=int(prc2)
+                    elif mkv.text.startswith('256'):
+                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        prc2=int(prc2)
+                    elif mkv.text.startswith('253'):
+                        API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
+                        prc2=int(prc2)
+                    else:
+                        await client.send_message(chat_id = query.from_user.id,text='nmeshindwa kutambua country code yako tafadhal kwa sasa tunatumia codea za nchi 4 tu \n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda anza upya kubonyeza download hapo juu')
+                        return
+                    API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
+                    order_id=str(uuid.uuid4())
+                    payload = {
+                        "order_id": order_id ,    # MANDATORY: Must be a unique UUID
+                        "buyer_name": "idd mohamed",        # MANDATORY
+                        "buyer_email": "hramamogamed@gmail.com", # MANDATORY
+                        "buyer_phone": f'{mkv.text}',      # MANDATORY: 10 digits starting with 0
+                        "amount": prc2,                  # MANDATORY: Number, not string
+                        #"webhook_url": "https://yourdomain.com" # Recommended
+                    }
+
+                    headers = {
+                       "Content-Type": "application/json",
+                       "x-api-key": API_KEY
+                    }
+
+                    try:
+                        response = requests.post(API_URL, headers=headers, json=payload)
+    
+                        # If it's still 400, this will print the server's specific error message
+                        if response.status_code != 200:
+                            print(f"Error {response.status_code}: {response.text}")
+                        else:
+                            print("Success:", response.json())
+                            await client.send_message(chat_id = query.from_user.id,text='Tafadhal tunaomba uhakiki ujumbe utakaokuja kuwa kiwango n sahihi na unachotakiwa kulipia kisha jaze pini ili kuthibitisha malipo baada ya hapo mfumo utakupa access automatic')
+                    except requests.exceptions.RequestException as e:
+                       print(f"Connection failed: {e}")
+                else:
+                    await mkv.delete
+                    await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa anza na country code mfano 255679667219 tafadhali anza upya kwa kubonyeza download hapo juu')
         elif query.data.startswith("malipo"):
             botusername=await client.get_me()
             nyva=botusername.username  

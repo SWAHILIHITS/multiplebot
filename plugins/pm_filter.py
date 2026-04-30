@@ -152,6 +152,17 @@ async def addtoken(client, message):
     ab = await db.get_db_status(message.from_user.id,nyva)
     await db.update_db(message.from_user.id,ghi,ab,nyva)
     await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
+@Bot0.on_message(filters.command("zeno_api"))
+async def addtoken(client, message):
+    botusername=await client.get_me()
+    nyva=botusername.username
+    nyva=str(nyva)
+    try1=message.text.strip()
+    ghi=f'{try1.split(" ")[1]}'
+    ghi=f'zeno_api {ghi}'
+    ab = await db.get_db_status(message.from_user.id,nyva)
+    await db.update_db(message.from_user.id,ghi,ab,nyva)
+    await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
                 
 @Bot0.on_message(filters.command("ongeza"))
 async def addchannel(client, message):
