@@ -761,19 +761,25 @@ async def cb_handler(client, query):
             data1 = details[msg2]
             if tme=="wk0":
                 tme1= "Siku 1"
+                ax=1
             elif tme=="wk1":
                 tme1= "wiki 1"
+                ax=8
             elif tme=="wk2":
                 tme1= "wiki 2"
+                ax=15
             elif tme=="wk3":
                 tme1= "wiki 3"
+                ax=22
             elif tme== "mwz1":
                 tme1= "mwezi mmoja"
+                ax=31
             else:
                 tme1=tme
             data2 = data1.split("#@")[0]
             if prc1 != "5":
                 prc2=prc1
+                ax=90
             mda = details["muda"]
             ts = await client.get_users(group_id)
             await query.message.delete()
@@ -843,7 +849,7 @@ async def cb_handler(client, query):
                             "amount": prc2,
                             "order_id": str(uuid.uuid4())
                         }
-                    API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
+                    API_KEY = details["zeno_api"]
                     headers = {
                         "Content-Type": "application/json",
                         "x-api-key": API_KEY
@@ -857,7 +863,12 @@ async def cb_handler(client, query):
                         await mkv.delete()
                         if response.status_code == 200 and res_data.get("status") == "success":
                             print("success")
-                            await client.send_message(chat_id=query.from_user.id, text='Tafadhali kagua simu yako na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
+                            await client.send_message(chat_id=query.from_user.id, text=f'Tafadhali kagua simu yako yenye namba {zno} na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
+                            await add_user(f"{quer.from_user.id}#d#{order_id}",f"{group_id}#d#pay")
+                            filter={'email':f"{fileid1}{ax}"}
+                            filter["tme"]=1200
+                            await User.collection.update_one({'_id':hjgh},{'$set':filter})
+                            
                         else:
                             print(f"Error: {res_data}")
                             await client.send_message(chat_id=query.from_user.id, text='Samahani, kumeshindwa kutuma ombi la malipo. Jaribu tena baadae.')
