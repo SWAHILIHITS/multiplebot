@@ -1290,7 +1290,7 @@ def replymkup1(msg3,msg1,msg2):
     elif msg3.split("#@")[1]=="0,0,0,0,0":
         return []
     else:
-        msg3=msg3.split( #@")[0]
+        msg3=msg3.split("#@")[0]
         return [InlineKeyboardButton(f"{msg3}", callback_data=f"wik {msg1} {msg2}")]
 def funask():
     a=False
