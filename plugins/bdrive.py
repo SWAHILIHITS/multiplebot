@@ -147,7 +147,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
         except:
             pass
 
-@Bot0.on_message(filters.command("gdrive") & filters.regex('^https://drive.google.com.*'))
+@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://drive.google.com.*'))
 async def addfilesondrive(client, message):
     bot_info = await client.get_me()
     if not await db.is_admin_exist(message.from_user.id, bot_info.username): return
