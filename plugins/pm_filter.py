@@ -142,7 +142,7 @@ def grant_access(service, url, user_email):
     except Exception as e:
         return str(e)
 @Bot0.on_message(filters.command("token"))
-async def addtoken(client, message):
+async def addtokeni(client, message):
     botusername=await client.get_me()
     nyva=botusername.username
     nyva=str(nyva)
