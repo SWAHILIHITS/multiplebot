@@ -6,7 +6,7 @@ from plugins.pm_filter import getCreds,grant_access
 from pyrogram.errors import ChatAdminRequired,FloodWait
 from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like,User
 from bot  import Bot0
-import requests
+import requests,json
 from plugins.database import db
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery,ForceReply,ChatPermissions
 @Bot0.on_message( filters.command('edit_admin') & filters.private)
