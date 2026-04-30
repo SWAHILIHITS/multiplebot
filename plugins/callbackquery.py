@@ -853,11 +853,11 @@ async def cb_handler(client, query):
                     }
 
                     try:
-                        await mkv.delete()
+                        
                         # Crucial: Use the 'endpoint' variable here
                         response = requests.post(endpoint, headers=headers, json=payload)
                         res_data = response.json()
-
+                        await mkv.delete()
                         if response.status_code == 200 and res_data.get("status") == "success":
                             await client.send_message(chat_id=query.from_user.id, text='Tafadhali kagua simu yako na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
                         else:
