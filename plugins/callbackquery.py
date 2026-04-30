@@ -790,7 +790,7 @@ async def cb_handler(client, query):
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
             elif cvx == 'l':
-                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako utakayo fanyia malipo unatoa 0 ya mwanzo kisha unaanza na country code bila jumlisha ya mwanzo\n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda \n\n **mfano 255679667219**')
+                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako utakayo fanyia malipo unatoa 0 ya mwanzo kisha unaanza na country code bila kajumlisha ka mwanzo\n255 kwa tanzania\n254 kwa kenya\n256 kwa uganda \n 250 kwa rwanda \n\n **mfano 255679667219**')
                 a,b =funask()
                 id1=(mkv1.id)+1
                 while a==False:
@@ -800,7 +800,7 @@ async def cb_handler(client, query):
                             a=True
                     
                         if (time.time()-b)>300:
-                            mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya kwa kubonyeza download hapo juu jitahidi kutuma namba yako ndani ya dakika 3 zingatia anza na country code bila kajumlisha",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tanzania {fileid}')]]))
+                            mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya kwa kubonyeza download hapo juu jitahidi kutuma namba yako ndani ya dakika 3 zingatia anza na country code bila kajumlisha",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tzn##all {fileid1}')]]))
                             return
 
                         if mkv.from_user.id != query.from_user.id :
@@ -815,13 +815,13 @@ async def cb_handler(client, query):
                         prc2=int(prc2)
                     elif mkv.text.startswith('254'):
                         API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-                        prc2=int(prc2)
+                        prc2=int(prc2)//20
                     elif mkv.text.startswith('256'):
                         API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-                        prc2=int(prc2)
-                    elif mkv.text.startswith('253'):
+                        prc2=int(prc2)//0.7
+                    elif mkv.text.startswith('250'):
                         API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-                        prc2=int(prc2)
+                        prc2=int(prc2)//1.7
                     else:
                         await client.send_message(chat_id = query.from_user.id,text='nmeshindwa kutambua country code yako tafadhal kwa sasa tunatumia codea za nchi 4 tu \n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda anza upya kubonyeza download hapo juu')
                         return
