@@ -147,12 +147,15 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
         except:
             pass
 
-@Bot0.on_message(filters.command("gdrive"))
+@Bot0.on_message(filters.command("gdrive") & filters.regex('^https://drive.google.com.*')
 async def addfilesondrive(client, message):
     bot_info = await client.get_me()
     if not await db.is_admin_exist(message.from_user.id, bot_info.username): return
-
-    args = message.text.split(" ")
+    text0=message.text.strip()
+    try:
+        args = text0.split(" ")
+    except:
+        args = text0
     user_id = message.from_user.id
     gd = await db.get_db_status(user_id, bot_info.username)
     service = getCreds(gd["token"], user_id)
@@ -163,10 +166,10 @@ async def addfilesondrive(client, message):
 
     # --- CASE 1: Telegram to GDrive ---
     if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
-        if len(args) < 2:
-            return await message.reply('Tuma: `/gdrive dest_url` (Reply on file)')
         
-        dest_id = get_access_id(args[1])
+        if len(args) != 1 and len(args) != 2 :
+            await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
+
         media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
         file_name = media.file_name or "telegram_file"
         
@@ -188,6 +191,12 @@ async def addfilesondrive(client, message):
 
         # Upload to Drive
         await msg_check.edit("📤 **Inatuma kwenda Google Drive...**")
+        if len(args) == 2:
+            dest_id = get_access_id(args[1])
+            file_metadata = {'name': file_name, 'parents': [dest_id]}  
+        elif len(args) == 1:
+            file_metadata = {'name': file_name}
+        
         file_metadata = {'name': file_name, 'parents': [dest_id]}
         media_body = MediaFileUpload(local_path, resumable=True)
         
@@ -204,15 +213,24 @@ async def addfilesondrive(client, message):
 
     # --- CASE 2: Clone GDrive to GDrive ---
     else:
-        if len(args) < 3:
-            return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.')
-
+        if len(args) == 3 :
+            source_id = get_access_id(args[1])
+            dest_id = get_access_id(args[2])
+        elif len(args) == 2 :
+            source_id = get_access_id(args[1])
+            dest_id = 'root'
+        elif len(args) == 1:
+            source_id = get_access_id(args[1])
+            dest_id = 'root'
+        else:
+            return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
+        
         source_id = get_access_id(args[1])
         dest_id = get_access_id(args[2])
         
         msg_check = await message.reply("🔍 **Validating...**")
         v_src, src_meta = await validate_id(service, source_id, "Source")
-        v_dest, _ = await validate_id(service, dest_id, "Destination")
+        v_dest, dest_meta = await validate_id(service, dest_id, "Destination")
         
         if not v_src or not v_dest:
             return await msg_check.edit("❌ **Validation Failed:** Tafadhali kagua ID za Drive zako.")
@@ -236,6 +254,9 @@ async def addfilesondrive(client, message):
         if src_real_mime == 'application/vnd.google-apps.folder':
             await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
         else:
+            if src_meta['name']==dest_meta['name']:
+                await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}` tayar fail ipo")
+                return
             file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
             req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
             res = await execute_with_retry(req, user_id)
