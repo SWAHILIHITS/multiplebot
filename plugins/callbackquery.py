@@ -742,7 +742,7 @@ async def cb_handler(client, query):
             await query.message.delete()
             await client.send_message(chat_id=query.from_user.id,
                     text = "Tafadhali chagua nchi uliopo kuendelea na hatua inayo fuata",
-                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("TANZANIA", callback_data=f"wiik2t {query.data.split(" ")}"),InlineKeyboardButton("KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("UGANDA", callback_data=f"wiik2u {query.data.split(" ")}"),InlineKeyboardButton("RWANDA", callback_data=f"wiik2r {query.data.split(" ")}")]]),   
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("TANZANIA", callback_data=f"wiik2t {query.data.split(" ")[1]}"),InlineKeyboardButton("KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("UGANDA", callback_data=f"wiik2u {query.data.split(" ")[1]}"),InlineKeyboardButton("RWANDA", callback_data=f"wiik2r {query.data.split(" ")[1]}")]]),   
             )
         elif query.data.startswith("wiik2"):
             botusername=await client.get_me()
