@@ -195,7 +195,7 @@ async def addfilesondrive(client, message):
         if len(args) == 2:
             dest_id = get_access_id(args[1])
             file_metadata = {'name': file_name, 'parents': [dest_id]}  
-        elif len(args) == 1:
+        if :
             file_metadata = {'name': file_name}
         
         file_metadata = {'name': file_name, 'parents': [dest_id]}
@@ -220,8 +220,8 @@ async def addfilesondrive(client, message):
         elif len(args) == 2 :
             source_id = get_access_id(args[1])
             dest_id = 'root'
-        elif len(args) == 1:
-            source_id = get_access_id(args[1])
+        elif args.startswith('http'):
+            source_id = get_access_id(args)
             dest_id = 'root'
         else:
             await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
