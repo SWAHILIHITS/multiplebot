@@ -814,7 +814,7 @@ async def cb_handler(client, query):
                     API_BASE = "https://zenoapi.com"
     
                     if mkv.text.startswith('255'):
-                        zno = "0" + mkv.removeprefix("255")
+                        zno = "0" + mkv.text.removeprefix("255")
                         prc2 = int(prc2)
                         currency = "TZS"
                         endpoint = f"{API_BASE}/mobile_money_tanzania"
@@ -824,12 +824,12 @@ async def cb_handler(client, query):
                         currency = "KES"
                         endpoint = f"{API_BASE}/mobile_money_kenya"
                     elif mkv.text.startswith('256'):
-                        zno = "0" + mkv.removeprefix("256")
+                        zno = "0" + mkv.text.removeprefix("256")
                         currency = "UGX"
                         prc2 = int(int(prc2) // 0.7)
                         endpoint = f"{API_BASE}/mobile_money_uganda"
                     elif mkv.text.startswith('250'):
-                        zno = "0" + mkv.removeprefix("250")
+                        zno = "0" + mkv.text.removeprefix("250")
                         prc2 = int(int(prc2) // 1.7)
                         currency = "RWF"
                         endpoint = f"{API_BASE}/mobile_money_rwanda"
