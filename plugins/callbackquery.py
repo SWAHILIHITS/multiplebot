@@ -879,6 +879,7 @@ async def cb_handler(client, query):
                         res_data = response.json()
                         await mkv.delete()
                         if response.status_code == 200 and res_data.get("status") == "success":
+                            print("success")
                             await client.send_message(chat_id=query.from_user.id, text='Tafadhali kagua simu yako na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
                         else:
                             print(f"Error: {res_data}")
