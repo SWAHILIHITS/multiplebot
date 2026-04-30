@@ -223,10 +223,9 @@ async def addfilesondrive(client, message):
             source_id = get_access_id(args[1])
             dest_id = 'root'
         else:
-            return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
+            await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
+            return
         
-        source_id = get_access_id(args[1])
-        dest_id = get_access_id(args[2])
         
         msg_check = await message.reply("🔍 **Validating...**")
         v_src, src_meta = await validate_id(service, source_id, "Source")
