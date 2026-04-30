@@ -736,13 +736,13 @@ async def cb_handler(client, query):
             fileid1=fileid
             fileid=fileiid
             await client.send_message(chat_id = query.from_user.id,text=f"{kdflg}\nUmechagua**{data1.split('#@')[0]}**\n {data1.split('#@')[2]}\n Tafadhali bonyeza kitufe hapo chini kuweza kulipia muda utakao weza kupata huduma hii",
-                    reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 {cvz} {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 {cvz} {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 {cvz} {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 {cvz} {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 {cvz} {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn##{cvc} {fileid1}")]])
+                    reply_markup=InlineKeyboardMarkup([replymkup2(f"Siku 1 {cvz} {data2.split(',')[0]}",f"{fileid}.{msg2}.{data2.split(',')[0]}.wk0"),replymkup2(f"week 1 {cvz} {data2.split(',')[1]}",f"{fileid}.{msg2}.{data2.split(',')[1]}.wk1"),replymkup2(f"week 2 {cvz} {data2.split(',')[2]}",f"{fileid}.{msg2}.{data2.split(',')[2]}.wk2"),replymkup2(f"week 3 {cvz} {data2.split(',')[3]}",f"{fileid}.{msg2}.{data2.split(',')[3]}.wk3"),replymkup2(f"mwezi 1 {cvz} {data2.split(',')[4]}",f"{fileid}.{msg2}.{data2.split(',')[4]}.mwz1"),[InlineKeyboardButton("rudi mwanzo", callback_data=f"tzn## {cvc} {fileid1}")]])
                 )
         elif query.data.startswith("fst"):
             await query.message.delete()
             await client.send_message(chat_id=query.from_user.id,
                     text = "Tafadhali chagua nchi uliopo kuendelea na hatua inayo fuata",
-                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("TANZANIA", callback_data=f"wiik2t {query.data.split(" ")[1]}"),InlineKeyboardButton("KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("UGANDA", callback_data=f"wiik2u {query.data.split(" ")[1]}"),InlineKeyboardButton("RWANDA", callback_data=f"wiik2r {query.data.split(" ")[1]}")]]),   
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🇹🇿TANZANIA", callback_data=f"wiik2t {query.data.split(" ")[1]}"),InlineKeyboardButton("🇰🇪 KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("🇺🇬 UGANDA", callback_data=f"wiik2u {query.data.split(" ")[1]}"),InlineKeyboardButton("🇷🇼 RWANDA", callback_data=f"wiik2r {query.data.split(" ")[1]}")]]),   
             )
         elif query.data.startswith("wiik2"):
             botusername=await client.get_me()
@@ -897,7 +897,7 @@ async def cb_handler(client, query):
                         print(f"Connection failed: {e}")
                 else:
                     await mkv.delete()
-                    await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa anza na country code mfano 255679667219 tafadhali anza upya kwa kubonyeza download hapo juu')
+                    await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa tuma namba ya simu tu na ihakiki kama ipo swa tafadhali anza upya kwa kubonyeza download hapo juu')
         elif query.data.startswith("malipo"):
             botusername=await client.get_me()
             nyva=botusername.username  
