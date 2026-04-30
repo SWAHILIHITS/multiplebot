@@ -837,9 +837,9 @@ async def cb_handler(client, query):
                         return
 
                     API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
-    
+                    url = "https://zenopay.com/api/payments/checkout/"
                     payload = {
-                        "order_id": str(uuid.uuid4()),
+                        #"order_id": str(uuid.uuid4()),
                         "buyer_name": "idd mohamed",
                         "currency": currency,
                         "buyer_email": "hramamogamed@gmail.com",
@@ -855,7 +855,7 @@ async def cb_handler(client, query):
                     try:
                         
                         # Crucial: Use the 'endpoint' variable here
-                        response = requests.post(endpoint, headers=headers, json=payload)
+                        response = requests.post(url, headers=headers, json=payload)
                         res_data = response.json()
                         await mkv.delete()
                         if response.status_code == 200 and res_data.get("status") == "success":
