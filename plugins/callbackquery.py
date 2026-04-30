@@ -813,19 +813,19 @@ async def cb_handler(client, query):
                     if mkv.text.startswith('255'):
                         zno = "0" + mkv.removeprefix("255")
                         prc2=int(prc2)
-                        currency": "TZS"
+                        currency = "TZS"
                     elif mkv.text.startswith('254'):
                         zno = "0" + mkv.removeprefix("254")
                         prc2=int(prc2)//20
-                        currency": "KES"
+                        currency = "KES"
                     elif mkv.text.startswith('256'):
                         zno = "0" + mkv.removeprefix("256")
-                        currency": "UGX"
+                        currency = "UGX"
                         prc2=int(prc2)//0.7
                     elif mkv.text.startswith('250'):
                         zno = "0" + mkv.removeprefix("250")
                         prc2=int(prc2)//1.7
-                        currency": "RWF"
+                        currency = "RWF"
                     else:
                         await client.send_message(chat_id = query.from_user.id,text='nmeshindwa kutambua country code yako tafadhal kwa sasa tunatumia codea za nchi 4 tu \n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda anza upya kubonyeza download hapo juu')
                         return
