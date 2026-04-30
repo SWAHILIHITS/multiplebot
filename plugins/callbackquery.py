@@ -810,54 +810,62 @@ async def cb_handler(client, query):
                         a=False
                 await mkv1.delete
                 if mkv.text.startswith('25'):
+                # Define the base and set variables
+                    API_BASE = "https://zenoapi.com"
+    
                     if mkv.text.startswith('255'):
                         zno = "0" + mkv.removeprefix("255")
-                        prc2=int(prc2)
+                        prc2 = int(prc2)
                         currency = "TZS"
+                        endpoint = f"{API_BASE}/mobile_money_tanzania"
                     elif mkv.text.startswith('254'):
                         zno = "0" + mkv.removeprefix("254")
-                        prc2=int(prc2)//20
+                        prc2 = int(prc2) // 20
                         currency = "KES"
+                        endpoint = f"{API_BASE}/mobile_money_kenya"
                     elif mkv.text.startswith('256'):
                         zno = "0" + mkv.removeprefix("256")
                         currency = "UGX"
-                        prc2=int(prc2)//0.7
+                        prc2 = int(int(prc2) // 0.7)
+                        endpoint = f"{API_BASE}/mobile_money_uganda"
                     elif mkv.text.startswith('250'):
                         zno = "0" + mkv.removeprefix("250")
-                        prc2=int(prc2)//1.7
+                        prc2 = int(int(prc2) // 1.7)
                         currency = "RWF"
+                        endpoint = f"{API_BASE}/mobile_money_rwanda"
                     else:
-                        await client.send_message(chat_id = query.from_user.id,text='nmeshindwa kutambua country code yako tafadhal kwa sasa tunatumia codea za nchi 4 tu \n255 kwa tanzania()\n254 kwa kenya\n256 kwa uganda \n 253 kwa rwanda anza upya kubonyeza download hapo juu')
+                        await client.send_message(chat_id=query.from_user.id, text='Nmeshindwa kutambua code yako. Tumia:\n255 (TZ)\n254 (KE)\n256 (UG)\n250 (RW)')
                         return
-                    API_URL = "https://zenoapi.com"  
+
                     API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
-                    order_id=str(uuid.uuid4())
+    
                     payload = {
-                        "order_id": order_id ,    # MANDATORY: Must be a unique UUID
-                        "buyer_name": "idd mohamed",  
+                        "order_id": str(uuid.uuid4()),
+                        "buyer_name": "idd mohamed",
                         "currency": currency,
-                        "buyer_email": "hramamogamed@gmail.com", # MANDATORY
-                        "buyer_phone": zno,      # MANDATORY: 10 digits starting with 0
-                        "amount": prc2,                  # MANDATORY: Number, not string
-                        #"webhook_url": "https://yourdomain.com" # Recommended
+                        "buyer_email": "hramamogamed@gmail.com",
+                        "buyer_phone": zno,
+                        "amount": prc2,
                     }
 
                     headers = {
-                       "Content-Type": "application/json",
-                       "x-api-key": API_KEY
+                        "Content-Type": "application/json",
+                        "x-api-key": API_KEY
                     }
 
                     try:
-                        response = requests.post(API_URL, headers=headers, json=payload)
-    
-                        # If it's still 400, this will print the server's specific error message
-                        if response.status_code != 000:
-                            print(f"Error {response.status_code}: {response.text}")
+                        # Crucial: Use the 'endpoint' variable here
+                        response = requests.post(endpoint, headers=headers, json=payload)
+                        res_data = response.json()
+
+                        if response.status_code == 200 and res_data.get("status") == "success":
+                            await client.send_message(chat_id=query.from_user.id, text='Tafadhali kagua simu yako na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
                         else:
-                            print("Success:", response.json())
-                            await client.send_message(chat_id = query.from_user.id,text='Tafadhal tunaomba uhakiki ujumbe utakaokuja kuwa kiwango n sahihi na unachotakiwa kulipia kisha jaze pini ili kuthibitisha malipo baada ya hapo mfumo utakupa access automatic')
+                            print(f"Error: {res_data}")
+                            await client.send_message(chat_id=query.from_user.id, text='Samahani, kumeshindwa kutuma ombi la malipo. Jaribu tena baadae.')
+            
                     except requests.exceptions.RequestException as e:
-                       print(f"Connection failed: {e}")
+                        print(f"Connection failed: {e}")
                 else:
                     await mkv.delete
                     await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa anza na country code mfano 255679667219 tafadhali anza upya kwa kubonyeza download hapo juu')
