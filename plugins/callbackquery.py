@@ -808,11 +808,11 @@ async def cb_handler(client, query):
                             id1=id1+1
                     except:
                         a=False
-                await mkv1.delete
+                await mkv1.delete()
                 if mkv.text.startswith('25'):
-                # Define the base and set variables
+                    # Define the base and set variables
                     API_BASE = "https://zenoapi.com"
-    
+                    await mkv.delete()
                     if mkv.text.startswith('255'):
                         zno = "0" + mkv.text.removeprefix("255")
                         prc2 = int(prc2)
@@ -867,7 +867,7 @@ async def cb_handler(client, query):
                     except requests.exceptions.RequestException as e:
                         print(f"Connection failed: {e}")
                 else:
-                    await mkv.delete
+                    await mkv.delete()
                     await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa anza na country code mfano 255679667219 tafadhali anza upya kwa kubonyeza download hapo juu')
         elif query.data.startswith("malipo"):
             botusername=await client.get_me()
