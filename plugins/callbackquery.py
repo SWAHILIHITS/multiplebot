@@ -839,12 +839,12 @@ async def cb_handler(client, query):
                     API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
                     url = "https://zenopay.com/api/payments/checkout/"
                     payload = {
-                        #"order_id": str(uuid.uuid4()),
-                        "buyer_name": "idd mohamed",
+                         "buyer_name": "idd mohamed",
                         "currency": currency,
                         "buyer_email": "hramamogamed@gmail.com",
                         "buyer_phone": zno,
                         "amount": prc2,
+                        
                     }
 
                     headers = {
