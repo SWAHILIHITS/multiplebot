@@ -864,7 +864,7 @@ async def cb_handler(client, query):
                             print(f"Error: {res_data}")
                             await client.send_message(chat_id=query.from_user.id, text='Samahani, kumeshindwa kutuma ombi la malipo. Jaribu tena baadae.')
             
-                    except Exception as e:
+                    except requests.exceptions as e:
                         print(f"Connection failed: {e}")
                 else:
                     await mkv.delete()
