@@ -822,7 +822,7 @@ async def cb_handler(client, query):
                             "currency": currency,
                             "buyer_email": "hramamogamed@gmail.com",
                             "buyer_phone": zno,
-                            "amount": prc2,
+                            "amount": 20,
                             "order_id": str(uuid.uuid4())
                         }
                     elif mkv.text.startswith('254'):
