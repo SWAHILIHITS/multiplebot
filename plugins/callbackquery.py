@@ -836,12 +836,10 @@ async def cb_handler(client, query):
                     # Define the base and set variable
                     zno=mkv.text
                     for i in ["255","256","254","250","+255","+256","+254","+250"]:
-                        try:
-                            await client.send_message(chat_id=query.from_user.id, text='try1')
+                        if mkv.text.startswith(i):
                             zno = "0" + mkv.text.removeprefix(i)
                             break
-                        except:
-                            continue
+                        
                     API_BASE = "https://zenoapi.com/api/payments/mobile_money_tanzania"
                     if cxd=='t':
                         prc2 = int(prc2)
