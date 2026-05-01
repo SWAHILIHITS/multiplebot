@@ -168,7 +168,7 @@ async def addfilesondrive(client, message):
     # --- CASE 1: Telegram to GDrive ---
     if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
         
-        if text0 == "/gdrive" and len(args) != 2 :
+        if text0 != "/gdrive" and len(args) != 2 :
             await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
 
         media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
@@ -220,7 +220,7 @@ async def addfilesondrive(client, message):
             source_id = get_access_id(args[1])
             dest_id = 'root'
         elif text0.startswith('http'):
-            source_id = get_access_id(args)
+            source_id = get_access_id(text0)
             dest_id = 'root'
         else:
             await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
@@ -253,10 +253,10 @@ async def addfilesondrive(client, message):
         if src_real_mime == 'application/vnd.google-apps.folder':
             await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
         else:
-            if src_meta['name']==dest_meta['name']:
-                await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}` tayar fail ipo")
-                return
-            file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
+            if text0.startswith("http") or len(args)==2:
+                file_metadata = {'name': src_meta['name'])
+            else:
+                file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
             req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
             res = await execute_with_retry(req, user_id)
             if res and res != "ERROR":
