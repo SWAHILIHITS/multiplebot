@@ -219,7 +219,7 @@ async def addfilesondrive(client, message):
         elif len(args) == 2 :
             source_id = get_access_id(args[1])
             dest_id = 'root'
-        elif text0..startswith('http'):
+        elif text0.startswith('http'):
             source_id = get_access_id(args)
             dest_id = 'root'
         else:
