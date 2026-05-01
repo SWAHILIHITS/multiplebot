@@ -196,8 +196,12 @@ async def addfilesondrive(client, message):
             dest_id = get_access_id(args[1])
             file_metadata = {'name': file_name, 'parents': [dest_id]}  
         else:
+            dest_id='root'
             file_metadata = {'name': file_name}
-        
+        dest_items = get_folder_contents(service, dest_id)
+
+        if file_name in dest_items:
+            return await msg_check.edit(f"⏭ **Skipped:** `{file_name}` tayari ipo kwenye Drive.")
         media_body = MediaFileUpload(local_path, resumable=True)
         
         try:
@@ -254,9 +258,14 @@ async def addfilesondrive(client, message):
             await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
         else:
             if text0.startswith("http") or len(args)==2:
-                file_metadata = {'name': src_meta['name'])
+                file_metadata = {'name': src_meta['name']}
             else:
                 file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
+            # Before starting the upload logic in CASE 1
+            dest_items = get_folder_contents(service, dest_id)
+
+            if src_meta['name'] in dest_items:
+                 return await msg_check.edit(f"⏭ **Skipped:** `{src_meta['name']}` tayari ipo kwenye Drive.")
             req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
             res = await execute_with_retry(req, user_id)
             if res and res != "ERROR":
