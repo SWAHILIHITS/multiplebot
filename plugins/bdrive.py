@@ -168,7 +168,7 @@ async def addfilesondrive(client, message):
     # --- CASE 1: Telegram to GDrive ---
     if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
         
-        if len(args) != 1 and len(args) != 2 :
+        if text0 == "/gdrive" and len(args) != 2 :
             await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
 
         media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
@@ -198,7 +198,6 @@ async def addfilesondrive(client, message):
         else:
             file_metadata = {'name': file_name}
         
-        file_metadata = {'name': file_name, 'parents': [dest_id]}
         media_body = MediaFileUpload(local_path, resumable=True)
         
         try:
@@ -220,7 +219,7 @@ async def addfilesondrive(client, message):
         elif len(args) == 2 :
             source_id = get_access_id(args[1])
             dest_id = 'root'
-        elif args.startswith('http'):
+        elif text0..startswith('http'):
             source_id = get_access_id(args)
             dest_id = 'root'
         else:
