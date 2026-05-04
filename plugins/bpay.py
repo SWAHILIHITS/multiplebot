@@ -48,7 +48,7 @@ async def bpayoder(client, message):
                     "msisdn": order_info.get("msisdn"),
                     "message": data.get("message")
                 }
-             else:
+            else:
                  result = {
                      "status": "error",
                      "message": data.get("message", "Unable to fetch order status")
