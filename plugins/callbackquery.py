@@ -884,7 +884,7 @@ async def cb_handler(client, query):
                         if response.status_code == 200 and res_data.get("status") == "success":
                             print("success")
                             await client.send_message(chat_id=query.from_user.id, text=f'Tafadhali kagua simu yako yenye namba {zno} na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
-                            await add_user(f"{quer.from_user.id}#d#{order_id}",f"{group_id}#d#pay")
+                            await add_user(f"{query.from_user.id}#d#{order_id}",f"{group_id}#d#pay")
                             filter={'email':f"{fileid1}{ax}"}
                             filter["tme"]=1200
                             await User.collection.update_one({'_id':hjgh},{'$set':filter})
