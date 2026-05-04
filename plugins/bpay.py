@@ -14,9 +14,10 @@ async def bpayoder(client, message):
     gd = await db.get_db_status(message.from_user.id,nyva)        
     API_KEY =gd["zeno_api"]
     filter={"rbt":f"{message.from_user.id}#d#pay"}
-    gdt=User.find(filter)
-    total_c = await Media.count_documents(filter)
+    gdt = User.find(filter)
+    total_c = await User.count_documents(filter)
     gd2 = await gdt.to_list(length=int(total_c))
+    await client.send_message(chat_id=message.from_user.id, text=f'try1')
     for order in gd2:
         ORDER_ID = order.id.split("#d#")[1]
         API_URL = f"https://zenoapi.com/api/payments/order-status?order_id={ORDER_ID}"
