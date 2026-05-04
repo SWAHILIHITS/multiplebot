@@ -1,33 +1,69 @@
-"""import requests
-import json
-import uuid
+from bot  import Bot0
+from info import filters
+import requests,json
+from utils import User
+from plugins.database import db
+@Bot0.on_message( filters.command('/hakiki_order'))
+async def bpayoder(client, message):
+    botusername=await client.get_me()
+    nyva=botusername.username  
+    nyva=str(nyva)
+    status= await db.is_admin_exist(message.from_user.id,nyva)
+    if not status:
+        return
+    gd = await db.get_db_status(message.from_user.id,nyva)        
+    API_KEY =gd["zeno_api"]
+    filter={"rbt":f"{message.from_user.id}#d#pay"}
+    gdt=User.find(filter)
+    total_c = await Media.count_documents(filter)
+    gd2 = await gdt.to_list(length=int(total_c))
+    for order in gd2:
+        ORDER_ID = order.id.split("#d#")[1]
+        API_URL = f"https://zenoapi.com/api/payments/order-status?order_id={ORDER_ID}"
 
-API_URL = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-# Replace with your actual API Key
-API_KEY = "Ca_mt_lI-RMjVDI3N0BSJGYC_FHIhOL6i2eIYA6PavLU36rLUfbKoUtmG5wsF69Z_S2NGiXmUhJWmRVmQKpwxw"
-order_id=str(uuid.uuid4())
-payload = {
-    "order_id": order_id ,    # MANDATORY: Must be a unique UUID
-    "buyer_name": "idd mohamed",        # MANDATORY
-    "buyer_email": "hramamogamed@gmail.com", # MANDATORY
-    "buyer_phone": "0618802015",      # MANDATORY: 10 digits starting with 0
-    "amount": 100,                  # MANDATORY: Number, not string
-    #"webhook_url": "https://yourdomain.com" # Recommended
-}
+        # Request headers
+        headers = {
+            "x-api-key": API_KEY
+        }
 
-headers = {
-    "Content-Type": "application/json",
-    "x-api-key": API_KEY
-}
+        try:
+            # Send GET request
+            response = requests.get(API_URL, headers=headers)
+            response.raise_for_status()
 
-try:
-    response = requests.post(API_URL, headers=headers, json=payload)
-    
-    # If it's still 400, this will print the server's specific error message
-    if response.status_code != 200:
-        print(f"Error {response.status_code}: {response.text}")
-    else:
-        print("Success:", response.json())
+            # Parse JSON response
+            data = response.json()
 
-except requests.exceptions.RequestException as e:
-    print(f"Connection failed: {e}")"""
+            # Check if the response was successful
+            if data.get("resultcode") == "000":
+                order_info = data.get("data", [])[0]  # First result in the list
+
+                result = {
+                    "status": "success",
+                    "order_id": order_info.get("order_id"),
+                    "payment_status": order_info.get("payment_status"),
+                    "amount": order_info.get("amount"),
+                    "channel": order_info.get("channel"),
+                    "reference": order_info.get("reference"),
+                    "msisdn": order_info.get("msisdn"),
+                    "message": data.get("message")
+                }
+             else:
+                 result = {
+                     "status": "error",
+                     "message": data.get("message", "Unable to fetch order status")
+                 }
+
+        except requests.exceptions.HTTPError as http_err:
+            result = {"status": "error", "message": f"HTTP error: {http_err}"}
+        except requests.exceptions.ConnectionError:
+            result = {"status": "error", "message": "Connection error."}
+        except requests.exceptions.Timeout:
+            result = {"status": "error", "message": "Request timed out."}
+        except requests.exceptions.RequestException as err:
+            result = {"status": "error", "message": f"Request error: {err}"}
+
+        # Print final result
+        print(json.dumps(result, indent=4))
+        await client.send_message(chat_id=message.from_user.id, text=f'{json.dumps(result, indent=4)}')
+            
