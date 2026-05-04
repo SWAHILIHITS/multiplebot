@@ -5,6 +5,7 @@ from utils import User
 from plugins.database import db
 @Bot0.on_message( filters.command('/hakiki_order'))
 async def bpayoder(client, message):
+    await client.send_message(chat_id=message.from_user.id, text=f'try1')
     botusername=await client.get_me()
     nyva=botusername.username  
     nyva=str(nyva)
