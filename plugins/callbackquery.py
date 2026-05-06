@@ -683,10 +683,6 @@ async def cb_handler(client, query):
                 kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
                 fileid=fileid + "##k"
                 prc2=f'Ksh {int(prc2)//19}'
-            elif query.data.split(" ")[0].split("##")[1]=="all":
-                kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\n**(viwango vinavyotumika kubadilisha fedha)**\n1GXU(uganda shilling) ~ 0.7TSH \n 1RWF(rwanda shilling) ~ 1.7TSH \n1KSH(kenya shilling) ~ 20TSH"
-                fileid=fileid + "##l"
-                prc2=f'Tsh {int(prc2)}'
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id,nyva)
@@ -703,7 +699,7 @@ async def cb_handler(client, query):
             await client.send_message(
                         chat_id=query.from_user.id,
                         text =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** {strl}\n\nAu bonyeza **Lipia {prc2}** kulipia {name} hii tu na kuweza kuipakua mda wowote ndan ya siku 90 ~ miez mitatu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"wiik2 {fileid}.g_1.5.m")]]) )
+                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"fst {fileid}.g_1.5.m")]]) )
             
         elif query.data.startswith("wik"):
             botusername=await client.get_me()
@@ -721,10 +717,6 @@ async def cb_handler(client, query):
                 cvz="tsh"
                 kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
                 cvc="tsh"
-            elif cvx=="l":
-                kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\n**(viwango vinavyotumika kubadilisha fedha)**\n1GXU(uganda shilling) ~ 0.7TSH \n 1RWF(rwanda shilling) ~ 1.7TSH \n1KSH(kenya shilling) ~ 20TSH"
-                cvz="tsh"
-                cvc="all"
             filedetails = await get_file_details(fileid)
             await query.message.delete()
             for files in filedetails:
@@ -741,8 +733,8 @@ async def cb_handler(client, query):
         elif query.data.startswith("fst"):
             await query.message.delete()
             await client.send_message(chat_id=query.from_user.id,
-                    text = "Tafadhali chagua nchi uliopo kuendelea na hatua inayo fuata",
-                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🇹🇿TANZANIA", callback_data=f"wiik2t {query.data.split(" ")[1]}"),InlineKeyboardButton("🇰🇪 KENYA", callback_data=f"wiik2k {query.data.split(" ")[1]}")],[InlineKeyboardButton("🇺🇬 UGANDA", callback_data=f"wiik2u {query.data.split(" ")[1]}"),InlineKeyboardButton("🇷🇼 RWANDA", callback_data=f"wiik2r {query.data.split(" ")[1]}")]]),   
+                    text = "Tafadhali chagua mtandao utakaofanyia malipo",
+                    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("HALOTEL", callback_data=f"wiik2h {query.data.split(" ")[1]}"),InlineKeyboardButton("TIGO", callback_data=f"wiik2t {query.data.split(" ")[1]}")],[InlineKeyboardButton("VODACOM", callback_data=f"wiik2v {query.data.split(" ")[1]}"),InlineKeyboardButton("AIRTEL", callback_data=f"wiik2a {query.data.split(" ")[1]}")]]),   
             )
         elif query.data.startswith("wiik2"):
             botusername=await client.get_me()
@@ -801,103 +793,6 @@ async def cb_handler(client, query):
                     text = f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪\n{details["db_name"].upper}\nKUPAKUA MOVIE/SERIES HII LIPIA 👇👇\n\n**Ksh {int(int(prc2)//19)}** Kwa wateja wetu wa KENYA\n\nFUATA MUONGOZO WA KULIPIA MOVIES/SERIES SOMA MAELEKEZO: \n\n{p1.split("####")[1]}\n\n📲Ukishafanya  malipo bonyeza button **nmeshafanya malipo**..... kisha tuma screenshot ya malipo/muamala\n\n🙋🙋‍♀kwa msaada zaidi bonyeza **@{ts.username}** uje inbox tukuelekeze ulipokwama tukusaidie',disable_web_page_preview = True,
                     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("nmeshafanya malipo", callback_data=f"malipo {query.data.split(' ')[1]}"),InlineKeyboardButton("rudi mwanzo ", callback_data=f"tzn##{cvz} {fileid1}")]]),
                 )
-            elif cvx == 'l':
-                cxd=query.data.split(" ")[0].split("iik2")[1]
-                mkv1 =await client.send_message(chat_id = query.from_user.id,text='🇰🇪🇰🇪🇰🇪🇰🇪🇹🇿🇹🇿🇹🇿🇹🇿🇺🇬🇺🇬🇺🇬🇺🇬🇷🇼🇷🇼🇷🇼\nTunaomba namba yako yako utakayo fanyia malipo')
-                a,b =funask()
-                id1=(mkv1.id)+1
-                while a==False:
-                    try:
-                        mkv = await client.get_messages("me",id1)
-                        if mkv.text!=None:
-                            a=True
-                    
-                        if (time.time()-b)>300:
-                            mkv2 = await client.send_message(chat_id = query.from_user.id,text=f" Tafadhali anza upya kwa kubonyeza download hapo juu jitahidi kutuma namba yako ndani ya dakika 3 zingatia anza na country code bila kajumlisha",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text = f'rudi mwanzo' , callback_data = f'tzn##all {fileid1}')]]))
-                            return
-
-                        if mkv.from_user.id != query.from_user.id :
-                            a=False
-                            id1=id1+1
-                    except:
-                        a=False
-                await mkv1.delete()
-                mkv.text=mkv.text.replace(" ","")
-                try:
-                    if not mkv.text.startswith("+"):
-                        int(mkv.text)
-                    else:
-                        int(mkv.text.removeprefix("+"))
-                except:
-                    await client.send_message(chat_id=query.from_user.id, text='Samahani,tuma namba bila kitu kingne.anza upya kwa kubonyeza download hapo juu')
-                    await mkv.delete()
-                    return
-                if (mkv.text.startswith('25') and len(mkv.text.strip())==12) or (mkv.text.startswith("+25") and len(mkv.text.strip())==13)or (mkv.text.startswith("0") and len(mkv.text.strip())==10):
-                    # Define the base and set variable
-                    zno=mkv.text
-                    for i in ["255","256","254","250","+255","+256","+254","+250"]:
-                        if mkv.text.startswith(i):
-                            zno = "0" + mkv.text.removeprefix(i)
-                            break
-                        
-                    API_BASE = "https://zenoapi.com/api/payments/mobile_money_tanzania"
-                    if cxd=='t':
-                        prc2 = int(prc2)
-                        currency = "TZN"
-                        
-                    elif cxd=='k':
-                        prc2 = int(prc2) // 20
-                        currency = "KES"
-                        
-                    elif cxd=='u':
-                        currency = "UGX"
-                        prc2 = int(int(prc2) // 0.7)
-                        
-                    elif cxd=='r':
-                        prc2 = int(int(prc2) // 1.7)
-                        currency = "RWF"
-                        
-                    else:
-                        await client.send_message(chat_id=query.from_user.id, text='Nmeshindwa kutambua code yako. Tumia:\n255 (TZ)\n254 (KE)\n256 (UG)\n250 (RW)')
-                        return
-                    order_id = str(uuid.uuid4())
-                    payload = {
-                        "buyer_name": "idd mohamed",
-                        "currency": currency,
-                        "buyer_email": "hramamogamed@gmail.com",
-                        "buyer_phone": zno,
-                        "amount": prc2,
-                        "order_id": order_id
-                    }
-                    API_KEY = details["zeno_api"]
-                    headers = {
-                        "Content-Type": "application/json",
-                        "x-api-key": API_KEY
-                    }
-
-                    try:
-                        
-                        # Crucial: Use the 'endpoint' variable here
-                        response = requests.post(API_BASE, headers=headers, json=payload)
-                        res_data = response.json()
-                        await mkv.delete()
-                        if response.status_code == 200 and res_data.get("status") == "success":
-                            print("success")
-                            await client.send_message(chat_id=query.from_user.id, text=f'Tafadhali kagua simu yako yenye namba {zno} na uweke PIN ili kukamilisha malipo. Baada ya hapo utapata access automatic.')
-                            await add_user(f"{query.from_user.id}#d#{order_id}",f"{group_id}#d#pay")
-                            filter={'email':f"{fileid1}#d#{ax}"}
-                            filter["tme"]=1200
-                            await User.collection.update_one({'_id':f"{query.from_user.id}#d#{order_id}"},{'$set':filter})
-                            
-                        else:
-                            print(f"Error: {res_data}")
-                            await client.send_message(chat_id=query.from_user.id, text='Samahani, kumeshindwa kutuma ombi la malipo. Jaribu tena baadae.')
-            
-                    except requests.exceptions as e:
-                        print(f"Connection failed: {e}")
-                else:
-                    await mkv.delete()
-                    await client.send_message(chat_id = query.from_user.id,text='tuma kama ulivyoelekezwa tuma namba ya simu tu na ihakiki kama ipo swa tafadhali anza upya kwa kubonyeza download hapo juu')
         elif query.data.startswith("malipo"):
             botusername=await client.get_me()
             nyva=botusername.username  
@@ -968,7 +863,7 @@ async def cb_handler(client, query):
             if mkv.photo:
                 await query.message.delete()
                 await client.send_message(chat_id = query.from_user.id,text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\ntumepokea screenshot ngoja tuihakiki tutakupa majibu tukimaliza tatizo lolote tujuze kwa kubonyeza **{details["user_link"]}**')
-                if tme=='m':
+                if tme=='m': 
                     await client.send_photo(
                             chat_id=int(group_id),
                             photo= mkv.photo.file_id,
@@ -1272,13 +1167,12 @@ def replymkup2(msg2,msg4):
     fileid,cvx=fileiid.split("##")
     try:
         msg1 = msg2.split('tsh ')[1]
+        fgh="fst"
     except Exception:
         msg1 = msg2.split('ksh ')[1] 
         msg1=(int(msg1))//19
         msg2=f"{msg2.split('ksh ')[0]} Ksh {msg1}"
-    fgh="wiik2"
-    if cvx=='l':
-        fgh="fst"   
+        fgh="wiik2"
     msg1 =int(msg1)
     if msg1 == 0:
         return []
