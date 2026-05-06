@@ -991,7 +991,7 @@ async def cb_handler(client, query):
                         await client.send_message(chat_id = int(group_id),text=f'🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿\nkuna tatixo {e} forward kwa @hrm45 aondoe hii changamoto')
             else:
                 await query.message.delete()
-                await client.send_message(chat_id = query.from_user.id,text"Umetuma ujumbe s sahihi tafadhali anza upya kwa kubonyeza download hapo juu")
+                await client.send_message(chat_id = query.from_user.id,text="Umetuma ujumbe s sahihi tafadhali anza upya kwa kubonyeza download hapo juu")
         elif query.data.startswith("yq"):
             msg1 = query.data.split(" ")[1]
             ttl = await client.get_users(int(msg1))
