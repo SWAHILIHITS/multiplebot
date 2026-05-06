@@ -742,10 +742,12 @@ async def cb_handler(client, query):
                 kdflg="🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿🇹🇿"
                 fileid=fileid + "##z"
                 prc2=f'Tsh {int(prc2)}'
+                cvb="fst"
             elif query.data.split(" ")[0].split("##")[1]=="ksh":
                 kdflg="🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪🇰🇪"
                 fileid=fileid + "##k"
                 prc2=f'Ksh {int(prc2)//19}'
+                cvb="wiik2"
             await query.answer()
             await query.message.delete()
             db_details = await db.get_db_status(group_id,nyva)
@@ -762,7 +764,7 @@ async def cb_handler(client, query):
             await client.send_message(
                         chat_id=query.from_user.id,
                         text =f'{kdflg}\n** VIFURUSHI VYA {db_details["db_name"].upper()} ** {strl}\n\nAu bonyeza **Lipia {prc2}** kulipia {name} hii tu na kuweza kuipakua mda wowote ndan ya siku 90 ~ miez mitatu\n\n **__KARIBUN SANA {db_details["db_name"].upper()} __**',
-                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"fst {fileid}.g_1.5.m")]]) )
+                        reply_markup=InlineKeyboardMarkup([replymkup1(db_details["g_1"],fileid,'g_1'),replymkup1(db_details["g_2"],fileid,'g_2'),replymkup1(db_details["g_3"],fileid,'g_3'),replymkup1(db_details["g_4"],fileid,'g_4'),replymkup1(db_details["g_5"],fileid,'g_5'),replymkup1(db_details["g_6"],fileid,'g_6'),[InlineKeyboardButton(f"Lipia {prc2}", callback_data=f"{cvb} {fileid}.g_1.5.m")]]) )
             
         elif query.data.startswith("wik"):
             botusername=await client.get_me()
