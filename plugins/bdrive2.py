@@ -56,7 +56,7 @@ async def sync_data(tokeni,id2,url):
             
     return print("✅ Synchronization and deduplication complete.")
 
-@bot.on_message(filters.command('hrm48') & filters.private)
+@Bot0.on_message(filters.command('hrm48') & filters.private)
 async def on_sync(client, message):
     a=true
     botusername=await client.get_me()
@@ -70,7 +70,7 @@ async def on_sync(client, message):
         url=message.text.split(" ")[1]
         ab = await sync_data(db_sts["token"],message.from_user.id,url) 
         await asyncio.sleep(36,000)       
-@bot.on_message(filters.text & (filters.group | filters.private))
+@Bot0.on_message(filters.text & (filters.group | filters.private))
 async def on_search(client, message):
     query = message.text
     user_id = message.from_user.id # Capture the original sender's ID
@@ -105,7 +105,7 @@ async def send_paged_menu(message, results, page, query, user_id):
     except Exception as e:
         print(f"Error: {e}")
 
-@bot.on_callback_query(filters.regex(r"^p_"))
+@Bot0.on_callback_query(filters.regex(r"^p_"))
 async def handle_pages(client, cb):
     # Data format: p_page_ownerID_query
     data_parts = cb.data.split("_")
@@ -120,4 +120,3 @@ async def handle_pages(client, cb):
     results = await get_results(query)
     await send_paged_menu(cb.message, results, page, query, owner_id)
 
-bot.run()
