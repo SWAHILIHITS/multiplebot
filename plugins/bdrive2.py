@@ -67,7 +67,7 @@ async def on_sync(client, message):
         return
     db_sts =await db.get_db_status(message.from_user.id,nyva)
     while a:
-        url=
+        url=message.text.split(" ")[1]
         ab = await sync_data(db_sts["token"],message.from_user.id,url) 
         await asyncio.sleep(36,000)       
 @bot.on_message(filters.text & (filters.group | filters.private))
