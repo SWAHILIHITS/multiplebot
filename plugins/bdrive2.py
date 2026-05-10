@@ -52,7 +52,7 @@ async def sync_data(tokeni,id2,url):
             }
 
             # 'upsert=True' performs the "add if not present" logic
-            await collection.updat   e_one(filter_query, update_data, upsert=True)
+            await collection.update_one(filter_query, update_data, upsert=True)
             
     return print("✅ Synchronization and deduplication complete.")
 
