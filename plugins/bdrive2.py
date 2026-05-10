@@ -2,16 +2,16 @@ from info import filters,CHANNELS,OWNER_ID
 import uuid
 import time,re,os,asyncio
 from plugins.base_command import btn22
-from plugins.pm_filter import getCreds
+from plugins.pm_filter import getCreds,get_access_id
 from pyrogram.errors import ChatAdminRequired,FloodWait
 from utils import get_file_details,get_filter_results,is_user_exist,Media,is_subscribed,is_group_exist,save_file,add_user,add_likes,Like,User
 from bot  import Bot0
-import requests,json
 from plugins.database import db
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery,ForceReply
 
-async def sync_data():
-    service = getCreds()
+async def sync_data(tokeni,id2,url):
+    service = getCreds(tokeni,id2)
+    PARENT_FOLDER_ID = get_access_id(url)
     # List Alphabet Folders (A-Z)
     # Query for alphabet folders (A-Z)
     query = f"'{PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder'"
@@ -54,27 +54,29 @@ async def sync_data():
             # 'upsert=True' performs the "add if not present" logic
             await collection.updat   e_one(filter_query, update_data, upsert=True)
             
-    print("✅ Synchronization and deduplication complete.")
+    return print("✅ Synchronization and deduplication complete.")
 
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
-# Bot Config
-bot = Client("movietz_bot", api_id=12345, api_hash="hash", bot_token="token")
-
-async def get_results(query):
-    # Searches MongoDB for the series name using regex
-    return await collection.find({"text": {"$regex": query, "$options": "i"}}).to_list(length=100)
-
+@bot.on_message(filters.command('hrm48') & filters.private)
+async def on_sync(client, message):
+    a=true
+    botusername=await client.get_me()
+    nyva=botusername.username
+    nyva=str(nyva)
+    status= await db.is_admin_exist(message.from_user.id,nyva) 
+    if not status:
+        return
+    db_sts =await db.get_db_status(message.from_user.id,nyva)
+    while a:
+        url=
+        ab = await sync_data(db_sts["token"],message.from_user.id,url) 
+        await asyncio.sleep(36,000)       
 @bot.on_message(filters.text & (filters.group | filters.private))
 async def on_search(client, message):
     query = message.text
     user_id = message.from_user.id # Capture the original sender's ID
     results = await get_results(query)
-    
     if not results:
         return await message.reply("❌ Hakuna matokeo yaliyopatikana.")
-    
     await send_paged_menu(message, results, 0, query, user_id)
 
 async def send_paged_menu(message, results, page, query, user_id):

@@ -146,6 +146,9 @@ async def addtokeni(client, message):
     botusername=await client.get_me()
     nyva=botusername.username
     nyva=str(nyva)
+    status= await db.is_admin_exist(message.from_user.id,nyva) 
+    if not status:
+        return
     try1=message.text.strip()
     ghi=f'{try1.split(" ")[1]}'
     ghi=f'token {ghi}'
@@ -157,6 +160,9 @@ async def addtoken(client, message):
     botusername=await client.get_me()
     nyva=botusername.username
     nyva=str(nyva)
+    status= await db.is_admin_exist(message.from_user.id,nyva) 
+    if not status:
+        return
     try1=message.text.strip()
     ghi=f'{try1.split(" ")[1]}'
     ghi=f'zeno_api {ghi}'
