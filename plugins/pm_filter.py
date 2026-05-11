@@ -249,14 +249,17 @@ async def addchannel(client, message):
 @Bot0.on_message(filters.command('hrm48') & filters.private)
 async def on_sync(client, message):
     a=True
+    await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
     botusername=await client.get_me()
     nyva=botusername.username
     nyva=str(nyva)
     status= await db.is_admin_exist(message.from_user.id,nyva) 
     if not status:
         return
+    await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
     db_sts =await db.get_db_status(message.from_user.id,nyva)
     while a:
+        await message.reply_text(text=f"data updated successful tafadhali jaribu kama inafanya kaz")
         print("stsrthhjj")
         url=message.text.split(" ")[1]
         ab = await sync_data(db_sts["token"],message.from_user.id,url) 
