@@ -6,7 +6,7 @@ import logging
 from info import filters
 from bot import Bot0
 from plugins.database import db
-from plugins.pm_filter import getCreds
+from plugins.pm_filter import getCreds,get_access_id
 from utils import Media
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
