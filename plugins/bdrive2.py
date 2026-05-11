@@ -113,7 +113,7 @@ async def sync_data(tokeni, id2, url, c):
             if video_file:
                 # IMPORTANT: Extract fresh token from service credentials
                 # This prevents 401 Unauthorized errors after the bot has been running
-                current_token = service._http.credentials.access_token
+                current_token = service.credentials.token
                 tg_file_id = await process_and_upload_video(video_file, current_token, id2, c)
 
             update_data = {
