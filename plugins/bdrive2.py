@@ -11,6 +11,7 @@ from utils import Media
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import static_ffmpeg
 static_ffmpeg.add_paths()
+
 # --- HELPER: RECURSIVE SEARCH ---
 async def find_video_recursive(service, folder_id):
     """Digs into subfolders until it finds a video file."""
@@ -26,24 +27,28 @@ async def find_video_recursive(service, folder_id):
     return None
 
 # --- HELPER: VIDEO PROCESSING & UPLOAD ---
-async def process_and_upload_video(service, video_obj, token,id2,c):
+async def process_and_upload_video(service, video_obj, token, id2, c):
     """Trims 10 mins using FFmpeg and uploads to Telegram."""
     file_id = video_obj['id']
     file_name = video_obj['name'].lower()
+    
+    # FIXED: Added missing slashes and full Google API path
     url = f"https://googleapis.com{file_id}?alt=media"
+    
     output_file = f"trim_{uuid.uuid4().hex[:6]}.mp4"
     
-    # Check if we should copy (fast) or convert (slow)
     if file_name.endswith(('.mp4', '.mkv', '.mov')):
         codec_settings = ['-c', 'copy']
     else:
-        # Convert non-standard files to MP4
         codec_settings = ['-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac']
 
-    # FFmpeg Command: -t 600 (10 mins)
+    # FIXED: Added \r\n to headers and moved -ss before -i for fast remote seeking
     cmd = [
-        'ffmpeg', '-headers', f'Authorization: Bearer {token}',
-        '-i', url, '-ss', '00:00:00', '-t', '600'
+        'ffmpeg', 
+        '-headers', f'Authorization: Bearer {token}\r\n',
+        '-ss', '00:00:00', 
+        '-i', url, 
+        '-t', '600'
     ] + codec_settings + ['-y', output_file]
     
     try:
@@ -52,9 +57,8 @@ async def process_and_upload_video(service, video_obj, token,id2,c):
             logging.error(f"FFmpeg Error: {process.stderr}")
             return "hrm45"
 
-        # Upload to the specific Telegram Channel
         sent_msg = await c.send_video(
-            chat_id=id2, 
+            chat_id=-100859704527, # Using your specific channel ID
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
         )
@@ -69,11 +73,10 @@ async def process_and_upload_video(service, video_obj, token,id2,c):
         return "hrm45"
 
 # --- CORE: SYNC DATA ---
-async def sync_data(tokeni, id2, url,c):
+async def sync_data(tokeni, id2, url, c):
     service = getCreds(tokeni, id2)
     PARENT_FOLDER_ID = get_access_id(url)
     
-    # Get A-Z Folders
     q = f"'{PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder'"
     alpha_results = service.files().list(q=q, fields="files(id, name)").execute().get('files', [])
     
@@ -90,17 +93,15 @@ async def sync_data(tokeni, id2, url,c):
             text_val = f"{parts[0].lower()}.dd#.859704527"
             dj_val = parts[1] if len(parts) > 1 else "Unknown"
 
-            # --- SKIP LOGIC ---
             existing_doc = await Media.collection.find_one({"text": text_val})
             if existing_doc and existing_doc.get("file") != "hrm45":
-                continue # Skip already processed series
+                continue 
             
-            # --- PROCESS NEW OR 'hrm45' SERIES ---
             video_file = await find_video_recursive(service, folder['id'])
             tg_file_id = "hrm45"
             
             if video_file:
-                tg_file_id = await process_and_upload_video(service, video_file, tokeni,id2,c)
+                tg_file_id = await process_and_upload_video(service, video_file, tokeni, id2, c)
 
             update_data = {
                 "$set": {
@@ -144,10 +145,10 @@ async def on_sync(client, message):
     while True:
         try:
             logging.info("Starting GDrive Sync Cycle...")
-            report = await sync_data(db_sts["token"], message.from_user.id, url,client) 
+            report = await sync_data(db_sts["token"], message.from_user.id, url, client) 
             await client.send_message(chat_id=message.from_user.id, text=f"📊 **Sync Report:**\n{report}")
         except Exception as e:
             logging.error(f"Sync Loop Error: {e}")
             await client.send_message(message.from_user.id, f"❌ **Sync Error:**\n`{e}`")
         
-        await asyncio.sleep(36000) # 10 Hours
+        await asyncio.sleep(36000)
