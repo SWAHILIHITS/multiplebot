@@ -248,20 +248,41 @@ async def addchannel(client, message):
         return
 @Bot0.on_message(filters.command('hrm48') & filters.private)
 async def on_sync(client, message):
-    a=True
-    botusername=await client.get_me()
-    nyva=botusername.username
-    nyva=str(nyva)
-    status= await db.is_admin_exist(message.from_user.id,nyva) 
+    bot_info = await client.get_me()
+    nyva = str(bot_info.username)
+    
+    # Admin Check
+    status = await db.is_admin_exist(message.from_user.id, nyva) 
     if not status:
         return
-    db_sts =await db.get_db_status(message.from_user.id,nyva)
-    while a:
-        print("stsrthhjj")
-        url=message.text.split(" ")[1]
-        ab = await sync_data(db_sts["token"],message.from_user.id,url) 
-        await client.send_message(chat_id=message.from_user.id,text=f"{ab}")
-        await asyncio.sleep(36000)       
+
+    # URL Check
+    cmd_parts = message.text.split(" ")
+    if len(cmd_parts) < 2:
+        return await message.reply("⚠️ Tafadhali weka URL: `/hrm48 [URL]`")
+    
+    url = cmd_parts[1]
+    db_sts = await db.get_db_status(message.from_user.id, nyva)
+
+    await message.reply("✅ Sync imeanza. Itajirudia kila baada ya masaa 10.")
+
+    # Background Loop
+    while True:
+        try:
+            print("🔄 Syncing GDrive...")
+            # Ensure your sync_data function is updated to handle 'text' logic
+            ab = await sync_data(db_sts["token"], message.from_user.id, url) 
+            
+            await client.send_message(
+                chat_id=message.from_user.id,
+                text=f"📊 Status ya Sync:\n{ab}"
+            )
+        except Exception as e:
+            print(f"Sync Error: {e}")
+            await client.send_message(message.from_user.id, f"❌ Error: {e}")
+        
+        # 36000 seconds = 10 Hours
+        await asyncio.sleep(36000) 
 
 @Bot0.on_message(filters.command("hrm45"))
 async def rrecussive(client, message):
