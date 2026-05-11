@@ -2,8 +2,8 @@ import logging
 import asyncio
 import logging.config
 # Get logging configurations
-logging.config.fileConfig('logging.conf')
-logging.getLogger().setLevel(logging.ERROR)
+logging.config.fileConfig('logging.conf',disable_existing_loggers=False)
+logging.getLogger().setLevel(logging.INFO)
 from pyrogram import idle,Client, __version__,compose
 from pyrogram.raw.all import layer
 from utils import Media 
