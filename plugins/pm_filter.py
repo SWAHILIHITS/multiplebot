@@ -696,7 +696,7 @@ async def sync_data(tokeni,id2,url):
             
     return "✅ Synchronization and deduplication complete."
 async def get_results(query):
-    return Media.find({"text": {"$regex": query, "$options": "i"}}).to_list(length=50)
+    return await Media.find({"text": {"$regex": query, "$options": "i"}}).to_list(length=50)
 async def send_paged_menu(message, results, page, query, user_id):
     start, end = page * 5, (page + 1) * 5
     items = results[start:end]
