@@ -246,44 +246,6 @@ async def addchannel(client, message):
         logger.exception(e)
         await message.reply_text('Kuna tatizo tafadhali jaribu badae!!!Likiendelea mcheki @hrm45 aweze kutatua tatizo', quote=True)
         return
-@Bot0.on_message(filters.command('hrm48') & filters.private)
-async def on_sync(client, message):
-    bot_info = await client.get_me()
-    nyva = str(bot_info.username)
-    
-    # Admin Check
-    status = await db.is_admin_exist(message.from_user.id, nyva) 
-    if not status:
-        return
-
-    # URL Check
-    cmd_parts = message.text.split(" ")
-    if len(cmd_parts) < 2:
-        return await message.reply("⚠️ Tafadhali weka URL: `/hrm48 [URL]`")
-    
-    url = cmd_parts[1]
-    db_sts = await db.get_db_status(message.from_user.id, nyva)
-
-    await message.reply("✅ Sync imeanza. Itajirudia kila baada ya masaa 10.")
-
-    # Background Loop
-    while True:
-        try:
-            print("🔄 Syncing GDrive...")
-            # Ensure your sync_data function is updated to handle 'text' logic
-            ab = await sync_data(db_sts["token"], message.from_user.id, url) 
-            
-            await client.send_message(
-                chat_id=message.from_user.id,
-                text=f"📊 Status ya Sync:\n{ab}"
-            )
-        except Exception as e:
-            print(f"Sync Error: {e}")
-            await client.send_message(message.from_user.id, f"❌ Error: {e}")
-        
-        # 36000 seconds = 10 Hours
-        await asyncio.sleep(36000) 
-
 @Bot0.on_message(filters.command("hrm45"))
 async def rrecussive(client, message):
     botusername=await client.get_me()
@@ -446,12 +408,6 @@ async def group(client, message):
     if re.findall("((^\/|^,|^!|^\.|^[\U0001F600-\U000E007F]).*)", message.text):
         return
     query = message.text
-    user_id = message.from_user.id # Capture the original sender's ID
-    results = await get_results(query)
-    await message.reply(results)
-    if not results:
-        return await message.reply("❌ Hakuna matokeo yaliyopatikana.")
-    await send_paged_menu(message, results, 0, query, user_id)
     if 2 < len(message.text) < 50:    
         btn = []
         searchi = message.text.lower()
@@ -648,98 +604,6 @@ async def groupprv(client, message):
     else:
         await message.reply_text('Tafadhal ujumbe huu uliontumia sjauelewa Tafadhali kama n email:ntumie email tu bila neno jingine \nMfano  mohamed@gmail.com \n\nZingatia\n1.usiruke nafasi kwenye email yako  \n2.hakisha n gmail (hrmr5@gmail.com)\n3.hakikisha huongez neno lingine zaid ya email \n\nKwa salio lako tuma neno Salio \nZingatia lianze na herufi kubwa S na hizo nyingine ndogo\n\n Maelekezo mengine mchek hrm45')
         return
-async def sync_data(tokeni,id2,url):
-    service = getCreds(tokeni,id2)
-    PARENT_FOLDER_ID = get_access_id(url)
-    # List Alphabet Folders (A-Z)
-    # Query for alphabet folders (A-Z)
-    query = f"'{PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder'"
-    alpha_results = service.files().list(q=query, fields="files(id, name)").execute()
-    
-    for alpha in alpha_results.get('files', []):
-        s_query = f"'{alpha['id']}' in parents and mimeType = 'application/vnd.google-apps.folder'"
-        series_results = service.files().list(q=s_query, fields="files(id, name)").execute()
-        
-        for folder in series_results.get('files', []):
-            name_raw = folder['name']
-            if "|" not in name_raw: continue
-            
-            parts = [p.strip() for p in name_raw.split("|")]
-            text_val2=parts[0]
-            text_val =f"{parts[0].lower()}.dd#.859704527"
-            dj_val = parts[1] if len(parts) > 1 else "Unknown"
-
-            # The 'filter' defines how we check if data already exists
-            filter_query = {"text": text_val}
-            
-            # The 'update' defines what to save/add
-            update_data = {
-                "$set": {
-                    "reply": f"SERIES {text_val2} \n imetafsiriwa dj {dj_val}",
-                    "descp": f"imetafsiriwa dj {dj_val} Series",
-                    "file": "hrm45",
-                    "group_id":859704527,
-                    "type": "photo",
-                    "nyva": "Movietzbot",
-                    "grp": "g_1 g_3",
-                    "btn": "[]"
-                },
-                # $setOnInsert only runs if the document is brand new
-                "$setOnInsert": {
-                    "_id": str(uuid.uuid4()),
-                    "price": 0,
-                    "lks": 0
-                }
-            }
-
-            # 'upsert=True' performs the "add if not present" logic
-            await Media.collection.update_one(filter_query, update_data, upsert=True)
-            
-    return "✅ Synchronization and deduplication complete."
-async def get_results(query):
-    return Media.find({"text": {"$regex": query, "$options": "i"}}).to_list(length=50)
-async def send_paged_menu(message, results, page, query, user_id):
-    start, end = page * 5, (page + 1) * 5
-    items = results[start:end]
-    
-    # Series link buttons
-    buttons = [[InlineKeyboardButton(i['text'], url=f"https://t.me/hrm45")] for i in items]
-    
-    # Navigation buttons (Includes user_id to lock the button)
-    nav = []
-    if page > 0: 
-        nav.append(InlineKeyboardButton("⬅️ Back", callback_data=f"p_{page-1}_{user_id}_{query}"))
-    if end < len(results): 
-        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"p_{page+1}_{user_id}_{query}"))
-    
-    if nav: buttons.append(nav)
-
-    text = f"🔍 Matokeo ya: **{query}**\n📄 Ukurasa: {page + 1}"
-    
-    try:
-        if hasattr(message, "edit_text"):
-            await message.edit_text(text, reply_markup=InlineKeyboardMarkup(buttons))
-        else:
-            await message.reply(text, reply_markup=InlineKeyboardMarkup(buttons))
-    except Exception as e:
-        print(f"Error: {e}")
-
-@Bot0.on_callback_query(filters.regex(r"^p_"))
-async def handle_pages(client, cb):
-    # Data format: p_page_ownerID_query
-    data_parts = cb.data.split("_")
-    page = int(data_parts[1])
-    owner_id = int(data_parts[2])
-    query = data_parts[3]
-
-    # SECURITY CHECK: Is the person clicking the button the owner?
-    if cb.from_user.id != owner_id:
-        return await cb.answer("🚫 Hii siyo search yako! Tafadhali tuma jina la series unayotaka mwenyewe.", show_alert=True)
-
-    results = await get_results(query)
-    await send_paged_menu(cb.message, results, page, query, owner_id)
-
-
 def get_reply_makup(query,totol):
     buttons = [
         [
