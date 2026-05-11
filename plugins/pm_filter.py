@@ -448,7 +448,7 @@ async def group(client, message):
     query = message.text
     user_id = message.from_user.id # Capture the original sender's ID
     results = await get_results(query)
-    await message.reply(result)
+    await message.reply(results)
     if not results:
         return await message.reply("❌ Hakuna matokeo yaliyopatikana.")
     await send_paged_menu(message, results, 0, query, user_id)
