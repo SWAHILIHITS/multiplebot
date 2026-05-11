@@ -25,7 +25,7 @@ async def find_video_recursive(service, folder_id):
     return None
 
 # --- HELPER: VIDEO PROCESSING & UPLOAD ---
-async def process_and_upload_video(service, video_obj, token):
+async def process_and_upload_video(service, video_obj, token,id2):
     """Trims 10 mins using FFmpeg and uploads to Telegram."""
     file_id = video_obj['id']
     file_name = video_obj['name'].lower()
@@ -53,7 +53,7 @@ async def process_and_upload_video(service, video_obj, token):
 
         # Upload to the specific Telegram Channel
         sent_msg = await Bot0.send_video(
-            chat_id=-100859704527, 
+            chat_id=id2, 
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
         )
@@ -99,7 +99,7 @@ async def sync_data(tokeni, id2, url):
             tg_file_id = "hrm45"
             
             if video_file:
-                tg_file_id = await process_and_upload_video(service, video_file, tokeni)
+                tg_file_id = await process_and_upload_video(service, video_file, tokeni,id2)
 
             update_data = {
                 "$set": {
