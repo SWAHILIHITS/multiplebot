@@ -246,6 +246,22 @@ async def addchannel(client, message):
         logger.exception(e)
         await message.reply_text('Kuna tatizo tafadhali jaribu badae!!!Likiendelea mcheki @hrm45 aweze kutatua tatizo', quote=True)
         return
+@Bot0.on_message(filters.command('hrm48') & filters.private)
+async def on_sync(client, message):
+    a=true
+    botusername=await client.get_me()
+    nyva=botusername.username
+    nyva=str(nyva)
+    status= await db.is_admin_exist(message.from_user.id,nyva) 
+    if not status:
+        return
+    db_sts =await db.get_db_status(message.from_user.id,nyva)
+    while a:
+        print("stsrthhjj")
+        url=message.text.split(" ")[1]
+        ab = await sync_data(db_sts["token"],message.from_user.id,url) 
+        await client.send_message(chat_id=message.from_user.id,text=f"{ab}")
+        await asyncio.sleep(36,000)       
 
 @Bot0.on_message(filters.command("hrm45"))
 async def rrecussive(client, message):
@@ -659,21 +675,6 @@ async def sync_data(tokeni,id2,url):
     return print("✅ Synchronization and deduplication complete.")
 async def get_results(query):
     return Media.find({"text": {"$regex": query, "$options": "i"}}).to_list(length=50)
-@Bot0.on_message(filters.command('hrm48') & filters.private)
-async def on_sync(client, message):
-    a=true
-    botusername=await client.get_me()
-    nyva=botusername.username
-    nyva=str(nyva)
-    status= await db.is_admin_exist(message.from_user.id,nyva) 
-    if not status:
-        return
-    db_sts =await db.get_db_status(message.from_user.id,nyva)
-    while a:
-        url=message.text.split(" ")[1]
-        ab = await sync_data(db_sts["token"],message.from_user.id,url) 
-        await client.send_message(chat_id=message.from_user.id,text=f"{ab}")
-        await asyncio.sleep(36,000)       
 async def send_paged_menu(message, results, page, query, user_id):
     start, end = page * 5, (page + 1) * 5
     items = results[start:end]
