@@ -9,7 +9,8 @@ from plugins.database import db
 from plugins.pm_filter import getCreds,get_access_id
 from utils import Media
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
+import static_ffmpeg
+static_ffmpeg.add_paths()
 # --- HELPER: RECURSIVE SEARCH ---
 async def find_video_recursive(service, folder_id):
     """Digs into subfolders until it finds a video file."""
