@@ -680,14 +680,14 @@ async def sync_data(tokeni,id2,url):
                     "group_id":859704527,
                     "type": "photo",
                     "nyva": "Movietzbot",
-                    "grp": "g_1 g_3"
+                    "grp": "g_1 g_3",
+                    "btn": "[]"
                 },
                 # $setOnInsert only runs if the document is brand new
                 "$setOnInsert": {
                     "_id": str(uuid.uuid4()),
                     "price": 0,
-                    "lks": 0,
-                    "btn": "[]"
+                    "lks": 0
                 }
             }
 
