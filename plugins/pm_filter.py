@@ -664,6 +664,7 @@ async def sync_data(tokeni,id2,url):
             if "|" not in name_raw: continue
             
             parts = [p.strip() for p in name_raw.split("|")]
+            text_val2=part[0]
             text_val =f"{parts[0].lower()}.dd#.859704527"
             dj_val = parts[1] if len(parts) > 1 else "Unknown"
 
@@ -673,7 +674,7 @@ async def sync_data(tokeni,id2,url):
             # The 'update' defines what to save/add
             update_data = {
                 "$set": {
-                    "reply": f"{text_val} imetafsiriwa dj {dj_val}",
+                    "reply": f"SERIES {text_val2} \n imetafsiriwa dj {dj_val}",
                     "descp": f"imetafsiriwa dj {dj_val} Series",
                     "file": "hrm45",
                     "group_id":859704527,
@@ -686,7 +687,7 @@ async def sync_data(tokeni,id2,url):
                     "_id": str(uuid.uuid4()),
                     "price": 0,
                     "lks": 0,
-                    "btn": []
+                    "btn": "[]"
                 }
             }
 
