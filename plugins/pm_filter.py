@@ -703,7 +703,7 @@ async def send_paged_menu(message, results, page, query, user_id):
     items = results[start:end]
     
     # Series link buttons
-    buttons = [[InlineKeyboardButton(i['text'], url=f"https://t.me/hrm45"] for i in items]
+    buttons = [[InlineKeyboardButton(i['text'], url=f"https://t.me/hrm45")] for i in items]
     
     # Navigation buttons (Includes user_id to lock the button)
     nav = []
