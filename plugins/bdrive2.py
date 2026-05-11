@@ -25,7 +25,7 @@ async def find_video_recursive(service, folder_id):
     return None
 
 # --- HELPER: VIDEO PROCESSING & UPLOAD ---
-async def process_and_upload_video(service, video_obj, token,id2):
+async def process_and_upload_video(service, video_obj, token,id2,c):
     """Trims 10 mins using FFmpeg and uploads to Telegram."""
     file_id = video_obj['id']
     file_name = video_obj['name'].lower()
@@ -52,7 +52,7 @@ async def process_and_upload_video(service, video_obj, token,id2):
             return "hrm45"
 
         # Upload to the specific Telegram Channel
-        sent_msg = await Bot0.send_video(
+        sent_msg = await c.send_video(
             chat_id=id2, 
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
@@ -68,7 +68,7 @@ async def process_and_upload_video(service, video_obj, token,id2):
         return "hrm45"
 
 # --- CORE: SYNC DATA ---
-async def sync_data(tokeni, id2, url):
+async def sync_data(tokeni, id2, url,c):
     service = getCreds(tokeni, id2)
     PARENT_FOLDER_ID = get_access_id(url)
     
@@ -99,7 +99,7 @@ async def sync_data(tokeni, id2, url):
             tg_file_id = "hrm45"
             
             if video_file:
-                tg_file_id = await process_and_upload_video(service, video_file, tokeni,id2)
+                tg_file_id = await process_and_upload_video(service, video_file, tokeni,id2,c)
 
             update_data = {
                 "$set": {
@@ -143,7 +143,7 @@ async def on_sync(client, message):
     while True:
         try:
             logging.info("Starting GDrive Sync Cycle...")
-            report = await sync_data(db_sts["token"], message.from_user.id, url) 
+            report = await sync_data(db_sts["token"], message.from_user.id, url,client) 
             await client.send_message(chat_id=message.from_user.id, text=f"📊 **Sync Report:**\n{report}")
         except Exception as e:
             logging.error(f"Sync Loop Error: {e}")
