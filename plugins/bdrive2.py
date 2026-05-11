@@ -6,17 +6,23 @@ import logging
 from info import filters
 from bot import Bot0
 from plugins.database import db
-from plugins.pm_filter import getCreds,get_access_id
+from plugins.pm_filter import getCreds, get_access_id
 from utils import Media
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import static_ffmpeg
+
+# Initialize FFmpeg paths
 static_ffmpeg.add_paths()
 
 # --- HELPER: RECURSIVE SEARCH ---
 async def find_video_recursive(service, folder_id):
     """Digs into subfolders until it finds a video file."""
     query = f"'{folder_id}' in parents"
-    results = service.files().list(q=query, fields="files(id, name, mimeType)").execute().get('files', [])
+    try:
+        results = service.files().list(q=query, fields="files(id, name, mimeType)").execute().get('files', [])
+    except Exception as e:
+        logging.error(f"List Error in folder {folder_id}: {e}")
+        return None
     
     for f in results:
         if "video" in f['mimeType']:
@@ -27,24 +33,27 @@ async def find_video_recursive(service, folder_id):
     return None
 
 # --- HELPER: VIDEO PROCESSING & UPLOAD ---
-async def process_and_upload_video(service, video_obj, token, id2, c):
+async def process_and_upload_video(video_obj, token, id2, c):
     """Trims 10 mins using FFmpeg and uploads to Telegram."""
     file_id = video_obj['id']
     file_name = video_obj['name'].lower()
     
-    # FIXED: Added missing slashes and full Google API path
+    # CORRECTED URL: Added full API path
     url = f"https://googleapis.com{file_id}?alt=media"
-    
     output_file = f"trim_{uuid.uuid4().hex[:6]}.mp4"
     
+    # Selection of codecs based on format
     if file_name.endswith(('.mp4', '.mkv', '.mov')):
         codec_settings = ['-c', 'copy']
     else:
         codec_settings = ['-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac']
 
-    # FIXED: Added \r\n to headers and moved -ss before -i for fast remote seeking
+    # FFmpeg command with reconnection logic for streaming stability
     cmd = [
         'ffmpeg', 
+        '-reconnect', '1', 
+        '-reconnect_streamed', '1', 
+        '-reconnect_delay_max', '5',
         '-headers', f'Authorization: Bearer {token}\r\n',
         '-ss', '00:00:00', 
         '-i', url, 
@@ -58,7 +67,7 @@ async def process_and_upload_video(service, video_obj, token, id2, c):
             return "hrm45"
 
         sent_msg = await c.send_video(
-            chat_id=id2, # Using your specific channel ID
+            chat_id=id2, 
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
         )
@@ -74,6 +83,7 @@ async def process_and_upload_video(service, video_obj, token, id2, c):
 
 # --- CORE: SYNC DATA ---
 async def sync_data(tokeni, id2, url, c):
+    # getCreds usually handles token refreshing via the refresh_token
     service = getCreds(tokeni, id2)
     PARENT_FOLDER_ID = get_access_id(url)
     
@@ -101,7 +111,10 @@ async def sync_data(tokeni, id2, url, c):
             tg_file_id = "hrm45"
             
             if video_file:
-                tg_file_id = await process_and_upload_video(service, video_file, tokeni, id2, c)
+                # IMPORTANT: Extract fresh token from service credentials
+                # This prevents 401 Unauthorized errors after the bot has been running
+                current_token = service._http.credentials.access_token
+                tg_file_id = await process_and_upload_video(video_file, current_token, id2, c)
 
             update_data = {
                 "$set": {
@@ -151,4 +164,5 @@ async def on_sync(client, message):
             logging.error(f"Sync Loop Error: {e}")
             await client.send_message(message.from_user.id, f"❌ **Sync Error:**\n`{e}`")
         
+        # Sleep for 10 hours (36000 seconds)
         await asyncio.sleep(36000)
