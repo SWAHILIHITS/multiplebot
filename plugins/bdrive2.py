@@ -58,7 +58,7 @@ async def process_and_upload_video(service, video_obj, token, id2, c):
             return "hrm45"
 
         sent_msg = await c.send_video(
-            chat_id=-100859704527, # Using your specific channel ID
+            chat_id=id2, # Using your specific channel ID
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
         )
