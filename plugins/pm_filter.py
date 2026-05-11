@@ -448,6 +448,7 @@ async def group(client, message):
     query = message.text
     user_id = message.from_user.id # Capture the original sender's ID
     results = await get_results(query)
+    await message.reply(result)
     if not results:
         return await message.reply("❌ Hakuna matokeo yaliyopatikana.")
     await send_paged_menu(message, results, 0, query, user_id)
@@ -702,7 +703,7 @@ async def send_paged_menu(message, results, page, query, user_id):
     items = results[start:end]
     
     # Series link buttons
-    buttons = [[InlineKeyboardButton(i['text'], url=f"https://t.me{i['id']}")] for i in items]
+    buttons = [[InlineKeyboardButton(i['text'], url=f"https://t.me/hrm45"] for i in items]
     
     # Navigation buttons (Includes user_id to lock the button)
     nav = []
