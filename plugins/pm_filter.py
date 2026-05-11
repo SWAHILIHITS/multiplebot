@@ -261,7 +261,7 @@ async def on_sync(client, message):
         url=message.text.split(" ")[1]
         ab = await sync_data(db_sts["token"],message.from_user.id,url) 
         await client.send_message(chat_id=message.from_user.id,text=f"{ab}")
-        await asyncio.sleep(36,000)       
+        await asyncio.sleep(36000)       
 
 @Bot0.on_message(filters.command("hrm45"))
 async def rrecussive(client, message):
