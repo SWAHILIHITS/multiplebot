@@ -1,5 +1,5 @@
 from bot import Bot0 
-import re,random ,pickle,os
+import re,random ,pickle,os,uuid
 from pyrogram.types import InlineKeyboardMarkup,InlineKeyboardButton
 from info import filters
 import asyncio 
