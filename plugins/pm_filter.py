@@ -248,7 +248,7 @@ async def addchannel(client, message):
         return
 @Bot0.on_message(filters.command('hrm48') & filters.private)
 async def on_sync(client, message):
-    a=true
+    a=True
     botusername=await client.get_me()
     nyva=botusername.username
     nyva=str(nyva)
