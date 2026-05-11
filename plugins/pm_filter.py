@@ -646,7 +646,7 @@ async def sync_data(tokeni,id2,url):
                 },
                 # $setOnInsert only runs if the document is brand new
                 "$setOnInsert": {
-                    "id": str(uuid.uuid4()),
+                    "_id": str(uuid.uuid4()),
                     "price": 0,
                     "lks": 0,
                     "btn": []
@@ -654,7 +654,7 @@ async def sync_data(tokeni,id2,url):
             }
 
             # 'upsert=True' performs the "add if not present" logic
-            await Media.update_one(filter_query, update_data, upsert=True)
+            await Media.collection.update_one(filter_query, update_data, upsert=True)
             
     return print("✅ Synchronization and deduplication complete.")
 async def get_results(query):
