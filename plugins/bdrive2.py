@@ -3,7 +3,7 @@ import uuid
 import asyncio
 import subprocess
 import logging
-from in import filters
+from info import filters
 from bot import Bot0
 from plugins.database import db
 from plugins.pm_filter import getCreds
