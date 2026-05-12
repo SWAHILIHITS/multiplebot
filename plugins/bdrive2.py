@@ -3,11 +3,10 @@ import uuid
 import asyncio
 import subprocess
 import logging
-from google.auth.transport.requests import Request
 from info import filters
 from bot import Bot0
 from plugins.database import db
-from plugins.pm_filter import getCreds, get_access_id
+from plugins.pm_filter import getCreds,getCred, get_access_id
 from utils import Media
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import static_ffmpeg
@@ -114,10 +113,8 @@ async def sync_data(tokeni, id2, url, c):
             if video_file:
                 # FIX: Ensure token is fresh and use the correct attribute '.token'
                 try:
-                    if not service.credentials.valid:
-                        service.credentials.refresh(Request())
-                    current_token = service.credentials.token
-                    tg_file_id = await process_and_upload_video(video_file, current_token, id2, c)
+                    current_token = getCred(tokeni, id2) 
+                    tg_file_id = await process_and_upload_video(video_file, current_token.token, id2, c)
                 except Exception as token_err:
                     logging.error(f"Token Refresh Failed: {token_err}")
 
