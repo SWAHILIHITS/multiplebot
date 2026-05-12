@@ -1,6 +1,6 @@
 import os, uuid, asyncio, subprocess, logging, re
 from info import filters
-from bot import Bot0
+from bot import Bot0 
 from plugins.database import db
 from plugins.pm_filter import getCreds, getCred, get_access_id
 from utils import Media
