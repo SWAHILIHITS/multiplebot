@@ -42,8 +42,7 @@ async def process_and_upload_video(video_obj, token, id2, c, progress_msg):
     unique_id = uuid.uuid4().hex[:6]
     output_file = f"trim_{unique_id}.mp4"
     thumb_file = f"thumb_{unique_id}.jpg"
-    url = f"https://googleapis.com{file_id}?alt=media"
-
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     # 1. Wait progress for 5 seconds
     for i in range(5, 0, -1):
         await progress_msg.edit(f"⏳ **Starting in {i}s...**\n`{video_obj['name']}`")
