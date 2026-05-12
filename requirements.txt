@@ -6,6 +6,7 @@ google-auth-httplib2
 httplib2
 oauth2client
 imgbbpy
+tgcrypto
 telegraph  
 pyrogram == 2.0.106
 pymongo[srv]
