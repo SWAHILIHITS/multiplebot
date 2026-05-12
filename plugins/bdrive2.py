@@ -35,8 +35,8 @@ async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_
     unique_id = uuid.uuid4().hex[:6]
     output_file, thumb_file = f"trim_{unique_id}.mp4", f"thumb_{unique_id}.jpg"
     
-    # Exact Stream URL
-    url = f"https://googleapis.com{file_id}?alt=media"
+    # Direct Google API Media Stream URL
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     
     q = QUALITY_MAP.get(quality_key, QUALITY_MAP["medium"])
 
@@ -109,7 +109,7 @@ async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id, 
                 name_val = base_name.upper()
                 text_val = f"{base_name.lower()}.dd#.{id2}"
                 
-                # Check for same name but different DJ to add suffix (a, b, c...)
+                # Check for existing record to handle DJ differences (Suffix logic)
                 existing_doc = await Media.collection.find_one({"text": text_val})
                 if existing_doc and dj_val.lower() not in existing_doc.get("reply", "").lower():
                     for letter in "abcdefghijklmnopqrstuvwxyz":
@@ -120,7 +120,7 @@ async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id, 
                             name_val, text_val = suffix_name.upper(), temp_text
                             break
 
-                # Re-check record for resolved text_val to decide on processing
+                # Resolve processing needs
                 existing_record = await Media.collection.find_one({"text": text_val})
                 tg_file_id = existing_record.get("file") if existing_record else None
 
@@ -128,16 +128,15 @@ async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id, 
                     v_q = f"'{folder['id']}' in parents and mimeType contains 'video/'"
                     video_list = service.files().list(q=v_q, fields="files(id, name)").execute().get('files', [])
                     
-                    # Try up to 5 videos if FFmpeg fails
-                    for i, video_file in enumerate(video_list[:5]):
+                    for i, video_file in enumerate(video_list[:5]): # Try up to 5 videos
                         if active_syncs.get(user_id) != task_id: return "Cancelled"
                         await status_msg.edit(f"🎬 **Attempt {i+1}/5 for:** `{name_val}`")
                         tg_file_id = await process_and_upload_video(video_file, getCred(tokeni, id2).token, id2, c, status_msg, user_id, quality, task_id)
                         if tg_file_id not in ["hrm45", "Cancelled"]: break
 
                 if tg_file_id and tg_file_id != "Cancelled":
-                    # Exact Folder URL
-                    folder_url = f"https://google.com{folder['id']}"
+                    # Google Drive Web View Folder URL
+                    folder_url = f"https://drive.google.com/drive/folders/{folder['id']}"
                     
                     await Media.collection.update_one({"text": text_val}, {
                         "$set": {
@@ -175,23 +174,18 @@ async def on_sync(client, message):
     task_id = str(uuid.uuid4())
     active_syncs[user_id] = task_id
 
-    status_msg = await message.reply(f"🚀 **Sync Started...**\nBot: @{bot_info.username}\nQuality: {quality.upper()}")
+    status_msg = await message.reply(f"🚀 **Sync Started...**\nBot: @{bot_info.username}")
 
     try:
         while active_syncs.get(user_id) == task_id:
             db_sts = await db.get_db_status(user_id, str(bot_info.username))
             report = await sync_data(db_sts["token"], user_id, target_url, client, status_msg, user_id, quality, task_id, bot_info.username)
             
-            if report == "Cancelled":
-                await status_msg.edit("🛑 **Process stopped.**")
-                break
-                
-            await status_msg.edit(f"📊 **Final Report:** {report}\nSleeping for check...")
+            if report == "Cancelled": break
+            await status_msg.edit(f"📊 **Report:** {report}")
             
-            # Monitoring loop (keeps alive for new files or cancellation)
             for _ in range(3600):
                 if active_syncs.get(user_id) != task_id: break
                 await asyncio.sleep(10)
     finally:
-        if active_syncs.get(user_id) == task_id: 
-            active_syncs.pop(user_id, None)
+        if active_syncs.get(user_id) == task_id: active_syncs.pop(user_id, None)
