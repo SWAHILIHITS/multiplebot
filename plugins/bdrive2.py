@@ -1,7 +1,6 @@
 import os, uuid, asyncio, subprocess, logging, re
 from moviepy.editor import VideoFileClip
-from pyrogram.errors import RPCError
-from info import filters
+from pyrogram import filters
 from bot import Bot0
 from plugins.database import db
 from plugins.pm_filter import getCreds, getCred, get_access_id
@@ -9,183 +8,102 @@ from utils import Media
 import static_ffmpeg
 
 static_ffmpeg.add_paths()
-
-# Tracks active task IDs per user to allow concurrency and instant cancellation
 active_syncs = {}
-
-# Quality Settings Mapping
 QUALITY_MAP = {
     "low": {"crf": "30", "scale": "480:-1", "preset": "ultrafast"},
     "medium": {"crf": "24", "scale": "720:-1", "preset": "veryfast"},
     "high": {"crf": "18", "scale": "1080:-1", "preset": "medium"}
 }
 
-async def get_remote_duration(url, token):
-    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', 
-           '-headers', f'Authorization: Bearer {token}\r\n', url]
+async def get_remote_dur(url, token):
+    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', '-headers', f'Authorization: Bearer {token}\r\n', url]
     try:
-        process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, _ = await process.communicate()
-        return float(stdout.decode().strip())
-    except:
-        return 600
+        p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out, _ = await p.communicate()
+        return float(out.decode().strip())
+    except: return 600
 
-async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_id, quality_key, task_id):
-    file_id = video_obj['id']
-    unique_id = uuid.uuid4().hex[:6]
-    output_file, thumb_file = f"trim_{unique_id}.mp4", f"thumb_{unique_id}.jpg"
-    
-    # Direct Google API Media Stream URL
-    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
-    
-    q = QUALITY_MAP.get(quality_key, QUALITY_MAP["medium"])
-
+async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id):
+    f_id, u_hex = v_obj['id'], uuid.uuid4().hex[:6]
+    out, thumb = f"tr_{u_hex}.mp4", f"th_{u_hex}.jpg"
+    url = f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media"
+    q = QUALITY_MAP.get(q_key, QUALITY_MAP["medium"])
     try:
-        if active_syncs.get(user_id) != task_id: return "Cancelled"
-        remote_dur = await get_remote_duration(url, token)
-        trim_time = min(remote_dur, 600)
-        
-        await progress_msg.edit(f"📥 **Processing:** `{video_obj['name']}`\nLength: {int(trim_time)}s")
-        
-        cmd = ['ffmpeg', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-               '-headers', f'Authorization: Bearer {token}\r\n', '-ss', '00:00:00', '-i', url, 
-               '-t', str(trim_time), '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], 
-               '-preset', q['preset'], '-c:a', 'aac', '-y', output_file]
-
-        process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        while process.returncode is None:
-            if active_syncs.get(user_id) != task_id:
-                process.kill()
-                return "Cancelled"
-            try:
-                await asyncio.wait_for(process.wait(), timeout=1.0)
-            except asyncio.TimeoutError: continue
-
-        with VideoFileClip(output_file) as clip:
-            final_duration = int(clip.duration)
-            thumb_ts = 20 if final_duration > 20 else max(0, final_duration - 0.1)
-            clip.save_frame(thumb_file, t=thumb_ts)
-
-        async def progress_callback(current, total):
-            if active_syncs.get(user_id) != task_id: raise Exception("CANCEL_SIGNAL") 
-            try:
-                pc = (current * 100) / total
-                await progress_msg.edit(f"📤 **Uploading:** `{video_obj['name']}`\n📊 {pc:.1f}%")
+        if active_syncs.get(u_id) != t_id: return "Cancelled"
+        dur = min(await get_remote_dur(url, token), 600)
+        await msg.edit(f"📥 **Processing:** `{v_obj['name']}`\nForce: YES")
+        cmd = ['ffmpeg', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-headers', f'Authorization: Bearer {token}\r\n', '-ss', '00:00:00', '-i', url, '-t', str(dur), '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], '-preset', q['preset'], '-c:a', 'aac', '-y', out]
+        p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        await p.wait()
+        with VideoFileClip(out) as clip:
+            f_dur = int(clip.duration)
+            clip.save_frame(thumb, t=20 if f_dur > 20 else max(0, f_dur-0.1))
+        async def prog(c, t):
+            if active_syncs.get(u_id) != t_id: raise Exception("CANCEL")
+            try: await msg.edit(f"📤 **Uploading:** `{v_obj['name']}`\n📊 {(c*100)/t:.1f}%")
             except: pass
-
-        sent_msg = await c.send_video(
-            chat_id=id2, video=output_file, thumb=thumb_file, duration=final_duration,
-            caption=f"Preview: {video_obj['name']}\nQuality: {quality_key.upper()}", 
-            progress=progress_callback
-        )
-        return sent_msg.video.file_id
+        res = await c.send_video(id2, video=out, thumb=thumb, duration=f_dur, caption=f"Preview: {v_obj['name']}\nQuality: {q_key.upper()}", progress=prog)
+        return res.video.file_id
     except Exception as e:
-        if "CANCEL_SIGNAL" in str(e): return "Cancelled"
-        logging.error(f"Media Error: {e}")
-        return "hrm45"
+        logging.error(f"Error: {e}"); return "Cancelled" if "CANCEL" in str(e) else "hrm45"
     finally:
-        for f in [output_file, thumb_file]:
-            if os.path.exists(f): os.remove(f)
+        for f in [out, thumb]: (os.remove(f) if os.path.exists(f) else None)
 
-async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id, bot_username):
+async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
     try:
-        service, PARENT_FOLDER_ID = getCreds(tokeni, id2), get_access_id(url)
-        q = f"'{PARENT_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder'"
-        alpha_results = service.files().list(q=q, fields="files(id, name)").execute().get('files', [])
-        processed_count = 0
-
-        for alpha in alpha_results:
-            if active_syncs.get(user_id) != task_id: return "Cancelled"
-            sq = f"'{alpha['id']}' in parents and mimeType = 'application/vnd.google-apps.folder'"
-            series_folders = service.files().list(q=sq, fields="files(id, name)").execute().get('files', [])
-            
-            for folder in series_folders:
-                if active_syncs.get(user_id) != task_id: return "Cancelled"
-                if "|" not in folder['name']: continue
-                
-                parts = [p.strip() for p in folder['name'].split("|")]
-                base_name, dj_val = parts[0], parts[1] if len(parts) > 1 else 'Unknown'
-                
-                name_val = base_name.upper()
-                text_val = f"{base_name.lower()}.dd#.{id2}"
-                
-                # Check for existing record to handle DJ differences (Suffix logic)
-                existing_doc = await Media.collection.find_one({"text": text_val})
-                if existing_doc and dj_val.lower() not in existing_doc.get("reply", "").lower():
-                    for letter in "abcdefghijklmnopqrstuvwxyz":
-                        suffix_name = f"{base_name.lower()} {letter}"
-                        temp_text = f"{suffix_name}.dd#.{id2}"
-                        check = await Media.collection.find_one({"text": temp_text})
-                        if not check or dj_val.lower() in check.get("reply", "").lower():
-                            name_val, text_val = suffix_name.upper(), temp_text
-                            break
-
-                # Resolve processing needs
-                existing_record = await Media.collection.find_one({"text": text_val})
-                tg_file_id = existing_record.get("file") if existing_record else None
-
-                if not tg_file_id or tg_file_id == "hrm45":
-                    v_q = f"'{folder['id']}' in parents and mimeType contains 'video/'"
-                    video_list = service.files().list(q=v_q, fields="files(id, name)").execute().get('files', [])
-                    
-                    for i, video_file in enumerate(video_list[:5]): # Try up to 5 videos
-                        if active_syncs.get(user_id) != task_id: return "Cancelled"
-                        await status_msg.edit(f"🎬 **Attempt {i+1}/5 for:** `{name_val}`")
-                        tg_file_id = await process_and_upload_video(video_file, getCred(tokeni, id2).token, id2, c, status_msg, user_id, quality, task_id)
-                        if tg_file_id not in ["hrm45", "Cancelled"]: break
-
-                if tg_file_id and tg_file_id != "Cancelled":
-                    # Google Drive Web View Folder URL
-                    folder_url = f"https://drive.google.com/drive/folders/{folder['id']}"
-                    
-                    await Media.collection.update_one({"text": text_val}, {
-                        "$set": {
-                            "reply": f"SERIES {name_val} \n imetafsiriwa dj {dj_val}",
-                            "file": tg_file_id, 
-                            "group_id": id2, 
-                            "type": "video", 
-                            "nyva": bot_username
-                        },
-                        "$setOnInsert": {
-                            "_id": str(uuid.uuid4()), 
-                            "descp": f"x.dd#.imetafsiriwa na {dj_val}\n Series.dd#.{folder_url}.dd#.s",
-                            "price": 3000, 
-                            "lks": 0, 
-                            "grp": "g_1 g_3", 
-                            "btn": "[]"
-                        }
-                    }, upsert=True)
-                    processed_count += 1
-        return f"Processed {processed_count} series."
-    except Exception as e: return f"Sync Error: {str(e)}"
+        svc, P_ID = getCreds(tok, id2), get_access_id(url)
+        alpha = svc.files().list(q=f"'{P_ID}' in parents and mimeType='application/vnd.google-apps.folder'", fields="files(id, name)").execute().get('files', [])
+        cnt = 0
+        for a in alpha:
+            if active_syncs.get(u_id) != t_id: return "Cancelled"
+            folders = svc.files().list(q=f"'{a['id']}' in parents and mimeType='application/vnd.google-apps.folder'", fields="files(id, name)").execute().get('files', [])
+            for f in folders:
+                if active_syncs.get(u_id) != t_id: return "Cancelled"
+                if "|" not in f['name']: continue
+                parts = [p.strip() for p in f['name'].split("|")]
+                bn, dj = parts[0], parts[1] if len(parts) > 1 else 'Unknown'
+                nv, tv = bn.upper(), f"{bn.lower()}.dd#.{id2}"
+                ext = await Media.collection.find_one({"text": tv})
+                if ext and dj.lower() not in ext.get("reply", "").lower():
+                    for l in "abcdefg":
+                        sn, st = f"{bn.lower()} {l}", f"{bn.lower()} {l}.dd#.{id2}"
+                        chk = await Media.collection.find_one({"text": st})
+                        if not chk or dj.lower() in chk.get("reply", "").lower(): nv, tv = sn.upper(), st; break
+                vids = svc.files().list(q=f"'{f['id']}' in parents and mimeType contains 'video/'", fields="files(id, name)").execute().get('files', [])
+                tid = None
+                for i, v in enumerate(vids[:5]):
+                    if active_syncs.get(u_id) != t_id: return "Cancelled"
+                    await msg.edit(f"🎬 **Converting:** `{nv}`")
+                    tid = await proc_vid(v, getCred(tok, id2).token, id2, c, msg, u_id, qual, t_id)
+                    if tid not in ["hrm45", "Cancelled"]: break
+                if tid and tid != "Cancelled":
+                    f_url = f"https://drive.google.com/drive/folders/{f['id']}"
+                    await Media.collection.update_one({"text": tv}, {"$set": {"reply": f"SERIES {nv}\nimetafsiriwa dj {dj}", "file": tid, "group_id": id2, "type": "video", "nyva": b_name}, "$setOnInsert": {"_id": str(uuid.uuid4()), "descp": f"x.dd#.imetafsiriwa na {dj}\nSeries.dd#.{f_url}.dd#.s", "price": 3000, "lks": 0, "grp": "g_1 g_3", "btn": "[]"}}, upsert=True)
+                    cnt += 1
+        return f"Processed {cnt} series."
+    except Exception as e: return f"Error: {e}"
 
 @Bot0.on_message(filters.command('hrm48') & filters.private)
-async def on_sync(client, message):
-    user_id = message.from_user.id
-    bot_info = await client.get_me()
-    if not await db.is_admin_exist(user_id, str(bot_info.username)): return
-
-    cmd_parts = message.text.split(" ")
-    if len(cmd_parts) < 2: return await message.reply("⚠️ Usage: `/hrm48 [URL] [quality]`")
-
-    target_url = cmd_parts[1]
-    quality = cmd_parts[2].lower() if len(cmd_parts) > 2 and cmd_parts[2].lower() in QUALITY_MAP else "medium"
-    
-    task_id = str(uuid.uuid4())
-    active_syncs[user_id] = task_id
-
-    status_msg = await message.reply(f"🚀 **Sync Started...**\nBot: @{bot_info.username}")
-
+async def on_sync(c, m):
+    u_id, bot = m.from_user.id, await c.get_me()
+    if not await db.is_admin_exist(u_id, bot.username): return
+    p = m.text.split(" ")
+    if len(p) < 2: return await m.reply("⚠️ Usage: `/hrm48 [URL] [quality]`")
+    url, q = p[1], p[2].lower() if len(p) > 2 and p[2].lower() in QUALITY_MAP else "medium"
+    tid = str(uuid.uuid4()); active_syncs[u_id] = tid
+    sts = await m.reply(f"🚀 **Sync Started...**\nBot: @{bot.username}")
     try:
-        while active_syncs.get(user_id) == task_id:
-            db_sts = await db.get_db_status(user_id, str(bot_info.username))
-            report = await sync_data(db_sts["token"], user_id, target_url, client, status_msg, user_id, quality, task_id, bot_info.username)
-            
-            if report == "Cancelled": break
-            await status_msg.edit(f"📊 **Report:** {report}")
-            
-            for _ in range(3600):
-                if active_syncs.get(user_id) != task_id: break
+        while active_syncs.get(u_id) == tid:
+            sts_db = await db.get_db_status(u_id, bot.username)
+            rep = await sync_data(sts_db["token"], u_id, url, c, sts, u_id, q, tid, bot.username)
+            if rep == "Cancelled": break
+            await sts.edit(f"📊 **Report:** {rep}\n🕒 Next run in 1 hour.")
+            for _ in range(360):
+                if active_syncs.get(u_id) != tid: break
                 await asyncio.sleep(10)
-    finally:
-        if active_syncs.get(user_id) == task_id: active_syncs.pop(user_id, None)
+    finally: (active_syncs.pop(u_id) if active_syncs.get(u_id) == tid else None)
+
+@Bot0.on_message(filters.command('stop') & filters.private)
+async def on_stop(c, m):
+    if active_syncs.pop(m.from_user.id, None): await m.reply("🛑 **Stopped.**")
+    else: await m.reply("❌ No active sync.")
