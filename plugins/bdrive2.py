@@ -41,7 +41,7 @@ async def process_and_upload_video(video_obj, token, id2, c):
     file_name = video_obj['name'].lower()
     
     # CORRECTED URL: Full path for Google Drive V3
-    url = f"https://googleapis.com{file_id}?alt=media"
+    url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
     output_file = f"trim_{uuid.uuid4().hex[:6]}.mp4"
     
     if file_name.endswith(('.mp4', '.mkv', '.mov')):
