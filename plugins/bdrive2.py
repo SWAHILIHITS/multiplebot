@@ -72,7 +72,7 @@ async def process_and_upload_video(video_obj, token, id2, c):
             video=output_file, 
             caption=f"Preview: {video_obj['name']}"
         )
-        
+        await asyncio.sleep(3)
         if os.path.exists(output_file):
             os.remove(output_file)
             
