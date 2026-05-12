@@ -21,7 +21,7 @@ class MultiBot(Client):
             bot_token=token,
             plugins={"root": "plugins"},
             workers=50,
-            dc_id=2
+            sleep_threshold=4
         )
 
     async def start(self):
