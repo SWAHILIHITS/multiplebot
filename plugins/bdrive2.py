@@ -88,10 +88,11 @@ async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
                 f_url = f"https://drive.google.com/drive/folders/{f['id']}"
                 await Media.collection.update_one({"text": tv}, {"$set": {
                     "reply": f"SERIES {nv}\nimetafsiriwa dj {dj}",
-                    "file": cur_f, "type": cur_t, "group_id": id2, "nyva": b_name
-                }, "$setOnInsert": {
-                    "_id": str(uuid.uuid4()), "price": 3000, "lks": 0, "grp": "g_1 g_3", "btn": "[]",
+                    "file": cur_f, "type": cur_t, "group_id": id2, "nyva": b_name,
                     "descp": f"x.dd#.imetafsiriwa na {dj}\nSeries.dd#.{f_url}.dd#.s"
+                }, "$setOnInsert": {
+                    "_id": str(uuid.uuid4()), "price": 3000, "lks": 0, "grp": "g_1 g_3", "btn": "[]"
+                    
                 }}, upsert=True)
                 cnt += 1
         return f"Processed {cnt} series."
