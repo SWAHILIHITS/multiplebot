@@ -56,6 +56,48 @@ def getCreds(tokeni,group_id):
             pickle.dump(creds, token)
     service = build('drive', 'v3', credentials=creds)
     return service
+def getCred(tokeni,group_id):
+    # The file token.pickle stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    creds = None
+    SCOPES = 'https://www.googleapis.com/auth/drive'
+
+    if os.path.exists(f'{group_id}.pickle'):
+        with open(f'{group_id}.pickle', 'rb') as token:
+            creds = pickle.load(token)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            try:
+                creds = Credentials(
+                    token=None,  # Hatuna access token ya sasa, tunataka mpya
+                    refresh_token=tokeni,
+                    token_uri="https://oauth2.googleapis.com/token",
+                    client_id='5119780087-m9l5ctlcaq80d7di1065aohbjuk2b3np.apps.googleusercontent.com',
+                    client_secret="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",
+                )
+                creds.refresh(Request())
+            except exceptions.GoogleAuthError as e:
+                with open(f'{group_id}.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
+                return 'auth_error'
+            except exceptions.RefreshError as e:
+                # Google SDK huweka 'invalid_grant' ndani ya ujumbe wa kosa
+                if "invalid_grant" in str(e).lower():    
+                    print("Refresh Token haitumiki tena. Tafadhali ingia upya.")
+                    # Logic ya kumlazimisha mtumiaji ku-login tena
+                    
+                    return 'token_error'
+                    # Save the credentials for the next run
+                with open(f'{group_id}.pickle', 'wb') as token:
+                    pickle.dump(creds, token)
+                return 'token_error'
+        with open(f'{group_id}.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    return creds
 from googleapiclient.errors import HttpError
 def get_access_id(url):
     patterns = [
