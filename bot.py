@@ -20,7 +20,8 @@ class MultiBot(Client):
             api_hash=API_HASH,
             bot_token=token,
             plugins={"root": "plugins"},
-            workers=50
+            workers=50,
+            dc_id=2
         )
 
     async def start(self):
