@@ -20,6 +20,17 @@ QUALITY_MAP = {
     "high": {"crf": "18", "scale": "1080:-1", "preset": "medium"}
 }
 
+async def get_remote_duration(url, token):
+    """Fetches duration from remote to handle videos < 10 mins."""
+    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', 
+           '-headers', f'Authorization: Bearer {token}\r\n', url]
+    try:
+        process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, _ = await process.communicate()
+        return float(stdout.decode().strip())
+    except:
+        return 600
+
 async def find_video_recursive(service, folder_id):
     try:
         results = service.files().list(q=f"'{folder_id}' in parents", fields="files(id, name, mimeType)").execute().get('files', [])
@@ -28,8 +39,7 @@ async def find_video_recursive(service, folder_id):
             if f['mimeType'] == "application/vnd.google-apps.folder":
                 found = await find_video_recursive(service, f['id'])
                 if found: return found
-    except Exception as e:
-        logging.error(f"Search Error: {e}")
+    except: pass
     return None
 
 async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_id, quality_key, task_id):
@@ -45,11 +55,14 @@ async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_
     try:
         if active_syncs.get(user_id) != task_id: return "Cancelled"
         
-        await progress_msg.edit(f"📥 **Processing:** `{video_obj['name']}`")
+        remote_dur = await get_remote_duration(url, token)
+        trim_time = min(remote_dur, 600) # Whole video if < 10 mins, else 600s
+        
+        await progress_msg.edit(f"📥 **Processing:** `{video_obj['name']}`\nLength: {int(trim_time)}s")
         
         cmd = ['ffmpeg', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
                '-headers', f'Authorization: Bearer {token}\r\n', '-ss', '00:00:00', '-i', url, 
-               '-t', '600', '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], 
+               '-t', str(trim_time), '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], 
                '-preset', q['preset'], '-c:a', 'aac', '-y', output_file]
 
         process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -64,15 +77,14 @@ async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_
             except asyncio.TimeoutError:
                 continue
 
-        # MoviePy: Sharp Thumbnail & Duration
+        # MoviePy: Sharp Thumbnail at 20s (or max possible)
         with VideoFileClip(output_file) as clip:
-            duration = int(clip.duration)
-            # saves sharp frame without blur
-            clip.save_frame(thumb_file, t=min(2, duration - 0.1) if duration > 0 else 0)
+            final_duration = int(clip.duration)
+            thumb_ts = 20 if final_duration > 20 else max(0, final_duration - 0.1)
+            clip.save_frame(thumb_file, t=thumb_ts)
 
         async def progress_callback(current, total):
-            if active_syncs.get(user_id) != task_id:
-                raise Exception("CANCEL_SIGNAL") 
+            if active_syncs.get(user_id) != task_id: raise Exception("CANCEL_SIGNAL") 
             try:
                 pc = (current * 100) / total
                 await progress_msg.edit(f"📤 **Uploading:** `{video_obj['name']}`\n📊 {pc:.1f}%")
@@ -82,7 +94,7 @@ async def process_and_upload_video(video_obj, token, id2, c, progress_msg, user_
             chat_id=id2, 
             video=output_file, 
             thumb=thumb_file, 
-            duration=duration,
+            duration=final_duration,
             caption=f"Preview: {video_obj['name']}\nQuality: {quality_key.upper()}", 
             progress=progress_callback
         )
@@ -118,19 +130,18 @@ async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id):
                 
                 if await Media.collection.find_one({"text": text_val, "file": {"$ne": "hrm45"}}): continue 
 
-                # Skip scan: check if video exists before processing
                 video_file = await find_video_recursive(service, folder['id'])
                 if not video_file: continue
 
                 tg_file_id = await process_and_upload_video(video_file, getCred(tokeni, id2).token, id2, c, status_msg, user_id, quality, task_id)
-                
                 if tg_file_id == "Cancelled": return "Cancelled"
 
                 folder_url = f"https://google.com{folder['id']}"
 
+                # Updated Descp Format
                 await Media.collection.update_one({"text": text_val}, {"$set": {
                     "reply": f"SERIES {name_val} \n imetafsiriwa dj {dj_val}",
-                    "descp": f"x.dd#.imetafsiriwa na {dj_val}\n Series.dd#{folder_url}.dd#.s",
+                    "descp": f"x.dd#.imetafsiriwa na {dj_val}\n Series.dd#.{folder_url}.dd#.s",
                     "file": tg_file_id, "group_id": 859704527, "type": "video", "nyva": "Movietzbot", "grp": "g_1 g_3", "btn": "[]"
                 }, "$setOnInsert": {"_id": str(uuid.uuid4()), "price": 0, "lks": 0}}, upsert=True)
                 processed_count += 1
@@ -141,29 +152,31 @@ async def sync_data(tokeni, id2, url, c, status_msg, user_id, quality, task_id):
 @Bot0.on_message(filters.command('hrm48') & filters.private)
 async def on_sync(client, message):
     user_id = message.from_user.id
-    if not await db.is_admin_exist(user_id, str((await client.get_me()).username)): return
+    bot_info = await client.get_me()
+    if not await db.is_admin_exist(user_id, str(bot_info.username)): return
 
     cmd_parts = message.text.split(" ")
-    if len(cmd_parts) < 2: return await message.reply("⚠️ Usage: `/hrm48 [URL] [low/medium/high]`")
+    if len(cmd_parts) < 2: return await message.reply("⚠️ Usage: `/hrm48 [URL] [quality: low/medium/high]`")
 
     target_url = cmd_parts[1]
     quality = cmd_parts[2].lower() if len(cmd_parts) > 2 and cmd_parts[2].lower() in QUALITY_MAP else "medium"
 
+    # New Task ID kills any previous instance for this user
     task_id = str(uuid.uuid4())
     active_syncs[user_id] = task_id
 
-    status_msg = await message.reply(f"🚀 **Sync Initiated...**\nQuality: {quality.upper()}")
+    status_msg = await message.reply(f"🚀 **Sync Started...**\nQuality: {quality.upper()}\nThumb: 20s")
 
     try:
         while active_syncs.get(user_id) == task_id:
-            db_sts = await db.get_db_status(user_id, str((await client.get_me()).username))
+            db_sts = await db.get_db_status(user_id, str(bot_info.username))
             report = await sync_data(db_sts["token"], user_id, target_url, client, status_msg, user_id, quality, task_id)
             
             if report == "Cancelled":
-                await status_msg.edit("🛑 **Old sync process killed and replaced.**")
+                await status_msg.edit("🛑 **Process stopped and replaced.**")
                 break
                 
-            await status_msg.edit(f"📊 **Summary:** {report}\nSleeping 10 hours...")
+            await status_msg.edit(f"📊 **Report:** {report}\nSleeping 10 hours...")
             for _ in range(3600): 
                 if active_syncs.get(user_id) != task_id: break
                 await asyncio.sleep(10)
