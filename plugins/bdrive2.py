@@ -3,6 +3,7 @@ import uuid
 import asyncio
 import subprocess
 import logging
+from google.auth.transport.requests import Request
 from info import filters
 from bot import Bot0
 from plugins.database import db
@@ -19,6 +20,8 @@ async def find_video_recursive(service, folder_id):
     """Digs into subfolders until it finds a video file."""
     query = f"'{folder_id}' in parents"
     try:
+        # Using loop.run_in_executor if the library is blocking, 
+        # but standardizing on your existing structure.
         results = service.files().list(q=query, fields="files(id, name, mimeType)").execute().get('files', [])
     except Exception as e:
         logging.error(f"List Error in folder {folder_id}: {e}")
@@ -38,17 +41,16 @@ async def process_and_upload_video(video_obj, token, id2, c):
     file_id = video_obj['id']
     file_name = video_obj['name'].lower()
     
-    # CORRECTED URL: Added full API path
+    # CORRECTED URL: Full path for Google Drive V3
     url = f"https://googleapis.com{file_id}?alt=media"
     output_file = f"trim_{uuid.uuid4().hex[:6]}.mp4"
     
-    # Selection of codecs based on format
     if file_name.endswith(('.mp4', '.mkv', '.mov')):
         codec_settings = ['-c', 'copy']
     else:
         codec_settings = ['-c:v', 'libx264', '-preset', 'ultrafast', '-c:a', 'aac']
 
-    # FFmpeg command with reconnection logic for streaming stability
+    # FFmpeg command with reconnection logic and proper auth header
     cmd = [
         'ffmpeg', 
         '-reconnect', '1', 
@@ -83,7 +85,6 @@ async def process_and_upload_video(video_obj, token, id2, c):
 
 # --- CORE: SYNC DATA ---
 async def sync_data(tokeni, id2, url, c):
-    # getCreds usually handles token refreshing via the refresh_token
     service = getCreds(tokeni, id2)
     PARENT_FOLDER_ID = get_access_id(url)
     
@@ -111,10 +112,14 @@ async def sync_data(tokeni, id2, url, c):
             tg_file_id = "hrm45"
             
             if video_file:
-                # IMPORTANT: Extract fresh token from service credentials
-                # This prevents 401 Unauthorized errors after the bot has been running
-                current_token = service.credentials.token
-                tg_file_id = await process_and_upload_video(video_file, current_token, id2, c)
+                # FIX: Ensure token is fresh and use the correct attribute '.token'
+                try:
+                    if not service.credentials.valid:
+                        service.credentials.refresh(Request())
+                    current_token = service.credentials.token
+                    tg_file_id = await process_and_upload_video(video_file, current_token, id2, c)
+                except Exception as token_err:
+                    logging.error(f"Token Refresh Failed: {token_err}")
 
             update_data = {
                 "$set": {
@@ -164,5 +169,4 @@ async def on_sync(client, message):
             logging.error(f"Sync Loop Error: {e}")
             await client.send_message(message.from_user.id, f"❌ **Sync Error:**\n`{e}`")
         
-        # Sleep for 10 hours (36000 seconds)
         await asyncio.sleep(36000)
