@@ -7,7 +7,7 @@ from plugins.database import db
 from plugins.pm_filter import getCreds, getCred, get_access_id
 from utils import Media
 import static_ffmpeg
-from googleapiclient.http import MediaIoBaseDownload  # Ensure google-api-python-client is installed
+from googleapiclient.http import MediaIoBaseDownload
 
 static_ffmpeg.add_paths()
 active_syncs = {}
@@ -17,91 +17,59 @@ QUALITY_MAP = {
     "high": {"crf": "18", "scale": "1080:-1", "preset": "medium"}
 }
 
-async def get_remote_dur(url, token):
-    cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', '-headers', f'Authorization: Bearer {token}\r\n', url]
-    try:
-        p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out, _ = await p.communicate()
-        return float(out.decode().strip())
-    except: return 600
-
-async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc=None):
+async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
     f_id, u_hex = v_obj['id'], uuid.uuid4().hex[:6]
     out, thumb = f"tr_{u_hex}.mp4", f"th_{u_hex}.jpg"
     local_download = f"dl_{u_hex}.mp4"
-    url = f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media"
     q = QUALITY_MAP.get(q_key, QUALITY_MAP["medium"])
     
-    attempts = 0
-    max_attempts = 5
-    use_local_file = False
-
-    while attempts < max_attempts:
-        if active_syncs.get(u_id) != t_id: return "Cancelled"
-        try:
-            dur = min(await get_remote_dur(url, token), 600)
-            await msg.edit(f"📥 **Processing (Attempt {attempts + 1}/{max_attempts}):** `{v_obj['name']}`")
-            
-            # Streaming command using remote Drive URL
-            cmd = ['ffmpeg', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5', '-headers', f'Authorization: Bearer {token}\r\n', '-ss', '00:00:00', '-i', url, '-t', str(dur), '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], '-preset', q['preset'], '-c:a', 'aac', '-y', out]
-            
-            p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            await p.wait()
-            
-            if p.returncode == 0 and os.path.exists(out) and os.path.getsize(out) > 0:
-                break # Remote streaming encoding succeeded
-            else:
-                raise Exception("Remote FFmpeg stream processing failed or generated an empty file")
-                
-        except Exception as e:
-            attempts += 1
-            logging.warning(f"Remote stream attempt {attempts} failed: {e}")
-            if "CANCEL" in str(e): return "Cancelled"
-            await asyncio.sleep(2)
-
-    # Fallback to local download and manual conversion if remote stream fails 5 times
-    if attempts >= max_attempts:
-        await msg.edit(f"⚠️ **Remote stream failed 5 times.** Downloading full ep locally...")
-        try:
-            if not svc:
-                svc = getCreds(token, id2) # fallback initialization if not passed down
-            
-            request = svc.files().get_media(fileId=f_id)
-            with io.FileIO(local_download, 'wb') as fh:
-                downloader = MediaIoBaseDownload(fh, request)
-                done = False
-                while not done:
-                    if active_syncs.get(u_id) != t_id: return "Cancelled"
-                    status, done = downloader.next_chunk()
-                    try: await msg.edit(f"📥 **Downloading Full Ep:** `{v_obj['name']}`\n📊 {int(status.progress() * 100)}%")
-                    except: pass
-            
-            # Run local manual conversion targeting the downloaded file
-            await msg.edit(f"⚙️ **Converting local media file...**")
-            cmd = ['ffmpeg', '-ss', '00:00:00', '-i', local_download, '-t', '600', '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], '-preset', q['preset'], '-c:a', 'aac', '-y', out]
-            p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            await p.wait()
-            
-        except Exception as e:
-            logging.error(f"Fallback download/conversion failed: {e}")
-            for f in [out, thumb, local_download]: (os.remove(f) if os.path.exists(f) else None)
-            return "hrm45"
-
     try:
         if active_syncs.get(u_id) != t_id: return "Cancelled"
-        with VideoFileClip(out) as clip:
-            f_dur = int(clip.duration)
-            clip.save_frame(thumb, t=20 if f_dur > 20 else max(0, f_dur-0.1))
+        
+        # Pull large files using the existing authorized client session resource
+        request = svc.files().get_media(fileId=f_id)
+        
+        with io.FileIO(local_download, 'wb') as fh:
+            downloader = MediaIoBaseDownload(fh, request, chunksize=1024*1024*5)
+            done = False
+            while not done:
+                if active_syncs.get(u_id) != t_id: return "Cancelled"
+                status, done = downloader.next_chunk()
+                try: 
+                    percent = int(status.progress() * 100)
+                    await msg.edit(f"📥 **Downloading Media:** `{v_obj['name']}`\n📊 {percent}%")
+                except: pass
+
+        await msg.edit(f"⚙️ **Converting Localized Media...**")
+        cmd = ['ffmpeg', '-ss', '00:00:00', '-i', local_download, '-t', '600', '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], '-preset', q['preset'], '-c:a', 'aac', '-y', out]
+        
+        p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        await p.wait()
+        
+        if p.returncode != 0 or not os.path.exists(out) or os.path.getsize(out) == 0:
+            raise Exception("FFmpeg processing engine failed to write valid media output data.")
+            
+        clip = VideoFileClip(out)
+        f_dur = int(clip.duration)
+        clip.save_frame(thumb, t=20 if f_dur > 20 else max(0, f_dur-0.1))
+        clip.close()
+        
         async def prog(cur, tot):
             if active_syncs.get(u_id) != t_id: raise Exception("CANCEL")
-            try: await msg.edit(f"📤 **Uploading:** `{v_obj['name']}`\n📊 {(cur*100)/tot:.1f}%")
+            try: await msg.edit(f"📤 **Uploading Preview:** `{v_obj['name']}`\n📊 {(cur*100)/tot:.1f}%")
             except: pass
+            
         res = await c.send_video(id2, video=out, thumb=thumb, duration=f_dur, caption=f"Preview: {v_obj['name']}", progress=prog)
         return res.video.file_id
+        
     except Exception as e:
-        logging.error(f"Error during final payload: {e}"); return "Cancelled" if "CANCEL" in str(e) else "hrm45"
+        logging.error(f"Execution handling failure: {e}")
+        return "Cancelled" if "CANCEL" in str(e) else "hrm45"
     finally:
-        for f in [out, thumb, local_download]: (os.remove(f) if os.path.exists(f) else None)
+        for f in [out, thumb, local_download]:
+            if os.path.exists(f):
+                try: os.remove(f)
+                except: pass
 
 async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
     df_img = "https://i.ibb.co/3yDbR1fR/image.jpg"
@@ -114,8 +82,11 @@ async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
             for f in folders:
                 if active_syncs.get(u_id) != t_id: return "Cancelled"
                 if "|" not in f['name']: continue
+                
                 parts = [p.strip() for p in f['name'].split("|")]
-                bn, dj = parts[0], parts[1] if len(parts) > 1 else 'Unknown'
+                bn = parts[0]
+                dj = parts[1] if len(parts) > 1 else 'Unknown'
+                
                 nv, tv = bn.upper(), f"{bn.lower()}.dd#.{id2}"
                 
                 ext = await Media.collection.find_one({"text": tv})
@@ -134,7 +105,7 @@ async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
                     vids = svc.files().list(q=f"'{f['id']}' in parents and mimeType contains 'video/'", fields="files(id, name)").execute().get('files', [])
                     for i, v in enumerate(vids[:5]):
                         if active_syncs.get(u_id) != t_id: return "Cancelled"
-                        new_id = await proc_vid(v, getCred(tok, id2).token, id2, c, msg, u_id, qual, t_id, svc=svc)
+                        new_id = await proc_vid(v, getCred(tok, id2).token, id2, c, msg, u_id, qual, t_id, svc)
                         if new_id not in ["hrm45", "Cancelled"]: 
                             cur_f, cur_t = new_id, "Video"
                             break
@@ -146,7 +117,6 @@ async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
                     "descp": f"x.dd#.imetafsiriwa na {dj}\nSeries.dd#.{f_url}.dd#.s"
                 }, "$setOnInsert": {
                     "_id": str(uuid.uuid4()), "price": 3000, "lks": 0, "grp": "g_1 g_3", "btn": "[]"
-                    
                 }}, upsert=True)
                 cnt += 1
         return f"Processed {cnt} series."
@@ -158,7 +128,8 @@ async def on_sync(c, m):
     if not await db.is_admin_exist(u_id, bot.username): return
     p = m.text.split(" ")
     if len(p) < 2: return await m.reply("⚠️ Usage: `/hrm48 [URL] [quality]`")
-    url, q = p[1], p[2].lower() if len(p) > 2 and p[2].lower() in QUALITY_MAP else "medium"
+    url = p[1]
+    q = p[2].lower() if len(p) > 2 and p[2].lower() in QUALITY_MAP else "medium"
     tid = str(uuid.uuid4()); active_syncs[u_id] = tid
     sts = await m.reply(f"🚀 **Sync Started...**\nBot: @{bot.username}")
     try:
