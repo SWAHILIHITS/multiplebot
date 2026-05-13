@@ -12,7 +12,6 @@ from googleapiclient.http import MediaIoBaseDownload
 static_ffmpeg.add_paths()
 active_syncs = {}
 
-# CRITICAL FIX: Changed :-1 to :-2 across configurations to guarantee even pixel dimension calculations
 QUALITY_MAP = {
     "low": {"crf": "30", "scale": "480:-2", "preset": "ultrafast"},
     "medium": {"crf": "24", "scale": "720:-2", "preset": "veryfast"},
@@ -25,29 +24,34 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
     local_download = f"dl_{u_hex}.mp4"
     q = QUALITY_MAP.get(q_key, QUALITY_MAP["medium"])
     
-    # Resolve static_ffmpeg path explicitly for the subprocess layer
     ffmpeg_exe = shutil.which("ffmpeg") or "ffmpeg"
     
     try:
         if active_syncs.get(u_id) != t_id: return "Cancelled"
         
-        # Uses your explicit media source link configuration internally through svc
         request = svc.files().get_media(fileId=f_id)
         
         with io.FileIO(local_download, 'wb') as fh:
             downloader = MediaIoBaseDownload(fh, request, chunksize=1024*1024*5)
             done = False
+            last_step = -1
+            
             while not done:
                 if active_syncs.get(u_id) != t_id: return "Cancelled"
                 status, done = downloader.next_chunk()
-                try: 
-                    percent = int(status.progress() * 100)
-                    await msg.edit(f"📥 **Downloading Media:** `{v_obj['name']}`\n📊 {percent}%")
-                except: pass
+                
+                percent = int(status.progress() * 100)
+                current_step = (percent // 10) * 10
+                
+                if current_step > last_step or done:
+                    try: 
+                        await msg.edit(f"📥 **Downloading Media:** `{v_obj['name']}`\n📊 {percent}%")
+                        last_step = current_step
+                    except Exception as e:
+                        logging.warning(f"Download edit skipped: {e}")
 
         await msg.edit(f"⚙️ **Converting Localized Media...**")
         
-        # Stream-level corruption bypass flags applied to handle processing issues safely
         cmd = [
             ffmpeg_exe, '-err_detect', 'ignore_err', '-loglevel', 'error',
             '-ss', '00:00:00', '-i', local_download, '-t', '600', 
@@ -73,10 +77,20 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
         clip.save_frame(thumb, t=20 if f_dur > 20 else max(0, f_dur-0.1))
         clip.close()
         
+        last_upload_step = [-1]
+
         async def prog(cur, tot):
             if active_syncs.get(u_id) != t_id: raise Exception("CANCEL")
-            try: await msg.edit(f"📤 **Uploading Preview:** `{v_obj['name']}`\n📊 {(cur*100)/tot:.1f}%")
-            except: pass
+            
+            percent = int((cur * 100) / tot)
+            current_step = (percent // 10) * 10
+            
+            if current_step > last_upload_step[0] or cur == tot:
+                try: 
+                    await msg.edit(f"📤 **Uploading Preview:** `{v_obj['name']}`\n📊 {percent}%")
+                    last_upload_step[0] = current_step
+                except Exception as e: 
+                    logging.warning(f"Upload edit skipped: {e}")
             
         res = await c.send_video(id2, video=out, thumb=thumb, duration=f_dur, caption=f"Preview: {v_obj['name']}", progress=prog)
         return res.video.file_id
