@@ -1,4 +1,4 @@
-import os, uuid, asyncio, subprocess, logging, re
+import os, uuid, asyncio, subprocess, logging, re, shutil
 import io
 from moviepy.editor import VideoFileClip
 from pyrogram import filters
@@ -23,10 +23,13 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
     local_download = f"dl_{u_hex}.mp4"
     q = QUALITY_MAP.get(q_key, QUALITY_MAP["medium"])
     
+    # Resolve static_ffmpeg path explicitly for the subprocess layer
+    ffmpeg_exe = shutil.which("ffmpeg") or "ffmpeg"
+    
     try:
         if active_syncs.get(u_id) != t_id: return "Cancelled"
         
-        # Pull large files using the existing authorized client session resource
+        # Uses your explicit media source link configuration internally through svc
         request = svc.files().get_media(fileId=f_id)
         
         with io.FileIO(local_download, 'wb') as fh:
@@ -41,13 +44,27 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
                 except: pass
 
         await msg.edit(f"⚙️ **Converting Localized Media...**")
-        cmd = ['ffmpeg', '-ss', '00:00:00', '-i', local_download, '-t', '600', '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], '-preset', q['preset'], '-c:a', 'aac', '-y', out]
         
-        p = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        await p.wait()
+        # Stream-level corruption bypass flags applied to handle processing issues safely
+        cmd = [
+            ffmpeg_exe, '-err_detect', 'ignore_err', '-loglevel', 'error',
+            '-ss', '00:00:00', '-i', local_download, '-t', '600', 
+            '-vf', f"scale={q['scale']}", '-c:v', 'libx264', '-crf', q['crf'], 
+            '-preset', q['preset'], '-c:a', 'aac', '-sn', '-y', out
+        ]
+        
+        p = await asyncio.create_subprocess_exec(
+            *cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE,
+            env=os.environ.copy()
+        )
+        stdout, stderr = await p.communicate()
         
         if p.returncode != 0 or not os.path.exists(out) or os.path.getsize(out) == 0:
-            raise Exception("FFmpeg processing engine failed to write valid media output data.")
+            err_msg = stderr.decode().strip() if stderr else "Unknown Binary Processing Fault"
+            logging.error(f"FFmpeg Crash Context Logs: {err_msg}")
+            raise Exception(f"FFmpeg failed with exit code {p.returncode}. Reason: {err_msg}")
             
         clip = VideoFileClip(out)
         f_dur = int(clip.duration)
