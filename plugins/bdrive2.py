@@ -11,10 +11,12 @@ from googleapiclient.http import MediaIoBaseDownload
 
 static_ffmpeg.add_paths()
 active_syncs = {}
+
+# CRITICAL FIX: Changed :-1 to :-2 across configurations to guarantee even pixel dimension calculations
 QUALITY_MAP = {
-    "low": {"crf": "30", "scale": "480:-1", "preset": "ultrafast"},
-    "medium": {"crf": "24", "scale": "720:-1", "preset": "veryfast"},
-    "high": {"crf": "18", "scale": "1080:-1", "preset": "medium"}
+    "low": {"crf": "30", "scale": "480:-2", "preset": "ultrafast"},
+    "medium": {"crf": "24", "scale": "720:-2", "preset": "veryfast"},
+    "high": {"crf": "18", "scale": "1080:-2", "preset": "medium"}
 }
 
 async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
