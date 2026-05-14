@@ -29,6 +29,8 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
     try:
         if active_syncs.get(u_id) != t_id: return "Cancelled"
         
+        # Explicit Google API Media Request URL Logic
+        url = f"https://www.googleapis.com/drive/v3/files/{f_id}?alt=media"
         request = svc.files().get_media(fileId=f_id)
         
         with io.FileIO(local_download, 'wb') as fh:
@@ -85,10 +87,10 @@ async def proc_vid(v_obj, token, id2, c, msg, u_id, q_key, t_id, svc):
             percent = int((cur * 100) / tot)
             current_step = (percent // 10) * 10
             
-            if current_step > last_upload_step[0] or cur == tot:
+            if current_step > last_upload_step or cur == tot:
                 try: 
                     await msg.edit(f"📤 **Uploading Preview:** `{v_obj['name']}`\n📊 {percent}%")
-                    last_upload_step[0] = current_step
+                    last_upload_step = current_step
                 except Exception as e: 
                     logging.warning(f"Upload edit skipped: {e}")
             
@@ -136,6 +138,14 @@ async def sync_data(tok, id2, url, c, msg, u_id, qual, t_id, b_name):
 
                 if cur_f == df_img:
                     vids = svc.files().list(q=f"'{f['id']}' in parents and mimeType contains 'video/'", fields="files(id, name)").execute().get('files', [])
+                    
+                    # Deep-subfolder fall-back block if no video is directly found
+                    if not vids:
+                        vids = svc.files().list(q=f"'{f['id']}' in parents and mimeType contains 'video/' and trashed = false", fields="files(id, name)").execute().get('files', [])
+                        if not vids:
+                            # Runs transitive search across all subdirectories inside folder f
+                            vids = svc.files().list(q=f"recursive=true and '{f['id']}' in parents and mimeType contains 'video/'", fields="files(id, name)").execute().get('files', [])
+                    
                     for i, v in enumerate(vids[:5]):
                         if active_syncs.get(u_id) != t_id: return "Cancelled"
                         new_id = await proc_vid(v, getCred(tok, id2).token, id2, c, msg, u_id, qual, t_id, svc)
