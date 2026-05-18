@@ -87,14 +87,17 @@ async def addfilesondrive(client, message):
     b_info = await client.get_me()
     uid = message.from_user.id
     if not await db.is_admin_exist(uid, b_info.username): return
-    text0, args = message.text.strip(), message.text.strip().split()
+    
+    text0 = message.text.strip()
+    args = [text0] if text0.startswith('http') else text0.split()
+    
     gd = await db.get_db_status(uid, b_info.username)
     service = getCreds(gd["token"], uid)
     if service in ['auth_error', 'token_error']: return await message.reply('❌ **Fail:** Token expired. Please login again.')
 
     if message.reply_to_message and any([message.reply_to_message.document, message.reply_to_message.video, message.reply_to_message.audio]):
-        if text0 != "/gdrive" and len(args) != 2: return await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
-        dest_id = get_access_id(args) if len(args) == 2 else 'root'
+        if not text0.startswith('http') and text0 != "/gdrive" and len(args) != 2: return await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
+        dest_id = get_access_id(args[1]) if len(args) == 2 else (get_access_id(args[0]) if text0.startswith('http') else 'root')
         media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
         f_name = media.file_name or "telegram_file"
         if f_name in get_folder_contents(service, dest_id): return await message.reply(f"⏭ **Skipped:** `{f_name}` tayari ipo kwenye Drive.")
@@ -110,15 +113,15 @@ async def addfilesondrive(client, message):
         except googleapiclient.errors.HttpError as error:
             reasons = [r.get('reason','') for r in (error.error_details or [])]
             if error.resp.status == 403 and any(r in ["quotaExceeded", "dailyLimitExceeded", "storageQuotaExceeded"] for r in reasons): await msg_check.edit("🛑 **Imesitishwa!** Google Upload Limit imefikiwa.")
-            elif any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons): await msg_check.edit("🛑 **Imesitishwa!** Rate Limit imefikiwa baada ya kujaribu mara 5.")
+            elif error.resp.status in [403, 429] and any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons): await msg_check.edit("🛑 **Imesitishwa!** Rate Limit imefikiwa baada ya kujaribu mara 5.")
             else: await msg_check.edit(f"❌ **Upload Failed:** {str(error)}")
         except Exception as e: await msg_check.edit(f"❌ **Upload Failed:** {str(e)}")
         finally: 
             if os.path.exists(local_path): os.remove(local_path)
     else:
-        if len(args) == 3: src_id, dest_id = get_access_id(args), get_access_id(args)
-        elif len(args) == 2: src_id, dest_id = get_access_id(args), 'root'
-        elif text0.startswith('http'): src_id, dest_id = get_access_id(text0), 'root'
+        if len(args) == 3: src_id, dest_id = get_access_id(args[1]), get_access_id(args[2])
+        elif len(args) == 2: src_id, dest_id = get_access_id(args[1]), 'root'
+        elif text0.startswith('http'): src_id, dest_id = get_access_id(args[0]), 'root'
         else: return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
         msg_check = await message.reply("🔍 **Validating...**")
         v_src, src_meta = await validate_id(service, src_id, "Source")
