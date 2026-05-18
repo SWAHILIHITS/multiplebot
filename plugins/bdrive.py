@@ -1,9 +1,4 @@
-import os
-import time
-import math
-import random
-import asyncio
-import googleapiclient.errors
+import os, time, random, asyncio, googleapiclient.errors
 from googleapiclient.http import MediaFileUpload
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -11,280 +6,144 @@ from plugins.pm_filter import getCreds, get_access_id
 from bot import Bot0
 from plugins.database import db
 
-# Global tracker for cancel logic
 ACTIVE_TASKS = {}
-
-def get_duration(start_time):
-    seconds = int(time.time() - start_time)
-    mins, secs = divmod(seconds, 60)
-    hours, mins = divmod(mins, 60)
-    return f"{hours}h {mins}m {secs}s" if hours > 0 else f"{mins}m {secs}s"
-
-def get_gb(bytes_size):
-    return round(bytes_size / (1024**3), 2)
+get_duration = lambda s: (lambda m, s: f"{m//60}h {m%60}m {s}s" if m >= 60 else f"{m}m {s}s")(*divmod(int(time.time() - s), 60))
+get_gb = lambda b: round(b / (1024**3), 2)
 
 async def validate_id(service, file_id, name_type):
-    """Checks if ID exists and returns metadata for both files and folders."""
     try:
-        metadata = await asyncio.get_event_loop().run_in_executor(
-            None, 
-            lambda: service.files().get(
-                fileId=file_id, 
-                fields="id, name, mimeType, trashed, size, shortcutDetails", 
-                supportsAllDrives=True
-            ).execute()
-        )
-        if metadata.get('trashed'):
-            return False, f"❌ **{name_type} Error:** Ipo kwenye Trash."
-        
-        if name_type == "Destination" and metadata['mimeType'] != 'application/vnd.google-apps.folder':
-            return False, "❌ **Error:** Destination lazima iwe Folder!"
-            
-        return True, metadata
-    except googleapiclient.errors.HttpError as e:
-        return False, f"❌ **{name_type} Not Found/No Access:** {e.resp.status}"
-    except Exception as e:
-        return False, f"❌ **Error:** {str(e)}"
+        meta = await asyncio.get_event_loop().run_in_executor(None, lambda: service.files().get(fileId=file_id, fields="id, name, mimeType, trashed, size, shortcutDetails", supportsAllDrives=True).execute())
+        if meta.get('trashed'): return False, f"❌ **{name_type} Error:** Ipo kwenye Trash."
+        if name_type == "Destination" and meta['mimeType'] != 'application/vnd.google-apps.folder': return False, "❌ **Error:** Destination lazima iwe Folder!"
+        return True, meta
+    except googleapiclient.errors.HttpError as e: return False, f"❌ **{name_type} Not Found/No Access:** {e.resp.status}"
+    except Exception as e: return False, f"❌ **Error:** {str(e)}"
 
 async def execute_with_retry(request_func, user_id):
-    max_retries = 5
-    for n in range(max_retries):
-        try:
-            return await asyncio.get_event_loop().run_in_executor(None, request_func.execute)
+    reason = "UNKNOWN_ERROR"
+    for n in range(5):
+        try: return await asyncio.get_event_loop().run_in_executor(None, request_func.execute)
         except googleapiclient.errors.HttpError as error:
-            status = error.resp.status
-            reason = error.error_details[0].get('reason') if error.error_details else ""
-            if status in [403, 429] and reason in ["rateLimitExceeded", "userRateLimitExceeded"]:
-                wait_time = (2 ** n) + random.random()
-                await asyncio.sleep(wait_time)
+            reasons = [r.get('reason','') for r in (error.error_details or [])]
+            if error.resp.status == 403 and any(r in ["quotaExceeded", "dailyLimitExceeded", "activeItemCreationLimitExceeded", "storageQuotaExceeded"] for r in reasons):
+                ACTIVE_TASKS[user_id] = "CANCELLED_LIMIT_REACHED"
+                return "LIMIT_REACHED"
+            if error.resp.status in and any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons):
+                reason = "USER_RATE_LIMIT_EXCEEDED" if "userRateLimitExceeded" in reasons else "RATE_LIMIT_EXCEEDED"
+                await asyncio.sleep((2 ** n) + random.random())
                 continue
             return "ERROR"
-    return "FAILED"
+    ACTIVE_TASKS[user_id] = f"CANCELLED_{reason}"
+    return "RETRY_FAILED"
 
 def get_folder_contents(service, folder_id):
-    results_dict = {}
-    page_token = None
+    res_dict, page_token = {}, None
     while True:
         try:
-            response = service.files().list(
-                q=f"'{folder_id}' in parents and trashed = false",
-                fields="nextPageToken, files(id, name, mimeType, size, shortcutDetails)",
-                pageToken=page_token,
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True
-            ).execute()
-            for file in response.get('files', []):
-                results_dict[file['name']] = file
-            page_token = response.get('nextPageToken')
+            resp = service.files().list(q=f"'{folder_id}' in parents and trashed = false", fields="nextPageToken, files(id, name, mimeType, size, shortcutDetails)", pageToken=page_token, supportsAllDrives=True, includeItemsFromAllDrives=True).execute()
+            for f in resp.get('files', []): res_dict[f['name']] = f
+            page_token = resp.get('nextPageToken')
             if not page_token: break
         except: break
-    return results_dict
+    return res_dict
 
-async def recursive_copy(service, source_id, dest_id, client, user_id, stats, progress_msg, start_time):
-    if ACTIVE_TASKS.get(user_id) == "CANCELLED": return
-
-    source_items = get_folder_contents(service, source_id)
-    dest_items = get_folder_contents(service, dest_id)
-
-    for name, item in source_items.items():
-        if ACTIVE_TASKS.get(user_id) == "CANCELLED": break
-
-        real_id, real_mime = item['id'], item['mimeType']
-        if real_mime == 'application/vnd.google-apps.shortcut':
-            details = item.get('shortcutDetails')
-            if details:
-                real_id = details.get('targetId')
-                real_mime = details.get('targetMimeType')
-
+async def recursive_copy(service, src_id, dest_id, client, uid, stats, msg, start):
+    if str(ACTIVE_TASKS.get(uid)).startswith("CANCELLED"): return
+    src_items, dest_items = get_folder_contents(service, src_id), get_folder_contents(service, dest_id)
+    for name, item in src_items.items():
+        if str(ACTIVE_TASKS.get(uid)).startswith("CANCELLED"): break
+        r_id, r_mime = item['id'], item['mimeType']
+        if r_mime == 'application/vnd.google-apps.shortcut' and item.get('shortcutDetails'):
+            r_id, r_mime = item['shortcutDetails'].get('targetId', r_id), item['shortcutDetails'].get('targetMimeType', r_mime)
         if name in dest_items:
-            if real_mime == 'application/vnd.google-apps.folder':
-                await recursive_copy(service, real_id, dest_items[name]['id'], client, user_id, stats, progress_msg, start_time)
-            else:
-                stats['skipped'] += 1
-        elif real_mime == 'application/vnd.google-apps.folder':
-            folder_metadata = {'name': name, 'parents': [dest_id], 'mimeType': 'application/vnd.google-apps.folder'}
-            req = service.files().create(body=folder_metadata, fields='id', supportsAllDrives=True)
-            new_folder = await execute_with_retry(req, user_id)
-            if new_folder and new_folder != "ERROR":
-                await recursive_copy(service, real_id, new_folder['id'], client, user_id, stats, progress_msg, start_time)
+            if r_mime == 'application/vnd.google-apps.folder': await recursive_copy(service, r_id, dest_items[name]['id'], client, uid, stats, msg, start)
+            else: stats['skipped'] += 1
+        elif r_mime == 'application/vnd.google-apps.folder':
+            new_f = await execute_with_retry(service.files().create(body={'name': name, 'parents': [dest_id], 'mimeType': r_mime}, fields='id', supportsAllDrives=True), uid)
+            if new_f in ["LIMIT_REACHED", "RETRY_FAILED"]: break
+            if new_f and new_f != "ERROR": await recursive_copy(service, r_id, new_f['id'], client, uid, stats, msg, start)
             else: stats['failed'] += 1
         else:
-            file_metadata = {'name': name, 'parents': [dest_id]}
-            req = service.files().copy(fileId=real_id, body=file_metadata, supportsAllDrives=True)
-            res = await execute_with_retry(req, user_id)
-            if res and res != "ERROR":
+            res = await execute_with_retry(service.files().copy(fileId=r_id, body={'name': name, 'parents': [dest_id]}, supportsAllDrives=True), uid)
+            if res in ["LIMIT_REACHED", "RETRY_FAILED"]: break
+            if res not in [None, "ERROR", "FAILED"]:
                 stats['copied'] += 1
                 stats['total_bytes'] += int(item.get('size', 0) or 0)
             else: stats['failed'] += 1
-
         if (stats['copied'] + stats['skipped'] + stats['failed']) % 10 == 0:
-            btn = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{user_id}")]])
-            try:
-                await progress_msg.edit(
-                    f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`",
-                    reply_markup=btn
-                )
+            try: await msg.edit(f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]]))
             except: pass
             await asyncio.sleep(1.2)
+
 async def progress_for_pyrogram(current, total, ud_type, message, start):
-    """Helper for real-time progress bar during Telegram downloads."""
-    now = time.time()
-    diff = now - start
+    diff = time.time() - start
     if round(diff % 5.0) == 0 or current == total:
-        percentage = current * 100 / total
-        speed = current / diff
-        time_to_completion = round((total - current) / speed)
-        
-        # Visual Progress Bar
-        completed_blocks = int(percentage // 10)
-        bar = "█" * completed_blocks + "░" * (10 - completed_blocks)
-        
-        progress_str = f"**{ud_type}**\n`[{bar}] {round(percentage, 2)}%`"
-        tmp = f"\n📦 Size: `{get_gb(current)} GB / {get_gb(total)} GB`"
-        
-        try:
-            await message.edit(f"{progress_str}{tmp}")
-        except:
-            pass
+        blks = int((current * 100 / total) // 10)
+        try: await message.edit(f"**{ud_type}**\n`[{'█'*blks + '░'*(10-blks)}] {round(current*100/total, 2)}%`\n📦 Size: `{get_gb(current)} GB / {get_gb(total)} GB`")
+        except: pass
 
-@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://drive.google.com.*'))
+@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://google.com.*'))
 async def addfilesondrive(client, message):
-    bot_info = await client.get_me()
-    if not await db.is_admin_exist(message.from_user.id, bot_info.username): return
-    text0=message.text.strip()
-    await message.reply("ghh ")
-    try:
-        args = text0.split(" ")
-    except:
-        args = text0
-    user_id = message.from_user.id
-    gd = await db.get_db_status(user_id, bot_info.username)
-    service = getCreds(gd["token"], user_id)
-    
-    # Check for Service Failure
-    if service in ['auth_error', 'token_error']:
-        return await message.reply('❌ **Fail:** Token expired. Please login again.')
+    b_info = await client.get_me()
+    uid = message.from_user.id
+    if not await db.is_admin_exist(uid, b_info.username): return
+    text0, args = message.text.strip(), message.text.strip().split()
+    gd = await db.get_db_status(uid, b_info.username)
+    service = getCreds(gd["token"], uid)
+    if service in ['auth_error', 'token_error']: return await message.reply('❌ **Fail:** Token expired. Please login again.')
 
-    # --- CASE 1: Telegram to GDrive ---
-    if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
-        
-        if text0 != "/gdrive" and len(args) != 2 :
-            await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
-
+    if message.reply_to_message and any([message.reply_to_message.document, message.reply_to_message.video, message.reply_to_message.audio]):
+        if text0 != "/gdrive" and len(args) != 2: return await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
+        dest_id = get_access_id(args) if len(args) == 2 else 'root'
         media = message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio
-        file_name = media.file_name or "telegram_file"
-        
-        msg_check = await message.reply(f"📥 **Inaanza kupakua...**\n📂 File: `{file_name}`")
-        start_time = time.time()
-        
-        # Download with Progress Bar
-        try:
-            local_path = await client.download_media(
-                message.reply_to_message,
-                progress=progress_for_pyrogram,
-                progress_args=("📥 Inapakua...", msg_check, start_time)
-            )
-        except Exception as e:
-            return await msg_check.edit(f"❌ **Download Failed:** {str(e)}")
-        
-        if not local_path or not os.path.exists(local_path):
-            return await msg_check.edit("❌ **Fail:** File haikupatikana baada ya download.")
-
-        # Upload to Drive
+        f_name = media.file_name or "telegram_file"
+        if f_name in get_folder_contents(service, dest_id): return await message.reply(f"⏭ **Skipped:** `{f_name}` tayari ipo kwenye Drive.")
+        msg_check = await message.reply(f"📥 **Inaanza kupakua...**\n📂 File: `{f_name}`")
+        start = time.time()
+        try: local_path = await client.download_media(message.reply_to_message, progress=progress_for_pyrogram, progress_args=("📥 Inapakua...", msg_check, start))
+        except Exception as e: return await msg_check.edit(f"❌ **Download Failed:** {str(e)}")
+        if not local_path or not os.path.exists(local_path): return await msg_check.edit("❌ **Error:** Faili halikupatikana.")
         await msg_check.edit("📤 **Inatuma kwenda Google Drive...**")
-        if len(args) == 2:
-            dest_id = get_access_id(args[1])
-            file_metadata = {'name': file_name, 'parents': [dest_id]}  
-        else:
-            dest_id='root'
-            file_metadata = {'name': file_name}
-        dest_items = get_folder_contents(service, dest_id)
-
-        if file_name in dest_items:
-            return await msg_check.edit(f"⏭ **Skipped:** `{file_name}` tayari ipo kwenye Drive.")
-        media_body = MediaFileUpload(local_path, resumable=True)
-        
         try:
-            uploaded = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: service.files().create(body=file_metadata, media_body=media_body, supportsAllDrives=True).execute()
-            )
-            await msg_check.edit(f"✅ **Imekamilika!**\n📂 Jina: `{file_name}`\n🆔 ID: `{uploaded.get('id')}`")
-        except Exception as e:
-            await msg_check.edit(f"❌ **Upload Failed:** {str(e)}")
-        finally:
-            if os.path.exists(local_path): 
-                os.remove(local_path)
-
-    # --- CASE 2: Clone GDrive to GDrive ---
+            uploaded = await asyncio.get_event_loop().run_in_executor(None, lambda: service.files().create(body={'name': f_name, 'parents': [dest_id]} if dest_id != 'root' else {'name': f_name}, media_body=MediaFileUpload(local_path, resumable=True), supportsAllDrives=True).execute())
+            await msg_check.edit(f"✅ **Imekamilika!**\n📂 Jina: `{f_name}`\n🆔 ID: `{uploaded.get('id')}`")
+        except googleapiclient.errors.HttpError as error:
+            reasons = [r.get('reason','') for r in (error.error_details or [])]
+            if error.resp.status == 403 and any(r in ["quotaExceeded", "dailyLimitExceeded", "storageQuotaExceeded"] for r in reasons): await msg_check.edit("🛑 **Imesitishwa!** Google Upload Limit imefikiwa.")
+            elif any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons): await msg_check.edit("🛑 **Imesitishwa!** Rate Limit imefikiwa baada ya kujaribu mara 5.")
+            else: await msg_check.edit(f"❌ **Upload Failed:** {str(error)}")
+        except Exception as e: await msg_check.edit(f"❌ **Upload Failed:** {str(e)}")
+        finally: 
+            if os.path.exists(local_path): os.remove(local_path)
     else:
-        if len(args) == 3 :
-            source_id = get_access_id(args[1])
-            dest_id = get_access_id(args[2])
-        elif len(args) == 2 :
-            source_id = get_access_id(args[1])
-            dest_id = 'root'
-        elif text0.startswith('http'):
-            source_id = get_access_id(text0)
-            dest_id = 'root'
-        else:
-            await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
-            return
-        
-        
+        if len(args) == 3: src_id, dest_id = get_access_id(args), get_access_id(args)
+        elif len(args) == 2: src_id, dest_id = get_access_id(args), 'root'
+        elif text0.startswith('http'): src_id, dest_id = get_access_id(text0), 'root'
+        else: return await message.reply('Tuma: `/gdrive source_url dest_url` au reply kwenye file.au tuma url ya kudownload')
         msg_check = await message.reply("🔍 **Validating...**")
-        v_src, src_meta = await validate_id(service, source_id, "Source")
+        v_src, src_meta = await validate_id(service, src_id, "Source")
         v_dest, dest_meta = await validate_id(service, dest_id, "Destination")
-        
-        if not v_src or not v_dest:
-            return await msg_check.edit("❌ **Validation Failed:** Tafadhali kagua ID za Drive zako.")
-        
-        # ... [Rest of cloning logic as before] ...
-
-        user_id = message.from_user.id
-        ACTIVE_TASKS[user_id] = "RUNNING"
-        stats = {'copied': 0, 'skipped': 0, 'total_bytes': 0, 'failed': 0}
-        start_time = time.time()
-
-        src_real_id = src_meta['id']
-        src_real_mime = src_meta['mimeType']
-        if src_real_mime == 'application/vnd.google-apps.shortcut':
-            details = src_meta.get('shortcutDetails', {})
-            src_real_id = details.get('targetId', src_real_id)
-            src_real_mime = details.get('targetMimeType', src_real_mime)
-
-        await msg_check.edit(f"🚀 **Kazi Inaanza...**\n📂 Jina: `{src_meta['name']}`\n📂 Aina: `{'Folder' if src_real_mime == 'application/vnd.google-apps.folder' else 'File'}`")
-
-        if src_real_mime == 'application/vnd.google-apps.folder':
-            await recursive_copy(service, src_real_id, dest_id, client, user_id, stats, msg_check, start_time)
+        if not v_src or not v_dest: return await msg_check.edit("❌ **Validation Failed:** Tafadhali kagua ID za Drive zako.")
+        ACTIVE_TASKS[uid], start, stats = "RUNNING", time.time(), {'copied': 0, 'skipped': 0, 'total_bytes': 0, 'failed': 0}
+        r_id, r_mime = src_meta['id'], src_meta['mimeType']
+        if r_mime == 'application/vnd.google-apps.shortcut': r_id, r_mime = src_meta.get('shortcutDetails', {}).get('targetId', r_id), src_meta.get('shortcutDetails', {}).get('targetMimeType', r_mime)
+        await msg_check.edit(f"🚀 **Kazi Inaanza...**\n📂 Jina: `{src_meta['name']}`\n📂 Aina: `{'Folder' if r_mime == 'application/vnd.google-apps.folder' else 'File'}`")
+        if r_mime == 'application/vnd.google-apps.folder': await recursive_copy(service, r_id, dest_id, client, uid, stats, msg_check, start)
         else:
-            if text0.startswith("http") or len(args)==2:
-                file_metadata = {'name': src_meta['name']}
-            else:
-                file_metadata = {'name': src_meta['name'], 'parents': [dest_id]}
-            # Before starting the upload logic in CASE 1
-            dest_items = get_folder_contents(service, dest_id)
-
-            if src_meta['name'] in dest_items:
-                 return await msg_check.edit(f"⏭ **Skipped:** `{src_meta['name']}` tayari ipo kwenye Drive.")
-            req = service.files().copy(fileId=src_real_id, body=file_metadata, supportsAllDrives=True)
-            res = await execute_with_retry(req, user_id)
-            if res and res != "ERROR":
-                stats['copied'] += 1
-                stats['total_bytes'] += int(src_meta.get('size', 0) or 0)
-            else: stats['failed'] += 1
-    
-        final_status = "✅ Imekamilika!" if ACTIVE_TASKS.get(user_id) != "CANCELLED" else "🛑 Imesitishwa!"
-        await msg_check.edit(f"{final_status}\n\n✅ Copied: `{stats['copied']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start_time)}`")
-        ACTIVE_TASKS.pop(user_id, None)
+            if src_meta['name'] in get_folder_contents(service, dest_id): return await msg_check.edit(f"⏭ **Skipped:** `{src_meta['name']}` tayari ipo kwenye Drive.")
+            res = await execute_with_retry(service.files().copy(fileId=r_id, body={'name': src_meta['name']} if text0.startswith("http") or len(args)==2 else {'name': src_meta['name'], 'parents': [dest_id]}, supportsAllDrives=True), uid)
+            if res not in ["LIMIT_REACHED", "RETRY_FAILED", "ERROR", "FAILED", None]: stats['copied'], stats['total_bytes'] = stats['copied'] + 1, stats['total_bytes'] + int(src_meta.get('size', 0) or 0)
+            elif res not in ["LIMIT_REACHED", "RETRY_FAILED"]: stats['failed'] += 1
+        
+        lbl = {"CANCELLED_USER_RATE_LIMIT_EXCEEDED": "🛑 **Imesitishwa!** User Rate Limit imezidi baada ya kujaribu mara 5.", "CANCELLED_RATE_LIMIT_EXCEEDED": "🛑 **Imesitishwa!** Rate Limit imezidi baada ya kujaribu mara 5.", "CANCELLED_LIMIT_REACHED": "🛑 **Imesitishwa!** Google Drive Upload/Quota limit imefikiwa.", "CANCELLED": "🛑 **Imesitishwa na Mtumiaji!**"}.get(ACTIVE_TASKS.get(uid), "✅ **Imekamilika!**")
+        await msg_check.edit(f"{lbl}\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`\n⏱ Time: `{get_duration(start)}`")
+        ACTIVE_TASKS.pop(uid, None)
 
 @Bot0.on_callback_query(filters.regex(r"^stop_gd_(\d+)$"))
 async def stop_gdrive_task(client, query):
-    user_id_in_data = int(query.data.split("_")[-1])
-    if query.from_user.id != user_id_in_data:
-        return await query.answer("❌ Huna ruhusa ya kusitisha kazi hii!", show_alert=True)
-
-    if ACTIVE_TASKS.get(user_id_in_data) == "RUNNING":
-        ACTIVE_TASKS[user_id_in_data] = "CANCELLED"
+    u_id = int(query.data.split("_")[-1])
+    if query.from_user.id != u_id: return await query.answer("❌ Huna ruhusa ya kusitisha kazi hii!", show_alert=True)
+    if ACTIVE_TASKS.get(u_id) == "RUNNING":
+        ACTIVE_TASKS[u_id] = "CANCELLED"
         await query.answer("🛑 Inasitishwa... Tafadhali subiri.", show_alert=True)
-    else:
-        await query.answer("⚠️ Kazi tayari imeshaisha au imesitishwa.", show_alert=True)
+    else: await query.answer("⚠️ Kazi tayari imeshaisha au imesitishwa.", show_alert=True)
