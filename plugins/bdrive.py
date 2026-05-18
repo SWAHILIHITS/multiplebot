@@ -82,7 +82,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
         try: await message.edit(f"**{ud_type}**\n`[{'█'*blks + '░'*(10-blks)}] {round(current*100/total, 2)}%`\n📦 Size: `{get_gb(current)} GB / {get_gb(total)} GB`")
         except: pass
 
-@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://google.com.*'))
+@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://drive.google.com.*'))
 async def addfilesondrive(client, message):
     b_info = await client.get_me()
     uid = message.from_user.id
