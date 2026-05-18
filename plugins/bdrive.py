@@ -28,7 +28,7 @@ async def execute_with_retry(request_func, user_id):
             if error.resp.status == 403 and any(r in ["quotaExceeded", "dailyLimitExceeded", "activeItemCreationLimitExceeded", "storageQuotaExceeded"] for r in reasons):
                 ACTIVE_TASKS[user_id] = "CANCELLED_LIMIT_REACHED"
                 return "LIMIT_REACHED"
-            if error.resp.status in and any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons):
+            if error.resp.status in [403, 429] and any(r in ["rateLimitExceeded", "userRateLimitExceeded"] for r in reasons):
                 reason = "USER_RATE_LIMIT_EXCEEDED" if "userRateLimitExceeded" in reasons else "RATE_LIMIT_EXCEEDED"
                 await asyncio.sleep((2 ** n) + random.random())
                 continue
