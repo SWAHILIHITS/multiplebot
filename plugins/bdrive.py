@@ -73,7 +73,7 @@ async def recursive_copy(service, src_id, dest_id, client, uid, stats, msg, star
         if (stats['copied'] + stats['skipped'] + stats['failed']) % 10 == 0:
             try: await msg.edit(f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]]))
             except: pass
-            await asyncio.sleep(1.2)
+            await asyncio.sleep(0.2)
 
 async def progress_for_pyrogram(current, total, ud_type, message, start):
     diff = time.time() - start
