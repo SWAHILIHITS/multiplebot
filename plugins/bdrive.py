@@ -70,7 +70,7 @@ async def recursive_copy(service, src_id, dest_id, client, uid, stats, msg, star
                 stats['copied'] += 1
                 stats['total_bytes'] += int(item.get('size', 0) or 0)
             else: stats['failed'] += 1
-        if (stats['copied'] + stats['skipped'] + stats['failed']) % 10 == 0:
+        if (stats['copied'] + stats['skipped'] + stats['failed']) % 50 == 0:
             try: await msg.edit(f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]]))
             except: pass
             await asyncio.sleep(0.2)
