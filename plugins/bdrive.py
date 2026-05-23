@@ -74,6 +74,55 @@ async def recursive_copy(service, src_id, dest_id, client, uid, stats, msg, star
             try: await msg.edit(f"⏳ **Inaendelea...**\n\n✅ Copied: `{stats['copied']}`\n❌ Failed: `{stats['failed']}`\n📦 Size: `{get_gb(stats['total_bytes'])} GB`", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]]))
             except: pass
             await asyncio.sleep(0.2)
+async def recursive_delete(service, fid, email, stats, msg, uid):
+    if is_cancelled(uid): return
+    token = None
+    # Select both subfolders AND files in the current directory
+    q = f"'{fid}' in parents and trashed = false"
+    
+    while not is_cancelled(uid):
+        try:
+            res = await run_async(lambda: service.files().list(
+                q=q, 
+                fields="nextPageToken, files(id, name, mimeType, owners)", 
+                pageToken=token, 
+                supportsAllDrives=True, 
+                includeItemsFromAllDrives=True
+            ).execute())
+            
+            for item in res.get("files", []):
+                if is_cancelled(uid): break
+                
+                # Condition 1: If it's a subfolder, dig deeper inside it recursively
+                if item["mimeType"] == "application/vnd.google-apps.folder":
+                    await recursive_delete(service, item["id"], email, stats, msg, uid)
+                    continue
+                
+                # Condition 2: If it's a file, verify ownership before moving to trash
+                if any(o.get("emailAddress", "").lower() == email.lower() for o in item.get("owners", [])):
+                    await run_async(lambda: service.files().update(
+                        fileId=item["id"], 
+                        body={"trashed": True}, 
+                        supportsAllDrives=True
+                    ).execute())
+                    
+                    stats["deleted"] += 1
+                    if stats["deleted"] % 10 == 0:
+                        try: 
+                            await msg.edit(
+                                f"🗑 **Inafuta Kazi (Deep Scan)...**\n"
+                                f"📂 ID ya Sasa: `{fid}`\n"
+                                f"🗑 Mafaili Yaliyofutwa: `{stats['deleted']}`", 
+                                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]] )
+                            )
+                        except: pass
+                    await asyncio.sleep(0.1)
+                    
+            token = res.get("nextPageToken")
+            if not token: break
+        except Exception: 
+            stats["errors"] += 1
+            break
 
 async def progress_for_pyrogram(current, total, ud_type, message, start):
     diff = time.time() - start
@@ -94,31 +143,32 @@ async def addfilesondrive(client, message):
     gd = await db.get_db_status(uid, b_info.username)
     service = getCreds(gd["token"], uid)
     if service in ['auth_error', 'token_error']: return await message.reply('❌ **Fail:** Token expired. Please login again.')
-    if text0.startswith("gdelete"):
-        FOLDER_ID = get_access_id(args[1])
-        TARGET_EMAIL = get_access_id(args[2])# The email you want to target
-        query = (
-            f"'{FOLDER_ID}' in parents and "
-            f"'{TARGET_EMAIL}' in owners and "
-            f"trashed = false"
+    if text0.startswith("/gdelete"):
+        if len(args) != 3: 
+            return await message.reply("❌ **Matumizi:** `/gdelete [folder_id/url] [target_email]`")
+        
+        fid, email = get_access_id(args[1]), args[2]
+        msg_del = await message.reply(
+            f"🚀 **Kazi ya Futa Imeanza (Files Only)!**\n"
+            f"📁 Mzizi: `{fid}`\n"
+            f"👤 Mmiliki wa Kufuta: `{email}`", 
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]] )
         )
+        
+        ACTIVE_TASKS[uid], start_time, stats = "RUNNING", time.time(), {"deleted": 0, "errors": 0}
+        
+        # Starts the multi-level subfolder traversal
+        await recursive_delete(service, fid, email, stats, msg_del, uid)
+        
+        lbl = "🛑 **Kazi Imesitishwa na Mtumiaji!**" if ACTIVE_TASKS.get(uid) == "CANCELLED" else "✅ **Kazi Imekamilika!**"
+        await msg_del.edit(
+            f"{lbl}\n\n"
+            f"🗑 Jumla ya Mafaili Yaliyofutwa: `{stats['deleted']}`\n"
+            f"⚠️ Hitilafu (Errors): `{stats['errors']}`\n"
+            f"⏱ Muda Uliotumika: `{get_duration(start_time)}`"
+        )
+        return ACTIVE_TASKS.pop(uid, None)
 
-        results = (
-            service.files()
-            .list(q=query, fields="nextPageToken, files(id, name, mimeType)")
-            .execute()
-        )
-        items = results.get("files", [])
-        if not items:
-            print(f"No files found for email: {TARGET_EMAIL}")
-        else:
-            for item in items:
-                if item["mimeType"] == "application/vnd.google-apps.folder":
-                    continue  # Skip subfolders
-                await asyncio.sleep(0.1)
-                service.files().update(fileId=item["id"], body={"trashed": True}).execute()
-                print(f"Trashed: {item['name']} (Owned by {TARGET_EMAIL})")
-        return
     if message.reply_to_message and any([message.reply_to_message.document, message.reply_to_message.video, message.reply_to_message.audio]):
         if not text0.startswith('http') and text0 != "/gdrive" and len(args) != 2: return await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
         dest_id = get_access_id(args[1]) if len(args) == 2 else (get_access_id(args[0]) if text0.startswith('http') else 'root')
