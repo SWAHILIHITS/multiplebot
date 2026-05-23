@@ -82,7 +82,7 @@ async def progress_for_pyrogram(current, total, ud_type, message, start):
         try: await message.edit(f"**{ud_type}**\n`[{'█'*blks + '░'*(10-blks)}] {round(current*100/total, 2)}%`\n📦 Size: `{get_gb(current)} GB / {get_gb(total)} GB`")
         except: pass
 
-@Bot0.on_message(filters.command("gdrive") | filters.regex('^https://drive.google.com.*'))
+@Bot0.on_message(filters.command("gdrive") | filters.command("gdelete") | filters.regex('^https://drive.google.com.*'))
 async def addfilesondrive(client, message):
     b_info = await client.get_me()
     uid = message.from_user.id
@@ -94,7 +94,31 @@ async def addfilesondrive(client, message):
     gd = await db.get_db_status(uid, b_info.username)
     service = getCreds(gd["token"], uid)
     if service in ['auth_error', 'token_error']: return await message.reply('❌ **Fail:** Token expired. Please login again.')
+    if message.text.lower.startswith("gdelete"):
+        FOLDER_ID = get_access_id(args[1])
+        TARGET_EMAIL = get_access_id(args[2])# The email you want to target
+        query = (
+            f"'{FOLDER_ID}' in parents and "
+            f"'{TARGET_EMAIL}' in owners and "
+            f"trashed = false"
+        )
 
+        results = (
+            service.files()
+            .list(q=query, fields="nextPageToken, files(id, name, mimeType)")
+            .execute()
+        )
+        items = results.get("files", [])
+        if not items:
+            print(f"No files found for email: {TARGET_EMAIL}")
+        else:
+            for item in items:
+                if item["mimeType"] == "application/vnd.google-apps.folder":
+                    continue  # Skip subfolders
+                await asyncio.sleep(0.1)
+                service.files().update(fileId=item["id"], body={"trashed": True}).execute()
+                print(f"Trashed: {item['name']} (Owned by {TARGET_EMAIL})")
+        return
     if message.reply_to_message and any([message.reply_to_message.document, message.reply_to_message.video, message.reply_to_message.audio]):
         if not text0.startswith('http') and text0 != "/gdrive" and len(args) != 2: return await message.reply('Tuma: `/gdrive dest_url` (Reply on file) au /gdrive bx tu')
         dest_id = get_access_id(args[1]) if len(args) == 2 else (get_access_id(args[0]) if text0.startswith('http') else 'root')
