@@ -94,7 +94,7 @@ async def addfilesondrive(client, message):
     gd = await db.get_db_status(uid, b_info.username)
     service = getCreds(gd["token"], uid)
     if service in ['auth_error', 'token_error']: return await message.reply('❌ **Fail:** Token expired. Please login again.')
-    if message.text.lower.startswith("gdelete"):
+    if text0.startswith("gdelete"):
         FOLDER_ID = get_access_id(args[1])
         TARGET_EMAIL = get_access_id(args[2])# The email you want to target
         query = (
