@@ -5,11 +5,11 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from plugins.pm_filter import getCreds, get_access_id
 from bot import Bot0
 from plugins.database import db
-
 ACTIVE_TASKS = {}
+is_cancelled = lambda uid: str(ACTIVE_TASKS.get(uid)).startswith("CANCELLED")
 get_duration = lambda s: (lambda m, s: f"{m//60}h {m%60}m {s}s" if m >= 60 else f"{m}m {s}s")(*divmod(int(time.time() - s), 60))
 get_gb = lambda b: round(b / (1024**3), 2)
-
+run_async = lambda func, *args: asyncio.get_event_loop().run_in_executor(None, func, *args)
 async def validate_id(service, file_id, name_type):
     try:
         meta = await asyncio.get_event_loop().run_in_executor(None, lambda: service.files().get(fileId=file_id, fields="id, name, mimeType, trashed, size, shortcutDetails", supportsAllDrives=True).execute())
