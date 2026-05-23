@@ -77,8 +77,15 @@ async def recursive_copy(service, src_id, dest_id, client, uid, stats, msg, star
 async def recursive_delete(service, fid, email, stats, msg, uid):
     if is_cancelled(uid): return
     token = None
-    # Select both subfolders AND files in the current directory
-    q = f"'{fid}' in parents and trashed = false"
+    
+    # ✅ OPTIMIZATION: 
+    # Only request Folders (to traverse) OR Files owned by the Target (to delete).
+    # Files owned by others are blocked at the API level, saving massive bandwidth.
+    q = (
+        f"'{fid}' in parents and "
+        f"(mimeType = 'application/vnd.google-apps.folder' or '{email}' in owners) "
+        f"and trashed = false"
+    )
     
     while not is_cancelled(uid):
         try:
@@ -93,13 +100,15 @@ async def recursive_delete(service, fid, email, stats, msg, uid):
             for item in res.get("files", []):
                 if is_cancelled(uid): break
                 
-                # Condition 1: If it's a subfolder, dig deeper inside it recursively
+                # 1. Traverse Subfolders (The query ensures we still see these!)
                 if item["mimeType"] == "application/vnd.google-apps.folder":
                     await recursive_delete(service, item["id"], email, stats, msg, uid)
                     continue
                 
-                # Condition 2: If it's a file, verify ownership before moving to trash
-                if any(o.get("emailAddress", "").lower() == email.lower() for o in item.get("owners", [])):
+                # 2. Delete Target Files
+                # We don't need to check 'if owner == email' here because 
+                # the API query 'or email in owners' ALREADY guaranteed it!
+                try:
                     await run_async(lambda: service.files().update(
                         fileId=item["id"], 
                         body={"trashed": True}, 
@@ -107,22 +116,34 @@ async def recursive_delete(service, fid, email, stats, msg, uid):
                     ).execute())
                     
                     stats["deleted"] += 1
-                    if stats["deleted"] % 10 == 0:
-                        try: 
-                            await msg.edit(
-                                f"🗑 **Inafuta Kazi (Deep Scan)...**\n"
-                                f"📂 ID ya Sasa: `{fid}`\n"
-                                f"🗑 Mafaili Yaliyofutwa: `{stats['deleted']}`", 
-                                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]] )
-                            )
-                        except: pass
-                    await asyncio.sleep(0.1)
+                    
+                except googleapiclient.errors.HttpError as e:
+                    if e.resp.status == 403:
+                        print(f"⚠️ Skipped (No Permission): {item['name']}")
+                        stats["errors"] += 1
+                    else:
+                        raise e
+
+                # Update status every 20 deletions (reduced spam)
+                if stats["deleted"] % 20 == 0:
+                    try: 
+                        await msg.edit(
+                            f"🗑 **Inafuta Kazi (Turbo Mode)...**\n"
+                            f"🎯 Target: `{email}`\n"
+                            f"✅ Imefuta: `{stats['deleted']}`\n"
+                            f"⚠️ Errors: `{stats['errors']}`", 
+                            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Sitisha", callback_data=f"stop_gd_{uid}")]] )
+                        )
+                    except: pass
                     
             token = res.get("nextPageToken")
             if not token: break
-        except Exception: 
+            
+        except Exception as e: 
+            print(f"❌ Critical Error: {e}")
             stats["errors"] += 1
             break
+
 
 async def progress_for_pyrogram(current, total, ud_type, message, start):
     diff = time.time() - start
