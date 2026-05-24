@@ -188,6 +188,7 @@ async def addfilesondrive(client, message):
             f"⚠️ Hitilafu (Errors): `{stats['errors']}`\n"
             f"⏱ Muda Uliotumika: `{get_duration(start_time)}`"
         )
+        service.files().emptyTrash().execute()
         return ACTIVE_TASKS.pop(uid, None)
 
     if message.reply_to_message and any([message.reply_to_message.document, message.reply_to_message.video, message.reply_to_message.audio]):
