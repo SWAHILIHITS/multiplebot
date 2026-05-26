@@ -191,6 +191,11 @@ async def addtokeni(client, message):
     status= await db.is_admin_exist(message.from_user.id,nyva) 
     if not status:
         return
+    file_path = f"{message.from_user.id}.pickle"
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"{file_path}")
     try1=message.text.strip()
     ghi=f'{try1.split(" ")[1]}'
     ghi=f'token {ghi}'
