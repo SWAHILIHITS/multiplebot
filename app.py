@@ -298,7 +298,7 @@ def handle_404(e):
 
 @app.route('/login', methods=['POST'])
 def process_login():
-    """Validates voucher code and executes WifiDog redirect handshake."""
+    """Validates voucher code and executes WifiDog JS redirect handshake."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_param('gw_address') or '192.168.0.46'
@@ -348,12 +348,39 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. WifiDog Gateway Redirect (Sends client browser to router local auth)
-    if gw_address:
-        redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-        return redirect(redirect_url)
+    # 3. Target local router auth URL
+    redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
-    return "<h1>✅ Vocha Imekubaliwa! IMEFANIKIWA.</h1>"
+    # 4. JS Page Redirect (Bypasses HTTPS -> HTTP mobile browser blocking)
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Inaunganisha...</title>
+        <style>
+            body {{ font-family: sans-serif; text-align: center; padding: 60px 20px; background: #f4f6f8; color: #172b4d; }}
+            .card {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 300px; margin: 0 auto; }}
+            .loader {{ border: 4px solid #dfe1e6; border-top: 4px solid #0052cc; border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite; margin: 0 auto 15px auto; }}
+            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            a {{ color: #0052cc; font-weight: bold; text-decoration: none; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="loader"></div>
+            <h3 style="margin: 0 0 8px 0; color: #0052cc;">Vocha Imekubaliwa!</h3>
+            <p style="font-size: 14px; color: #5e6c84; margin-bottom: 15px;">Inaunganisha intaneti...</p>
+            <p style="font-size: 12px; color: #888;">Kama hainiingizi pekee, <a href="{redirect_url}">Bonyeza Hapa</a>.</p>
+        </div>
+        <script>
+            setTimeout(function() {{
+                window.location.href = "{redirect_url}";
+            }}, 300);
+        </script>
+    </body>
+    </html>
+    """
 
 
 # ==========================================
