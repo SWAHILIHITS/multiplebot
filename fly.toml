@@ -10,9 +10,6 @@ primary_region = 'ams'
 
 [build.settings]
   pythonbase = "3.11-slim"
-[processes]
-  web = "gunicorn -b 0.0.0.0:8080 app:app"
-  bot = "python3 bot.py"
 
 [[restart]]
   policy = "on-failure"
