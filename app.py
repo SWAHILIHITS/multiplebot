@@ -335,83 +335,57 @@ def handle_404(e):
 
 @app.route('/login', methods=['POST'])
 def login():
-    code = request.form.get('voucher', '').strip()
-    mac_address = request.form.get('mac', '').strip().upper()
-    gw_address = request.form.get('gw_address', '').strip()
-    gw_port = request.form.get('gw_port', '2060').strip()
-    userurl = request.args.get('url', request.args.get('userurl', 'http://www.baidu.com'))
+    f = request.form
+    code = f.get('voucher','').strip()
+    mac = f.get('mac','').strip().upper()
     
-    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+    # Retrieve the dynamic parameter names passed down by the RAP62-OD hardware
+    gw_addr = f.get('gw_address','').strip()
+    gw_port = f.get('gw_port','').strip()
+    userurl = request.args.get('url', request.args.get('userurl', 'http://1.1.1'))
+    
+    # Dynamic parameter collection for external integration strings
+    auth_sn = request.args.get('sn', '')
+    auth_ap = request.args.get('apmac', request.args.get('ap_mac', ''))
 
+    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
     if not voucher:
-        return render_template_string(
-            PORTAL_TEMPLATE, 
-            mac=mac_address, 
-            gw_address=gw_address, 
-            gw_port=gw_port, 
-            error="Vocha hii siyo sahihi au ishatumika."
-        )
+        return render_template_string(PORTAL_T, mac=mac, gw_address=gw_addr, gw_port=gw_port, error="Vocha haipo au ishatumika.")
 
     now = datetime.now()
-    duration_minutes = voucher['duration_minutes']
-    expire_date = now + timedelta(minutes=duration_minutes)
+    exp = now + timedelta(minutes=int(voucher['duration_minutes']))
+    
+    # Authorize session mapping inside MongoDB
+    sessions_col.replace_one({"_id": mac}, {"_id": mac, "code": code, "used_time": now, "expire_date": exp, "duration_minutes": voucher['duration_minutes'], "status": "ACTIVE"}, upsert=True)
+    vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac, "used_time": now}})
 
-    session_data = {
-        "_id": mac_address,
-        "code": code,
-        "used_time": now,
-        "expire_date": expire_date,
-        "duration_minutes": duration_minutes,
-        "status": "ACTIVE"
-    }
-    sessions_col.replace_one({"_id": mac_address}, session_data, upsert=True)
-    vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac_address}})
-
-    # Ruijie auto-submitting POST form targeting webauth.cgi
-    if gw_address:
-        ruijie_post_url = f"http://{gw_address}:{gw_port}/webauth.cgi"
+    # --- REYEE AP COMPATIBLE HANDSHAKE ---
+    # The RAP62-OD passes its return address via the landing loop parameters. 
+    # If the AP didn't provide a specific port, fallback directly to standard HTTP/HTTPS.
+    if gw_addr:
+        target_port = f":{gw_port}" if gw_port and gw_port not in ["80", "443", "2060"] else ""
         
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Connecting Internet...</title>
-            <style>
-                body {{ font-family: sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; }}
-                .loader {{ font-size: 18px; color: #0052cc; font-weight: bold; margin-top: 20px; }}
-                .btn {{ display: inline-block; padding: 14px 28px; background: #0052cc; color: #fff; 
-                        text-decoration: none; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }}
-            </style>
-        </head>
-        <body>
-            <h1 style="color: #36b37e;">✅ Vocha Imekubaliwa!</h1>
-            <p class="loader">Inaunganisha intaneti, tafadhali subiri...</p>
+        # Detect if your Ruijie Cloud is serving HTTPS or normal HTTP configurations
+        protocol = "https" if request.is_secure or gw_port == "443" else "http"
+        
+        return f"""<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connecting</title></head>
+        <body style="font-family:sans-serif;text-align:center;padding:40px">
+        <h1>✅ Vocha Imekubaliwa!</h1>
+        <p>Inaunganisha kwenye mtandao...</p>
+        
+        <form id="f" action="{protocol}://{gw_addr}{target_port}/webauth.cgi" method="POST">
+            <input type="hidden" name="action" value="login">
+            <input type="hidden" name="username" value="guest">
+            <input type="hidden" name="password" value="guest">
+            <input type="hidden" name="mac" value="{mac}">
+            <input type="hidden" name="url" value="{userurl}">
+            <button type="submit">Bofya hapa kama haijaenda</button>
+        </form>
+        <script>setTimeout(()=>document.getElementById('f').submit(),300);</script>
+        </body></html>"""
+        
+    return "<h1>✅ IMEFANIKIWA!</h1>"
 
-            <form id="ruijieAuthForm" action="{ruijie_post_url}" method="POST">
-                <input type="hidden" name="action" value="login">
-                <input type="hidden" name="username" value="guest">
-                <input type="hidden" name="password" value="guest">
-                <input type="hidden" name="mac" value="{mac_address}">
-                <input type="hidden" name="url" value="{userurl}">
-                <button type="submit" class="btn">Bonyeza Hapa Kuunganisha</button>
-            </form>
-
-            <script>
-                setTimeout(function() {{
-                    document.getElementById('ruijieAuthForm').submit();
-                }}, 500);
-            </script>
-        </body>
-        </html>
-        """
-
-    return f"""
-    <div style="font-family: sans-serif; text-align: center; margin-top: 80px;">
-        <h1 style="color: #36b37e;">✅ IMEFANIKIWA!</h1>
-        <p>Device (<b>{mac_address}</b>) imeunganishwa na intaneti.</p>
-    </div>
-    """
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
