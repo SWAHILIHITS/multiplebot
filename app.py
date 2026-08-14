@@ -3,17 +3,13 @@ import random
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, redirect, session, url_for
 from pymongo import MongoClient
-
+from info import DB2
 app = Flask(__name__)
 
 # --- ENVIRONMENT VARIABLES (Read from Fly.io Secrets) ---
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key_change_me")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-
-# MongoDB Connection
-client = MongoClient(MONGO_URI)
-db = client["hotspot_db"]
+db=DB2
 
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
