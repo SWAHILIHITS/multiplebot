@@ -9,7 +9,8 @@ app = Flask(__name__)
 # --- ENVIRONMENT VARIABLES (Read from Fly.io Secrets) ---
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key_change_me")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-db=DB2
+client = MongoClient('mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
+db= client['swahilihit56']
 
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
