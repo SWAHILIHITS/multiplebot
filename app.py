@@ -3,14 +3,20 @@ import random
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, redirect, session, url_for
 from pymongo import MongoClient
-from info import DB2
+
 app = Flask(__name__)
 
 # --- ENVIRONMENT VARIABLES (Read from Fly.io Secrets) ---
 app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key_change_me")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
-client = MongoClient('mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority')
-db= client['swahilihit56']
+
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+)
+
+client = MongoClient(MONGO_URI)
+db = client['swahilihit56']
 
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
@@ -282,13 +288,32 @@ PRINT_TEMPLATE = """
 """
 
 # ==========================================
-# 🚀 ROUTES
+# 🚀 ROUTES & PORTAL HANDLERS
 # ==========================================
 
+def get_client_mac():
+    """Extract MAC address across multiple router query parameter variations."""
+    return (
+        request.args.get('mac')
+        or request.args.get('usermac')
+        or request.args.get('client_mac')
+        or request.args.get('client-mac')
+        or 'DEMO:MAC:00:11:22'
+    ).upper()
+
 @app.route('/')
+@app.route('/index.html')
+@app.route('/portal')
+@app.route('/login.html')
 def home():
-    mac_address = request.args.get('mac', 'DEMO:MAC:00:11:22').upper()
+    mac_address = get_client_mac()
     return render_template_string(PORTAL_TEMPLATE, mac=mac_address)
+
+# 🎯 CATCH-ALL: Intercepts all extra paths requested by Ruijie or phones (e.g. /generate_204)
+@app.errorhandler(404)
+def handle_404(e):
+    mac_address = get_client_mac()
+    return render_template_string(PORTAL_TEMPLATE, mac=mac_address), 200
 
 @app.route('/login', methods=['POST'])
 def login():
