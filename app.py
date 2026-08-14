@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# --- ENVIRONMENT VARIABLES (Loaded from Fly.io secrets or defaults) ---
+# --- ENVIRONMENT VARIABLES ---
 app.secret_key = os.getenv("SECRET_KEY", "hans_wifi_secret_key_2026")
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 
@@ -21,7 +21,7 @@ client = MongoClient(MONGO_URI)
 db = client['swahilihit56']
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
-tokens_col = db["wifidog_tokens"]  # Collection for WifiDog handshake tokens
+tokens_col = db["wifidog_tokens"]
 
 
 # --- HELPER FUNCTIONS ---
@@ -277,7 +277,7 @@ PRINT_TEMPLATE = """
 def captive_login_page():
     """Renders the voucher portal whenever a user connects to Wi-Fi."""
     mac = get_client_mac()
-    gw_address = get_param('gw_address')
+    gw_address = get_param('gw_address') or '192.168.0.46'
     gw_port = get_param('gw_port', '2060')
     gw_id = get_param('gw_id', 'default')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
@@ -293,15 +293,15 @@ def captive_login_page():
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Catch-all for mobile probe endpoints (e.g., generate_204)."""
+    """Catch-all for mobile probe endpoints."""
     return captive_login_page()
 
 @app.route('/login', methods=['POST'])
 def process_login():
-    """Handles voucher code validation and router authorization handshake."""
+    """Validates voucher code and executes WifiDog redirect handshake."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
-    gw_address = get_param('gw_address')
+    gw_address = get_param('gw_address') or '192.168.0.46'
     gw_port = get_param('gw_port', '2060')
     gw_id = get_param('gw_id', 'default')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
@@ -323,7 +323,7 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Generate WifiDog session token
+    # 1. Generate unique WifiDog token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -348,54 +348,12 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Router Redirect Logic
+    # 3. WifiDog Gateway Redirect (Sends client browser to router local auth)
     if gw_address:
-        # Check if router uses WifiDog handshake
-        if request.args.get('gw_id') or 'wifidog' in request.path:
-            redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-            return redirect(redirect_url)
+        redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+        return redirect(redirect_url)
 
-        # Direct Ruijie WebAuth CGI auto-submitting POST form fallback
-        ruijie_url = f"http://{gw_address}:{gw_port}/webauth.cgi"
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Connecting...</title>
-            <style>
-                body {{ font-family: sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; }}
-                .btn {{ padding: 12px 24px; background: #0052cc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-decoration: none; }}
-            </style>
-        </head>
-        <body>
-            <h1 style="color: #36b37e;">✅ Vocha Imekubaliwa!</h1>
-            <p>Inaunganisha intaneti, tafadhali subiri...</p>
-
-            <form id="ruijieForm" action="{ruijie_url}" method="POST">
-                <input type="hidden" name="action" value="login">
-                <input type="hidden" name="username" value="guest">
-                <input type="hidden" name="password" value="guest">
-                <input type="hidden" name="mac" value="{mac}">
-                <input type="hidden" name="url" value="{userurl}">
-                <button type="submit" class="btn">Bonyeza Kuunganisha</button>
-            </form>
-
-            <script>
-                setTimeout(function() {{
-                    document.getElementById('ruijieForm').submit();
-                }}, 400);
-            </script>
-        </body>
-        </html>
-        """
-
-    return """
-    <div style="font-family: sans-serif; text-align: center; margin-top: 80px;">
-        <h1 style="color: #36b37e;">✅ IMEFANIKIWA!</h1>
-        <p>Device imeunganishwa na intaneti.</p>
-    </div>
-    """
+    return "<h1>✅ Vocha Imekubaliwa! IMEFANIKIWA.</h1>"
 
 
 # ==========================================
@@ -405,10 +363,11 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """Queried by the WifiDog router to verify device token validity."""
+    """Queried in background by WifiDog router daemon to verify token."""
     token = request.args.get('token', '')
     token_doc = tokens_col.find_one({"token": token})
 
+    # Returns "Auth: 1" to grant internet access, or "Auth: 0" to deny
     if token_doc and token_doc.get('expire_date', datetime.now()) > datetime.now():
         return Response("Auth: 1\n", mimetype='text/plain')
 
@@ -417,7 +376,7 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping', methods=['GET'])
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """Periodic router heartbeat endpoint."""
+    """Periodic WifiDog router heartbeat endpoint."""
     return Response("Pong\n", mimetype='text/plain')
 
 
