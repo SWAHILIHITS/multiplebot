@@ -366,13 +366,22 @@ def login():
     sessions_col.replace_one({"_id": mac_address}, session_data, upsert=True)
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac_address}})
 
-    # Ruijie webauth gateway release URL with parameters
+    # Ruijie webauth gateway release URL handling
     if gw_address:
+        # Determine protocol: Port 2060 / 8443 on Ruijie usually requires HTTPS
+        protocol = "https" if gw_port in ["2060", "8443", "443"] else "http"
+        
         ruijie_auth_url = (
-            f"http://{gw_address}:{gw_port}/webauth.cgi?"
+            f"{protocol}://{gw_address}:{gw_port}/webauth.cgi?"
             f"action=login&username=guest&password=guest&mac={mac_address}"
         )
         
+        # Alternative standard HTTP backup link (Port 80 / 8080)
+        ruijie_http_url = (
+            f"http://{gw_address}:8080/webauth.cgi?"
+            f"action=login&username=guest&password=guest&mac={mac_address}"
+        )
+
         return f"""
         <!DOCTYPE html>
         <html>
@@ -382,15 +391,19 @@ def login():
             <meta http-equiv="refresh" content="2;url={ruijie_auth_url}">
             <style>
                 body {{ font-family: sans-serif; text-align: center; padding: 40px 20px; background: #f4f6f8; }}
-                .btn {{ display: inline-block; padding: 14px 28px; background: #0052cc; color: white; 
-                        text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; }}
+                .btn {{ display: block; width: 80%; max-width: 280px; margin: 12px auto; padding: 14px; 
+                        background: #0052cc; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }}
+                .btn-alt {{ background: #4c9aff; }}
             </style>
         </head>
         <body>
             <h1 style="color: #36b37e; font-size: 48px; margin: 0;">✅</h1>
             <h2>Vocha Imekubaliwa!</h2>
-            <p>Inaunganisha intaneti kwa vifaa vyako...</p>
-            <a href="{ruijie_auth_url}" class="btn">Bonyeza hapa kama haijaunganisha</a>
+            <p>Inaunganisha intaneti...</p>
+            
+            <a href="{ruijie_auth_url}" class="btn">Unganisha (HTTPS)</a>
+            <a href="{ruijie_http_url}" class="btn btn-alt">Jaribu Njia Mbadala (HTTP)</a>
+            
             <script>
                 setTimeout(function() {{
                     window.location.href = "{ruijie_auth_url}";
