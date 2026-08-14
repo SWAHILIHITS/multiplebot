@@ -303,35 +303,32 @@ PRINT_TEMPLATE = """
 # 🚀 ROUTES & PORTAL HANDLERS
 # ==========================================
 
+# --- WEB CORE ROUTES (CATCH-ALL FOR RUJIE REYEE) ---
+
 @app.route('/')
 @app.route('/index.html')
+@app.route('/index.php')       # Added: Common Ruijie Reyee redirect path
 @app.route('/portal')
+@app.route('/portal/')         # Added: Trailing slash protection
 @app.route('/login.html')
+@app.route('/webauth')         # Added: Local interception fallback
 def home():
-    mac_address = get_client_mac()
-    gw_address = request.args.get('gw_address', '')
-    gw_port = request.args.get('gw_port', '2060')
+    # Capture all possible Ruijie URL tracking variations securely
+    mac = get_mac()
+    gw_addr = request.args.get('gw_address', request.args.get('gw_addr', ''))
+    gw_port = request.args.get('gw_port', request.args.get('port', ''))
     
     return render_template_string(
-        PORTAL_TEMPLATE, 
-        mac=mac_address, 
-        gw_address=gw_address, 
-        gw_port=gw_port
-    )
-
-# 🎯 CATCH-ALL: Intercepts extra routes requested by phones (e.g. /generate_204)
-@app.errorhandler(404)
-def handle_404(e):
-    mac_address = get_client_mac()
-    gw_address = request.args.get('gw_address', '')
-    gw_port = request.args.get('gw_port', '2060')
-    
-    return render_template_string(
-        PORTAL_TEMPLATE, 
-        mac=mac_address, 
-        gw_address=gw_address, 
+        PORTAL_T, 
+        mac=mac, 
+        gw_address=gw_addr, 
         gw_port=gw_port
     ), 200
+
+# OVERRIDE ALL 404 ERRORS: Force your voucher template to display instead of a crash
+@app.errorhandler(404)
+def page_not_found(e):
+    return home()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -373,14 +370,13 @@ def login():
         <h1>✅ Vocha Imekubaliwa!</h1>
         <p>Inaunganisha kwenye mtandao...</p>
         
-        <form id="f" action="{protocol}://{gw_addr}{target_port}/webauth.cgi" method="POST">
-            <input type="hidden" name="action" value="login">
-            <input type="hidden" name="username" value="guest">
-            <input type="hidden" name="password" value="guest">
-            <input type="hidden" name="mac" value="{mac}">
-            <input type="hidden" name="url" value="{userurl}">
-            <button type="submit">Bofya hapa kama haijaenda</button>
+        <form action="/login" method="POST">
+            <input type="hidden" name="mac" value="{{ mac }}">
+            <input type="hidden" name="gw_address" value="{{ gw_address }}">
+            <input type="hidden" name="gw_port" value="{{ gw_port }}">
+            <!-- Your voucher code input fields remain here -->
         </form>
+
         <script>setTimeout(()=>document.getElementById('f').submit(),300);</script>
         </body></html>"""
         
