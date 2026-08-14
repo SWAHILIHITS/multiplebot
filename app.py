@@ -319,7 +319,7 @@ def home():
         gw_port=gw_port
     )
 
-# 🎯 CATCH-ALL: Intercepts all extra paths requested by Ruijie or phones (e.g. /generate_204)
+# 🎯 CATCH-ALL: Intercepts extra routes requested by phones (e.g. /generate_204)
 @app.errorhandler(404)
 def handle_404(e):
     mac_address = get_client_mac()
@@ -339,6 +339,7 @@ def login():
     mac_address = request.form.get('mac', '').strip().upper()
     gw_address = request.form.get('gw_address', '').strip()
     gw_port = request.form.get('gw_port', '2060').strip()
+    userurl = request.args.get('url', request.args.get('userurl', 'http://www.baidu.com'))
     
     voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
 
@@ -366,48 +367,40 @@ def login():
     sessions_col.replace_one({"_id": mac_address}, session_data, upsert=True)
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac_address}})
 
-    # Ruijie webauth gateway release URL handling
+    # Ruijie auto-submitting POST form targeting webauth.cgi
     if gw_address:
-        # Determine protocol: Port 2060 / 8443 on Ruijie usually requires HTTPS
-        protocol = "https" if gw_port in ["2060", "8443", "443"] else "http"
+        ruijie_post_url = f"http://{gw_address}:{gw_port}/webauth.cgi"
         
-        ruijie_auth_url = (
-            f"{protocol}://{gw_address}:{gw_port}/webauth.cgi?"
-            f"action=login&username=guest&password=guest&mac={mac_address}"
-        )
-        
-        # Alternative standard HTTP backup link (Port 80 / 8080)
-        ruijie_http_url = (
-            f"http://{gw_address}:8080/webauth.cgi?"
-            f"action=login&username=guest&password=guest&mac={mac_address}"
-        )
-
         return f"""
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Connecting...</title>
-            <meta http-equiv="refresh" content="2;url={ruijie_auth_url}">
+            <title>Connecting Internet...</title>
             <style>
-                body {{ font-family: sans-serif; text-align: center; padding: 40px 20px; background: #f4f6f8; }}
-                .btn {{ display: block; width: 80%; max-width: 280px; margin: 12px auto; padding: 14px; 
-                        background: #0052cc; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }}
-                .btn-alt {{ background: #4c9aff; }}
+                body {{ font-family: sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; }}
+                .loader {{ font-size: 18px; color: #0052cc; font-weight: bold; margin-top: 20px; }}
+                .btn {{ display: inline-block; padding: 14px 28px; background: #0052cc; color: #fff; 
+                        text-decoration: none; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }}
             </style>
         </head>
         <body>
-            <h1 style="color: #36b37e; font-size: 48px; margin: 0;">✅</h1>
-            <h2>Vocha Imekubaliwa!</h2>
-            <p>Inaunganisha intaneti...</p>
-            
-            <a href="{ruijie_auth_url}" class="btn">Unganisha (HTTPS)</a>
-            <a href="{ruijie_http_url}" class="btn btn-alt">Jaribu Njia Mbadala (HTTP)</a>
-            
+            <h1 style="color: #36b37e;">✅ Vocha Imekubaliwa!</h1>
+            <p class="loader">Inaunganisha intaneti, tafadhali subiri...</p>
+
+            <form id="ruijieAuthForm" action="{ruijie_post_url}" method="POST">
+                <input type="hidden" name="action" value="login">
+                <input type="hidden" name="username" value="guest">
+                <input type="hidden" name="password" value="guest">
+                <input type="hidden" name="mac" value="{mac_address}">
+                <input type="hidden" name="url" value="{userurl}">
+                <button type="submit" class="btn">Bonyeza Hapa Kuunganisha</button>
+            </form>
+
             <script>
                 setTimeout(function() {{
-                    window.location.href = "{ruijie_auth_url}";
-                }}, 1500);
+                    document.getElementById('ruijieAuthForm').submit();
+                }}, 500);
             </script>
         </body>
         </html>
@@ -415,8 +408,7 @@ def login():
 
     return f"""
     <div style="font-family: sans-serif; text-align: center; margin-top: 80px;">
-        <h1 style="color: #36b37e; font-size: 48px;">✅</h1>
-        <h2>IMEFANIKIWA!</h2>
+        <h1 style="color: #36b37e;">✅ IMEFANIKIWA!</h1>
         <p>Device (<b>{mac_address}</b>) imeunganishwa na intaneti.</p>
     </div>
     """
