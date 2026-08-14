@@ -1,13 +1,14 @@
 import os
 import random
+import secrets
 from datetime import datetime, timedelta
-from flask import Flask, render_template_string, request, redirect, session
+from flask import Flask, render_template_string, request, redirect, session, Response
 from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# --- ENVIRONMENT CONFIGURATION ---
-app.secret_key = os.getenv("SECRET_KEY", "fallback_secret_key_123")
+# --- ENVIRONMENT VARIABLES (Loaded from Fly.io secrets or defaults) ---
+app.secret_key = os.getenv("SECRET_KEY", "hans_wifi_secret_key_2026")
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 
 MONGO_URI = os.getenv(
@@ -15,25 +16,32 @@ MONGO_URI = os.getenv(
     "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 )
 
+# --- DATABASE SETUP ---
 client = MongoClient(MONGO_URI)
 db = client['swahilihit56']
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
+tokens_col = db["wifidog_tokens"]  # Collection for WifiDog handshake tokens
+
 
 # --- HELPER FUNCTIONS ---
 def get_param(key, default=""):
-    """Extracts a parameter from request form or query args."""
+    """Fetch parameter from either POST form or GET query arguments."""
     return request.form.get(key) or request.args.get(key) or default
 
 def get_client_mac():
-    """Finds MAC address across multiple standard query/form parameter keys."""
+    """Detect client MAC address across different router parameter keys."""
     for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
         val = get_param(key)
         if val:
             return val.strip().upper()
     return "DEMO:MAC:00:11:22"
 
-# --- HTML TEMPLATES ---
+
+# ==========================================
+# 🎨 HTML TEMPLATES
+# ==========================================
+
 PORTAL_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="sw">
@@ -41,34 +49,96 @@ PORTAL_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Connect</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 90vh; margin: 0; padding: 20px; }
-        .box { background: white; padding: 30px 20px; border-radius: 16px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1px solid #e1e4e8; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #f4f6f8; 
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: center; min-height: 90vh;
+        }
+        .container { width: 100%; max-width: 350px; }
+        .box { 
+            background: white; padding: 30px 22px; border-radius: 16px; 
+            border: 1px solid #e1e4e8; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; 
+            box-sizing: border-box;
+        }
         h2 { margin: 0; color: #0052cc; font-size: 24px; }
-        p { color: #5e6c84; font-size: 14px; margin-top: 6px; }
-        input[type="text"] { width: 100%; padding: 14px; font-size: 24px; border: 2px solid #dfe1e6; border-radius: 8px; box-sizing: border-box; margin: 15px 0; text-align: center; letter-spacing: 6px; font-weight: bold; color: #0052cc; }
-        button { width: 100%; padding: 14px; background: #0052cc; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        p { color: #5e6c84; font-size: 14px; margin-top: 6px; margin-bottom: 20px; }
+        label { font-weight: bold; font-size: 13px; color: #172b4d; display: block; margin-bottom: 8px; text-align: left; }
+        input[type="text"] { 
+            width: 100%; padding: 14px; font-size: 24px; border: 2px solid #dfe1e6; 
+            border-radius: 8px; box-sizing: border-box; margin-bottom: 18px; 
+            text-align: center; letter-spacing: 6px; font-weight: bold; color: #0052cc;
+        }
+        input[type="text"]:focus { border-color: #0052cc; outline: none; }
+        button { 
+            width: 100%; padding: 14px; background: #0052cc; color: white; 
+            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; 
+            transition: background 0.2s;
+        }
         button:hover { background: #0065ff; }
         .error { color: #de350b; background: #ffebe6; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; }
-        .mac { font-size: 11px; color: #888; margin-top: 15px; }
+        .mac-info { font-size: 11px; color: #888; margin-top: 15px; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>HANS WIFI</h2>
-        <p>Ingiza namba ya vocha kuunganisha</p>
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-        <form action="/login" method="POST">
-            <input type="hidden" name="mac" value="{{ mac }}">
-            <input type="hidden" name="gw_address" value="{{ gw_address }}">
-            <input type="hidden" name="gw_port" value="{{ gw_port }}">
-            <input type="hidden" name="userurl" value="{{ userurl }}">
-            
-            <input type="text" name="voucher" maxlength="5" pattern="\d{5}" placeholder="12345" inputmode="numeric" required autofocus>
-            <button type="submit">CONNECT INTERNET</button>
+    <div class="container">
+        <div class="box">
+            <h2>HANS WIFI</h2>
+            <p>Ingiza namba ya vocha kuunganisha intaneti</p>
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+            <form action="/login" method="POST">
+                <input type="hidden" name="mac" value="{{ mac }}">
+                <input type="hidden" name="gw_address" value="{{ gw_address }}">
+                <input type="hidden" name="gw_port" value="{{ gw_port }}">
+                <input type="hidden" name="gw_id" value="{{ gw_id }}">
+                <input type="hidden" name="userurl" value="{{ userurl }}">
+                
+                <label for="voucher">Namba ya Vocha (Digits 5):</label>
+                <input 
+                    type="text" 
+                    id="voucher" 
+                    name="voucher" 
+                    maxlength="5" 
+                    pattern="\d{5}" 
+                    placeholder="12345" 
+                    inputmode="numeric"
+                    required 
+                    autofocus
+                >
+                <button type="submit">CONNECT INTERNET</button>
+            </form>
+            <div class="mac-info">Device MAC: {{ mac }}</div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+ADMIN_LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HANS WIFI - Admin Login</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 90vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e1e4e8; width: 280px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h3 { margin-top: 0; color: #0052cc; }
+        input[type="password"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #0052cc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .error { color: red; font-size: 13px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3>HANS WIFI Admin</h3>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form action="/admin/login" method="POST">
+            <input type="password" name="password" placeholder="Ingiza Nenosiri" required autofocus>
+            <button type="submit">LOGIN</button>
         </form>
-        <div class="mac">Device MAC: {{ mac }}</div>
     </div>
 </body>
 </html>
@@ -79,7 +149,7 @@ ADMIN_TEMPLATE = """
 <html lang="sw">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI Admin</title>
+    <title>HANS WIFI - Dashboard</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #172b4d; }
         .container { max-width: 960px; margin: 0 auto; }
@@ -116,7 +186,7 @@ ADMIN_TEMPLATE = """
             <div class="card"><div class="lbl">Used Vouchers</div><div class="val">{{ used_vouchers_count }}</div></div>
         </div>
         <div class="box">
-            <h3>🖨️ Generate Vouchers</h3>
+            <h3>🖨️ Generate 5-Digit Vouchers</h3>
             <form action="/admin/generate" method="POST">
                 <div class="form-row">
                     <input type="number" name="quantity" value="8" placeholder="Quantity" required>
@@ -142,7 +212,7 @@ ADMIN_TEMPLATE = """
             </table>
         </div>
         <div class="box">
-            <h3>🎟️ Recent Vouchers</h3>
+            <h3>🎟️ Recent Voucher Inventory</h3>
             <table>
                 <tr><th>Code</th><th>Duration</th><th>Price</th><th>Status</th><th>Used By MAC</th></tr>
                 {% for v in vouchers %}
@@ -193,34 +263,48 @@ PRINT_TEMPLATE = """
 </html>
 """
 
-# --- ROUTES ---
+
+# ==========================================
+# 🌐 CAPTIVE PORTAL ROUTES
+# ==========================================
 
 @app.route('/')
-@app.route('/index.html')
 @app.route('/portal')
+@app.route('/index.html')
 @app.route('/login.html')
-@app.errorhandler(404)
-def portal_home(e=None):
+@app.route('/api/wifidog/login')
+@app.route('/api/wifidog/portal')
+def captive_login_page():
+    """Renders the voucher portal whenever a user connects to Wi-Fi."""
     mac = get_client_mac()
     gw_address = get_param('gw_address')
     gw_port = get_param('gw_port', '2060')
-    userurl = get_param('url') or get_param('userurl') or 'http://www.baidu.com'
+    gw_id = get_param('gw_id', 'default')
+    userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
 
     return render_template_string(
         PORTAL_TEMPLATE,
         mac=mac,
         gw_address=gw_address,
         gw_port=gw_port,
+        gw_id=gw_id,
         userurl=userurl
     ), 200
 
+@app.errorhandler(404)
+def handle_404(e):
+    """Catch-all for mobile probe endpoints (e.g., generate_204)."""
+    return captive_login_page()
+
 @app.route('/login', methods=['POST'])
-def login():
+def process_login():
+    """Handles voucher code validation and router authorization handshake."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_param('gw_address')
     gw_port = get_param('gw_port', '2060')
-    userurl = get_param('userurl') or get_param('url') or 'http://www.baidu.com'
+    gw_id = get_param('gw_id', 'default')
+    userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
     voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
 
@@ -230,6 +314,7 @@ def login():
             mac=mac,
             gw_address=gw_address,
             gw_port=gw_port,
+            gw_id=gw_id,
             userurl=userurl,
             error="Vocha hii siyo sahihi au ishatumika."
         )
@@ -238,7 +323,17 @@ def login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # Database updates
+    # 1. Generate WifiDog session token
+    token = secrets.token_hex(16)
+    tokens_col.insert_one({
+        "token": token,
+        "mac": mac,
+        "code": code,
+        "expire_date": expire_date,
+        "created_at": now
+    })
+
+    # 2. Record Active Session in Database
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -253,8 +348,14 @@ def login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # Auto-submitting POST response targeting local Ruijie webauth.cgi
+    # 3. Router Redirect Logic
     if gw_address:
+        # Check if router uses WifiDog handshake
+        if request.args.get('gw_id') or 'wifidog' in request.path:
+            redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+            return redirect(redirect_url)
+
+        # Direct Ruijie WebAuth CGI auto-submitting POST form fallback
         ruijie_url = f"http://{gw_address}:{gw_port}/webauth.cgi"
         return f"""
         <!DOCTYPE html>
@@ -296,23 +397,42 @@ def login():
     </div>
     """
 
+
+# ==========================================
+# 🐶 WIFIDOG PROTOCOL ENDPOINTS
+# ==========================================
+
+@app.route('/api/wifidog/auth', methods=['GET'])
+@app.route('/api/wifidog/auth/', methods=['GET'])
+def wifidog_auth_check():
+    """Queried by the WifiDog router to verify device token validity."""
+    token = request.args.get('token', '')
+    token_doc = tokens_col.find_one({"token": token})
+
+    if token_doc and token_doc.get('expire_date', datetime.now()) > datetime.now():
+        return Response("Auth: 1\n", mimetype='text/plain')
+
+    return Response("Auth: 0\n", mimetype='text/plain')
+
+@app.route('/api/wifidog/ping', methods=['GET'])
+@app.route('/api/wifidog/ping/', methods=['GET'])
+def wifidog_ping():
+    """Periodic router heartbeat endpoint."""
+    return Response("Pong\n", mimetype='text/plain')
+
+
+# ==========================================
+# 📊 ADMIN PANEL ROUTES
+# ==========================================
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         if request.form.get('password') == ADMIN_PW:
             session['admin'] = True
             return redirect('/admin')
-        return '<div style="text-align:center;padding:50px;font-family:sans-serif;"><p style="color:red">Password Siyo Sahihi!</p><a href="/admin/login">Rudi</a></div>'
-    
-    return '''
-    <div style="display:flex;justify-content:center;align-items:center;height:90vh;font-family:sans-serif;">
-        <form method="POST" style="background:white;padding:30px;border-radius:10px;box-shadow:0 4px 10px #0001;border:1px solid #ddd;width:260px;text-align:center;">
-            <h3>Admin Login</h3>
-            <input type="password" name="password" placeholder="Password" style="width:100%;padding:10px;margin:10px 0;box-sizing:border-box;" required autofocus>
-            <button style="width:100%;padding:10px;background:#0052cc;color:white;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">Login</button>
-        </form>
-    </div>
-    '''
+        return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
+    return render_template_string(ADMIN_LOGIN_TEMPLATE)
 
 @app.route('/admin/logout')
 def admin_logout():
@@ -370,6 +490,11 @@ def generate_vouchers():
                 break
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
+
+
+# ==========================================
+# 🚀 APP LAUNCH
+# ==========================================
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
