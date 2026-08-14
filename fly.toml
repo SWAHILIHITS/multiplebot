@@ -10,6 +10,9 @@ primary_region = 'ams'
 
 [build.settings]
   pythonbase = "3.11-slim"
+[processes]
+  web = "gunicorn -b 0.0.0.0:8080 app:app"
+  bot = "python3 bot.py"
 
 [[restart]]
   policy = "on-failure"
@@ -30,3 +33,25 @@ primary_region = 'ams'
   cpus = 1
   memory_mb = 256
   size = 'shared-cpu-1x'
+
+# --- ROUTING FOR WEB APP ---
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["web"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+    method = "get"
+    path = "/"
