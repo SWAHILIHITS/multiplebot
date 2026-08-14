@@ -26,6 +26,16 @@ def generate_code(length=5):
     chars = '0123456789'
     return ''.join(random.choice(chars) for _ in range(length))
 
+def get_client_mac():
+    """Extract MAC address across multiple router query parameter variations."""
+    return (
+        request.args.get('mac')
+        or request.args.get('usermac')
+        or request.args.get('client_mac')
+        or request.args.get('client-mac')
+        or 'DEMO:MAC:00:11:22'
+    ).upper()
+
 
 # ==========================================
 # 🎨 HTML TEMPLATES
@@ -79,6 +89,8 @@ PORTAL_TEMPLATE = """
             {% endif %}
             <form action="/login" method="POST">
                 <input type="hidden" name="mac" value="{{ mac }}">
+                <input type="hidden" name="gw_address" value="{{ gw_address }}">
+                <input type="hidden" name="gw_port" value="{{ gw_port }}">
                 <label for="voucher">Namba ya Vocha (Digits 5)</label>
                 <input 
                     type="text" 
@@ -291,39 +303,53 @@ PRINT_TEMPLATE = """
 # 🚀 ROUTES & PORTAL HANDLERS
 # ==========================================
 
-def get_client_mac():
-    """Extract MAC address across multiple router query parameter variations."""
-    return (
-        request.args.get('mac')
-        or request.args.get('usermac')
-        or request.args.get('client_mac')
-        or request.args.get('client-mac')
-        or 'DEMO:MAC:00:11:22'
-    ).upper()
-
 @app.route('/')
 @app.route('/index.html')
 @app.route('/portal')
 @app.route('/login.html')
 def home():
     mac_address = get_client_mac()
-    return render_template_string(PORTAL_TEMPLATE, mac=mac_address)
+    gw_address = request.args.get('gw_address', '')
+    gw_port = request.args.get('gw_port', '8080')
+    
+    return render_template_string(
+        PORTAL_TEMPLATE, 
+        mac=mac_address, 
+        gw_address=gw_address, 
+        gw_port=gw_port
+    )
 
 # 🎯 CATCH-ALL: Intercepts all extra paths requested by Ruijie or phones (e.g. /generate_204)
 @app.errorhandler(404)
 def handle_404(e):
     mac_address = get_client_mac()
-    return render_template_string(PORTAL_TEMPLATE, mac=mac_address), 200
+    gw_address = request.args.get('gw_address', '')
+    gw_port = request.args.get('gw_port', '8080')
+    
+    return render_template_string(
+        PORTAL_TEMPLATE, 
+        mac=mac_address, 
+        gw_address=gw_address, 
+        gw_port=gw_port
+    ), 200
 
 @app.route('/login', methods=['POST'])
 def login():
     code = request.form.get('voucher', '').strip()
     mac_address = request.form.get('mac', '').strip().upper()
+    gw_address = request.form.get('gw_address', '').strip()
+    gw_port = request.form.get('gw_port', '8080').strip()
     
     voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
 
     if not voucher:
-        return render_template_string(PORTAL_TEMPLATE, mac=mac_address, error="Vocha hii siyo sahihi au ishatumika.")
+        return render_template_string(
+            PORTAL_TEMPLATE, 
+            mac=mac_address, 
+            gw_address=gw_address, 
+            gw_port=gw_port, 
+            error="Vocha hii siyo sahihi au ishatumika."
+        )
 
     now = datetime.now()
     duration_minutes = voucher['duration_minutes']
@@ -339,6 +365,27 @@ def login():
     }
     sessions_col.replace_one({"_id": mac_address}, session_data, upsert=True)
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac_address}})
+
+    # Ruijie local authorization redirect trigger
+    if gw_address:
+        ruijie_auth_url = f"http://{gw_address}:{gw_port}/webauth.cgi?action=login&mac={mac_address}"
+        return f"""
+        <html>
+        <head>
+            <meta http-equiv="refresh" content="1;url={ruijie_auth_url}">
+        </head>
+        <body style="font-family: sans-serif; text-align: center; margin-top: 80px;">
+            <h1 style="color: #36b37e; font-size: 48px;">✅</h1>
+            <h2>IMEFANIKIWA!</h2>
+            <p>Inaunganisha intaneti...</p>
+            <script>
+                setTimeout(function() {{
+                    window.location.href = "{ruijie_auth_url}";
+                }}, 1000);
+            </script>
+        </body>
+        </html>
+        """
 
     return f"""
     <div style="font-family: sans-serif; text-align: center; margin-top: 80px;">
