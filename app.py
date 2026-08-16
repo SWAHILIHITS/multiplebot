@@ -134,6 +134,40 @@ PORTAL_TEMPLATE = """
 </html>
 """
 
+CONNECT_SUCCESS_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inaunganisha...</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; color: #172b4d; }
+        .card { background: white; padding: 30px 20px; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); max-width: 320px; margin: 0 auto; border: 1px solid #e1e4e8; }
+        .success-icon { font-size: 48px; margin-bottom: 10px; }
+        .btn { display: block; width: 100%; padding: 16px; background: #006644; color: white; text-decoration: none; font-weight: bold; border-radius: 8px; font-size: 16px; box-sizing: border-box; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="success-icon">✅</div>
+        <h3 style="margin: 0 0 8px 0; color: #006644;">Vocha Imekubaliwa!</h3>
+        <p style="font-size: 14px; color: #5e6c84; margin-bottom: 15px;">Bonyeza kitufe hapa chini kukamilisha muunganisho wa intaneti.</p>
+        
+        <a id="connectBtn" href="{{ auth_action_url }}" class="btn">BONYEZA HAPA KUUNGANISHA</a>
+    </div>
+
+    <script>
+        // Try auto-clicking for seamless experience; button stays active if Android blocks auto-click
+        window.onload = function() {
+            setTimeout(function() {
+                document.getElementById('connectBtn').click();
+            }, 300);
+        };
+    </script>
+</body>
+</html>
+"""
+
 ADMIN_LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="sw">
@@ -306,7 +340,7 @@ def captive_login_page():
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
     now = datetime.now(timezone.utc)
 
-    # Automatically grant access if session exists for this MAC
+    # Automatically grant access if active session exists
     existing_session = sessions_col.find_one({"_id": mac})
     if existing_session and existing_session.get("expire_date"):
         exp = existing_session["expire_date"]
@@ -322,7 +356,7 @@ def captive_login_page():
                 "created_at": now
             })
             auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-            return redirect(auth_action_url, code=303)
+            return render_template_string(CONNECT_SUCCESS_TEMPLATE, auth_action_url=auth_action_url), 200
 
     return render_template_string(
         PORTAL_TEMPLATE,
@@ -342,7 +376,7 @@ def handle_404(e):
 
 @app.route('/process-voucher', methods=['POST'])
 def process_login():
-    """Validates voucher and issues HTTP 303 Redirect back to local AP."""
+    """Validates voucher and presents a direct user-clickable connection button."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -395,8 +429,8 @@ def process_login():
     # 3. Form destination URL pointing to router HTTP gateway
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
-    # 4. HTTP 303 Redirect (Prevents Android WebView POST security drop)
-    return redirect(auth_action_url, code=303)
+    # 4. Render user-clickable button page to bypass Android HTTPS-to-HTTP block
+    return render_template_string(CONNECT_SUCCESS_TEMPLATE, auth_action_url=auth_action_url), 200
 
 
 # ==========================================
