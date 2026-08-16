@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# --- ENVIRONMENT VARIABLES ---
+# --- ENVIRONMENT CONFIGURATION ---
 app.secret_key = os.getenv("SECRET_KEY", "hans_wifi_secret_key_2026")
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 
@@ -26,11 +26,11 @@ tokens_col = db["wifidog_tokens"]
 
 # --- HELPER FUNCTIONS ---
 def get_param(key, default=""):
-    """Fetch parameter from either POST form or GET query arguments."""
+    """Extract parameter from POST form or GET query string."""
     return request.form.get(key) or request.args.get(key) or default
 
 def get_client_mac():
-    """Detect client MAC address across different router parameter keys."""
+    """Detect client MAC address across ReyeeOS parameter keys."""
     for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
         val = get_param(key)
         if val:
@@ -39,7 +39,7 @@ def get_client_mac():
 
 
 # ==========================================
-# 🎨 HTML TEMPLATES
+# 🎨 UI HTML TEMPLATES
 # ==========================================
 
 PORTAL_TEMPLATE = """
@@ -51,8 +51,7 @@ PORTAL_TEMPLATE = """
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f4f6f8; 
-            margin: 0; padding: 20px;
+            background-color: #f4f6f8; margin: 0; padding: 20px;
             display: flex; justify-content: center; align-items: center; min-height: 90vh;
         }
         .container { width: 100%; max-width: 350px; }
@@ -197,7 +196,7 @@ ADMIN_TEMPLATE = """
             </form>
         </div>
         <div class="box">
-            <h3>📡 Connected Devices (Active MAC Sessions)</h3>
+            <h3>📡 Connected Devices (Active Sessions)</h3>
             <table>
                 <tr><th>MAC Address</th><th>Voucher Code</th><th>Expire Date</th></tr>
                 {% for s in active_sessions %}
@@ -275,11 +274,11 @@ PRINT_TEMPLATE = """
 @app.route('/api/wifidog/login')
 @app.route('/api/wifidog/portal')
 def captive_login_page():
-    """Renders the voucher portal whenever a user connects to Wi-Fi."""
+    """Renders voucher entry page on connection."""
     mac = get_client_mac()
-    gw_address = get_param('gw_address') or '192.168.0.46'
+    gw_address = get_param('gw_address') or '192.168.0.35'
     gw_port = get_param('gw_port', '2060')
-    gw_id = get_param('gw_id', 'default')
+    gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
 
     return render_template_string(
@@ -293,17 +292,17 @@ def captive_login_page():
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Catch-all for mobile probe endpoints."""
+    """Catch captive portal probing requests."""
     return captive_login_page()
 
 @app.route('/login', methods=['POST'])
 def process_login():
-    """Validates voucher code and executes WifiDog redirect handshake."""
+    """Validates 5-digit voucher and initiates WifiDog local handshake."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
-    gw_address = get_param('gw_address') or '192.168.0.46'
+    gw_address = get_param('gw_address') or '192.168.0.35'
     gw_port = get_param('gw_port', '2060')
-    gw_id = get_param('gw_id', 'default')
+    gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
     voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
@@ -323,7 +322,7 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Generate unique WifiDog token
+    # 1. Create temporary token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -333,7 +332,7 @@ def process_login():
         "created_at": now
     })
 
-    # 2. Record Active Session in Database
+    # 2. Register Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -348,10 +347,10 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Target local router auth URL
+    # 3. Router local authentication redirect URL
     redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
-    # 4. JS Page Redirect (Bypasses HTTPS -> HTTP mobile browser blocking)
+    # 4. JS Redirect Page (Bypasses HTTPS -> HTTP security block)
     return f"""
     <!DOCTYPE html>
     <html>
@@ -384,39 +383,46 @@ def process_login():
 
 
 # ==========================================
-# 🐶 RUIJIE / REYEE WIFIDOG AUTH ENDPOINTS
+# 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
     """
-    Queried in background by Ruijie WifiDog daemon.
-    Handles stage=login, stage=counters, and stage=logout.
+    ReyeeOS Background Auth Verification.
+    Supports stage=login, stage=counters, stage=logout.
     """
+    stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now()
 
-    # 1. Verification by Token (Initial login stage)
+    # Logout stage handling
+    if stage == 'logout':
+        if mac:
+            sessions_col.delete_one({"_id": mac})
+        return Response("Auth: 0\n", mimetype='text/plain')
+
+    # Token Validation (Primary check)
     if token:
         token_doc = tokens_col.find_one({"token": token})
         if token_doc and token_doc.get('expire_date', now) > now:
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # 2. Verification by MAC Address (Ruijie NBR heartbeat / counters stage)
+    # MAC Address Validation (Heartbeat / counters check)
     if mac:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc and session_doc.get('expire_date', now) > now:
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # If neither token nor MAC has an unexpired session:
+    # Default deny
     return Response("Auth: 0\n", mimetype='text/plain')
 
 @app.route('/api/wifidog/ping', methods=['GET'])
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """Periodic WifiDog router heartbeat endpoint."""
+    """Periodic Reyee AP Heartbeat."""
     return Response("Pong\n", mimetype='text/plain')
 
 
@@ -492,7 +498,7 @@ def generate_vouchers():
 
 
 # ==========================================
-# 🚀 APP LAUNCH
+# 🚀 SERVER STARTUP
 # ==========================================
 
 if __name__ == '__main__':
