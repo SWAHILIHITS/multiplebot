@@ -134,44 +134,6 @@ PORTAL_TEMPLATE = """
 </html>
 """
 
-CONNECT_SUCCESS_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="sw">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inaunganisha...</title>
-    <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; color: #172b4d; }
-        .card { background: white; padding: 30px 20px; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); max-width: 320px; margin: 0 auto; border: 1px solid #e1e4e8; }
-        .success-icon { font-size: 48px; margin-bottom: 10px; }
-        .btn { display: block; width: 100%; padding: 16px; background: #006644; color: white; border: none; font-weight: bold; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 20px; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <div class="success-icon">✅</div>
-        <h3 style="margin: 0 0 8px 0; color: #006644;">Vocha Imekubaliwa!</h3>
-        <p style="font-size: 14px; color: #5e6c84; margin-bottom: 15px;">Inaunganisha kwenye router...</p>
-        
-        <form id="authForm" action="http://{{ gw_address }}:{{ gw_port }}/wifidog/auth" method="GET">
-            <input type="hidden" name="token" value="{{ token }}">
-            <input type="hidden" name="url" value="{{ userurl }}">
-            <button type="submit" class="btn">BONYEZA HAPA KUUNGANISHA</button>
-        </form>
-    </div>
-
-    <script>
-        // Force native form submission to bypass Android WebView HTTP/HTTPS blocks
-        window.onload = function() {
-            setTimeout(function() {
-                document.getElementById('authForm').submit();
-            }, 100);
-        };
-    </script>
-</body>
-</html>
-"""
-
 ADMIN_LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="sw">
@@ -359,13 +321,8 @@ def captive_login_page():
                 "expire_date": exp,
                 "created_at": now
             })
-            return render_template_string(
-                CONNECT_SUCCESS_TEMPLATE,
-                gw_address=gw_address,
-                gw_port=gw_port,
-                token=token,
-                userurl=userurl
-            ), 200
+            auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+            return redirect(auth_action_url, code=302)
 
     return render_template_string(
         PORTAL_TEMPLATE,
@@ -385,7 +342,7 @@ def handle_404(e):
 
 @app.route('/process-voucher', methods=['POST'])
 def process_login():
-    """Validates voucher and presents a form submission to the local AP."""
+    """Validates voucher and issues standard HTTP 302 redirect back to AP."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -435,14 +392,9 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Render GET form page to submit directly to the local router gateway
-    return render_template_string(
-        CONNECT_SUCCESS_TEMPLATE,
-        gw_address=gw_address,
-        gw_port=gw_port,
-        token=token,
-        userurl=userurl
-    ), 200
+    # 3. Direct HTTP 302 redirect directly to the router's WifiDog auth endpoint
+    auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+    return redirect(auth_action_url, code=302)
 
 
 # ==========================================
