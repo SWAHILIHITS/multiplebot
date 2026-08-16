@@ -290,11 +290,6 @@ def captive_login_page():
         userurl=userurl
     ), 200
 
-@app.errorhandler(404)
-def handle_404(e):
-    """Catch captive portal probing requests."""
-    return captive_login_page()
-
 @app.route('/login', methods=['POST'])
 def process_login():
     """Validates 5-digit voucher and initiates WifiDog local handshake."""
@@ -503,4 +498,4 @@ def generate_vouchers():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
