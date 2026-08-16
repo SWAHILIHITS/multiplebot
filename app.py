@@ -3,11 +3,16 @@ import random
 import secrets
 from datetime import datetime, timedelta
 from flask import Flask, render_template_string, request, redirect, session, Response
+from werkzeug.middleware.proxy_fix import ProxyFix
 from pymongo import MongoClient
 
 app = Flask(__name__)
 
+# --- FLY.IO PROXY HEADER FIX (Ensures HTTPS URLs) ---
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # --- ENVIRONMENT CONFIGURATION ---
+BASE_URL = os.getenv("BASE_URL", "https://multiplebot.fly.dev")
 app.secret_key = os.getenv("SECRET_KEY", "hans_wifi_secret_key_2026")
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 
@@ -264,17 +269,23 @@ PRINT_TEMPLATE = """
 
 
 # ==========================================
-# 🌐 CAPTIVE PORTAL ROUTES
+# 🌐 CAPTIVE PORTAL & OS PROBE ROUTES
 # ==========================================
 
-@app.route('/')
-@app.route('/portal')
+@app.route('/', strict_slashes=False)
+@app.route('/portal', strict_slashes=False)
 @app.route('/index.html')
 @app.route('/login.html')
+@app.route('/redirect')
+@app.route('/hotspot-detect.html')
+@app.route('/library/test/success.html')
+@app.route('/generate_204')
+@app.route('/gen_204')
+@app.route('/connecttest.txt')
 @app.route('/api/wifidog/login')
 @app.route('/api/wifidog/portal')
 def captive_login_page():
-    """Renders voucher entry page on connection."""
+    """Renders voucher entry page on connection or OS connectivity probe."""
     mac = get_client_mac()
     gw_address = get_param('gw_address') or '192.168.0.35'
     gw_port = get_param('gw_port', '2060')
@@ -381,8 +392,7 @@ def process_login():
 # 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
-@app.route('/api/wifidog/auth', methods=['GET'])
-@app.route('/api/wifidog/auth/', methods=['GET'])
+@app.route('/api/wifidog/auth', methods=['GET'], strict_slashes=False)
 def wifidog_auth_check():
     """
     ReyeeOS Background Auth Verification.
@@ -414,8 +424,7 @@ def wifidog_auth_check():
     # Default deny
     return Response("Auth: 0\n", mimetype='text/plain')
 
-@app.route('/api/wifidog/ping', methods=['GET'])
-@app.route('/api/wifidog/ping/', methods=['GET'])
+@app.route('/api/wifidog/ping', methods=['GET'], strict_slashes=False)
 def wifidog_ping():
     """Periodic Reyee AP Heartbeat."""
     return Response("Pong\n", mimetype='text/plain')
@@ -425,7 +434,7 @@ def wifidog_ping():
 # 📊 ADMIN PANEL ROUTES
 # ==========================================
 
-@app.route('/admin/login', methods=['GET', 'POST'])
+@app.route('/admin/login', methods=['GET', 'POST'], strict_slashes=False)
 def admin_login():
     if request.method == 'POST':
         if request.form.get('password') == ADMIN_PW:
@@ -434,12 +443,12 @@ def admin_login():
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
     return render_template_string(ADMIN_LOGIN_TEMPLATE)
 
-@app.route('/admin/logout')
+@app.route('/admin/logout', strict_slashes=False)
 def admin_logout():
     session.pop('admin', None)
     return redirect('/admin/login')
 
-@app.route('/admin')
+@app.route('/admin', strict_slashes=False)
 def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin/login')
@@ -464,7 +473,7 @@ def admin_dashboard():
         total_revenue=f"{total_rev:,.0f}"
     )
 
-@app.route('/admin/generate', methods=['POST'])
+@app.route('/admin/generate', methods=['POST'], strict_slashes=False)
 def generate_vouchers():
     if not session.get('admin'):
         return redirect('/admin/login')
