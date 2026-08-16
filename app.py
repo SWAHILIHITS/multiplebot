@@ -1,14 +1,14 @@
 import os
 import random
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
 from pymongo import MongoClient
 
 app = Flask(__name__)
 
 # --- ENVIRONMENT CONFIGURATION ---
-app.secret_key = os.getenv("SECRET_KEY", "hans_wifi_secret_key_2026")
+app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 
 MONGO_URI = os.getenv(
@@ -269,10 +269,13 @@ PRINT_TEMPLATE = """
 
 @app.route('/')
 @app.route('/portal')
+@app.route('/portal/')
 @app.route('/index.html')
 @app.route('/login.html')
-@app.route('/api/wifidog/login')
+@app.route('/wifidog/portal')
+@app.route('/wifidog/portal/')
 @app.route('/api/wifidog/portal')
+@app.route('/api/wifidog/portal/')
 def captive_login_page():
     """Renders voucher entry page on connection."""
     mac = get_client_mac()
@@ -292,12 +295,14 @@ def captive_login_page():
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Catch captive portal probing requests."""
+    """Catch routing errors without corrupting API background checks."""
+    if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
+        return Response("Not Found\n", status=404, mimetype='text/plain')
     return captive_login_page()
 
 @app.route('/login', methods=['POST'])
 def process_login():
-    """Validates 5-digit voucher and initiates WifiDog local handshake."""
+    """Validates 5-digit voucher and redirects directly to WifiDog router auth."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_param('gw_address') or '192.168.0.35'
@@ -318,11 +323,11 @@ def process_login():
             error="Vocha hii siyo sahihi au ishatumika."
         )
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary token
+    # 1. Create temporary authentication token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -347,45 +352,17 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Router local authentication redirect URL
+    # 3. Direct 302 Redirect to Local AP Gateway
     redirect_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-
-    # 4. JS Redirect Page (Bypasses HTTPS -> HTTP security block)
-    return f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Inaunganisha...</title>
-        <style>
-            body {{ font-family: sans-serif; text-align: center; padding: 60px 20px; background: #f4f6f8; color: #172b4d; }}
-            .card {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 300px; margin: 0 auto; }}
-            .loader {{ border: 4px solid #dfe1e6; border-top: 4px solid #0052cc; border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite; margin: 0 auto 15px auto; }}
-            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
-            a {{ color: #0052cc; font-weight: bold; text-decoration: none; }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="loader"></div>
-            <h3 style="margin: 0 0 8px 0; color: #0052cc;">Vocha Imekubaliwa!</h3>
-            <p style="font-size: 14px; color: #5e6c84; margin-bottom: 15px;">Inaunganisha intaneti...</p>
-            <p style="font-size: 12px; color: #888;">Kama hainiingizi pekee, <a href="{redirect_url}">Bonyeza Hapa</a>.</p>
-        </div>
-        <script>
-            setTimeout(function() {{
-                window.location.href = "{redirect_url}";
-            }}, 300);
-        </script>
-    </body>
-    </html>
-    """
+    return redirect(redirect_url, code=302)
 
 
 # ==========================================
 # 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
+@app.route('/wifidog/auth', methods=['GET'])
+@app.route('/wifidog/auth/', methods=['GET'])
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
@@ -396,34 +373,58 @@ def wifidog_auth_check():
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
 
-    # Logout stage handling
+    # Handle client disconnect/logout
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Token Validation (Primary check)
+    # Token Validation (Primary login check)
     if token:
         token_doc = tokens_col.find_one({"token": token})
-        if token_doc and token_doc.get('expire_date', now) > now:
-            return Response("Auth: 1\n", mimetype='text/plain')
+        if token_doc:
+            exp = token_doc.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp > now:
+                return Response("Auth: 1\n", mimetype='text/plain')
 
-    # MAC Address Validation (Heartbeat / counters check)
+    # MAC Address Validation (Periodic heartbeat checks)
     if mac:
         session_doc = sessions_col.find_one({"_id": mac})
-        if session_doc and session_doc.get('expire_date', now) > now:
-            return Response("Auth: 1\n", mimetype='text/plain')
+        if session_doc:
+            exp = session_doc.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp > now:
+                return Response("Auth: 1\n", mimetype='text/plain')
 
-    # Default deny
     return Response("Auth: 0\n", mimetype='text/plain')
 
+@app.route('/wifidog/ping', methods=['GET'])
+@app.route('/wifidog/ping/', methods=['GET'])
 @app.route('/api/wifidog/ping', methods=['GET'])
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
     """Periodic Reyee AP Heartbeat."""
     return Response("Pong\n", mimetype='text/plain')
+
+@app.route('/wifidog/gw_message', methods=['GET'])
+@app.route('/wifidog/gw_message/', methods=['GET'])
+@app.route('/api/wifidog/gw_message', methods=['GET'])
+@app.route('/api/wifidog/gw_message/', methods=['GET'])
+def wifidog_gw_message():
+    """Displays router-level status messages."""
+    msg = request.args.get('message', 'Unknown Error')
+    return f"""
+    <div style="font-family:sans-serif; text-align:center; padding: 40px;">
+        <h2>WifiDog Gateway Status</h2>
+        <p>Message: <b>{msg}</b></p>
+        <a href="/">Try Again</a>
+    </div>
+    """, 200
 
 
 # ==========================================
@@ -449,7 +450,7 @@ def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin/login')
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(50))
     active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
 
@@ -478,21 +479,25 @@ def generate_vouchers():
     duration = int(request.form.get('duration', 360))
     price = float(request.form.get('price', 500))
 
+    # Optimizing lookup to avoid long loops or deadlocks
+    existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
-    for _ in range(qty):
-        while True:
-            code = ''.join(random.choices('0123456789', k=5))
-            if not vouchers_col.find_one({"code": code}):
-                doc = {
-                    "code": code,
-                    "duration_minutes": duration,
-                    "price": price,
-                    "status": "ACTIVE",
-                    "created_at": datetime.now()
-                }
-                vouchers_col.insert_one(doc)
-                new_vouchers.append(doc)
-                break
+    
+    while len(new_vouchers) < qty and len(existing_codes) < 90000:
+        code = f"{random.randint(0, 99999):05d}"
+        if code not in existing_codes:
+            existing_codes.add(code)
+            doc = {
+                "code": code,
+                "duration_minutes": duration,
+                "price": price,
+                "status": "ACTIVE",
+                "created_at": datetime.now(timezone.utc)
+            }
+            new_vouchers.append(doc)
+
+    if new_vouchers:
+        vouchers_col.insert_many(new_vouchers)
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
