@@ -42,6 +42,7 @@ try:
     vouchers_col.create_index("code", unique=True)
     tokens_col.create_index("created_at", expireAfterSeconds=600)
     sessions_col.create_index("expire_date")
+    sessions_col.create_index("status")
     logger.info("Successfully connected to MongoDB and verified collection indexes.")
 except Exception as e:
     logger.error(f"Failed to connect to MongoDB: {str(e)}")
@@ -70,8 +71,58 @@ def get_gateway_address():
 
 
 # ==========================================
-# 🎨 UI HTML TEMPLATES
+# 🎨 UI HTML TEMPLATES WITH SIDEBAR NAV
 # ==========================================
+
+NAV_SIDEBAR = """
+<div class="sidebar">
+    <div class="brand">
+        <div class="brand-title">HANS NETWORK</div>
+        <div class="brand-sub">KARIBU HANS INTERNET</div>
+    </div>
+    <ul class="nav-list">
+        <li><a href="/admin" class="{{ 'active' if active_page == 'dashboard' else '' }}">📊 Dashboard</a></li>
+        <li><a href="/admin/sessions" class="{{ 'active' if active_page == 'sessions' else '' }}">👥 Sessions</a></li>
+        <li><a href="/admin" class="{{ 'active' if active_page == 'vouchers' else '' }}">🎟️ Vouchers</a></li>
+        <li><a href="/admin/logout">🚪 Sign out</a></li>
+    </ul>
+</div>
+"""
+
+BASE_STYLE = """
+<style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 0; color: #172b4d; display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; background: #1e3a5f; color: white; padding: 20px 0; flex-shrink: 0; }
+    .brand { padding: 0 20px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .brand-title { font-weight: bold; font-size: 16px; letter-spacing: 0.5px; }
+    .brand-sub { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+    .nav-list { list-style: none; padding: 15px 10px; margin: 0; }
+    .nav-list li { margin-bottom: 4px; }
+    .nav-list a { display: block; padding: 10px 15px; color: #c1c7d0; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500; }
+    .nav-list a:hover, .nav-list a.active { background: #2c4d75; color: white; font-weight: bold; }
+    .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .header h2 { margin: 0; color: #1e3a5f; font-size: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .card { background: white; padding: 18px; border-radius: 10px; border: 1px solid #e1e4e8; }
+    .card .lbl { font-size: 12px; color: #5e6c84; font-weight: bold; text-transform: uppercase; }
+    .card .val { font-size: 22px; font-weight: bold; color: #0052cc; margin-top: 4px; }
+    .box { background: white; padding: 20px; border-radius: 10px; border: 1px solid #e1e4e8; margin-bottom: 25px; }
+    .box h3 { margin-top: 0; border-bottom: 1px solid #e1e4e8; padding-bottom: 10px; font-size: 16px; color: #1e3a5f; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e1e4e8; }
+    th { background: #fafbfc; color: #5e6c84; }
+    .badge { background: #ebecf0; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
+    .st-active { color: #006644; background: #e3fcef; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
+    .st-revoked { color: #bf2600; background: #ffebe6; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
+    .st-expired { color: #828282; background: #f4f5f7; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
+    .btn-action { text-decoration: none; font-weight: bold; padding: 5px 10px; border-radius: 4px; font-size: 12px; display: inline-block; }
+    .btn-revoke { color: #de350b; background: #ffebe6; }
+    .btn-reconnect { color: #006644; background: #e3fcef; }
+    .btn-action:hover { opacity: 0.8; }
+</style>
+"""
 
 PORTAL_TEMPLATE = """
 <!DOCTYPE html>
@@ -80,32 +131,14 @@ PORTAL_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Connect</title>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f4f6f8; margin: 0; padding: 20px;
-            display: flex; justify-content: center; align-items: center; min-height: 90vh;
-        }
+        body { font-family: -apple-system, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 90vh; }
         .container { width: 100%; max-width: 350px; }
-        .box { 
-            background: white; padding: 30px 22px; border-radius: 16px; 
-            border: 1px solid #e1e4e8; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; 
-            box-sizing: border-box;
-        }
+        .box { background: white; padding: 30px 22px; border-radius: 16px; border: 1px solid #e1e4e8; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; }
         h2 { margin: 0; color: #0052cc; font-size: 24px; }
         p { color: #5e6c84; font-size: 14px; margin-top: 6px; margin-bottom: 20px; }
         label { font-weight: bold; font-size: 13px; color: #172b4d; display: block; margin-bottom: 8px; text-align: left; }
-        input[type="text"] { 
-            width: 100%; padding: 14px; font-size: 24px; border: 2px solid #dfe1e6; 
-            border-radius: 8px; box-sizing: border-box; margin-bottom: 18px; 
-            text-align: center; letter-spacing: 6px; font-weight: bold; color: #0052cc;
-        }
-        input[type="text"]:focus { border-color: #0052cc; outline: none; }
-        button { 
-            width: 100%; padding: 14px; background: #0052cc; color: white; 
-            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; 
-            transition: background 0.2s;
-        }
-        button:hover { background: #0065ff; }
+        input[type="text"] { width: 100%; padding: 14px; font-size: 24px; border: 2px solid #dfe1e6; border-radius: 8px; margin-bottom: 18px; text-align: center; letter-spacing: 6px; font-weight: bold; color: #0052cc; }
+        button { width: 100%; padding: 14px; background: #0052cc; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
         .error { color: #de350b; background: #ffebe6; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; }
         .mac-info { font-size: 11px; color: #888; margin-top: 15px; }
     </style>
@@ -115,9 +148,7 @@ PORTAL_TEMPLATE = """
         <div class="box">
             <h2>HANS WIFI</h2>
             <p>Ingiza namba ya vocha kuunganisha intaneti</p>
-            {% if error %}
-                <div class="error">{{ error }}</div>
-            {% endif %}
+            {% if error %}<div class="error">{{ error }}</div>{% endif %}
             <form action="/login" method="POST">
                 <input type="hidden" name="mac" value="{{ mac }}">
                 <input type="hidden" name="gw_address" value="{{ gw_address }}">
@@ -126,17 +157,7 @@ PORTAL_TEMPLATE = """
                 <input type="hidden" name="userurl" value="{{ userurl }}">
                 
                 <label for="voucher">Namba ya Vocha (Digits 5):</label>
-                <input 
-                    type="text" 
-                    id="voucher" 
-                    name="voucher" 
-                    maxlength="5" 
-                    pattern="\\d{5}" 
-                    placeholder="12345" 
-                    inputmode="numeric"
-                    required 
-                    autofocus
-                >
+                <input type="text" id="voucher" name="voucher" maxlength="5" pattern="\\d{5}" placeholder="12345" inputmode="numeric" required autofocus>
                 <button type="submit">CONNECT INTERNET</button>
             </form>
             <div class="mac-info">Device MAC: {{ mac }}</div>
@@ -154,9 +175,9 @@ ADMIN_LOGIN_TEMPLATE = """
     <title>HANS WIFI - Admin Login</title>
     <style>
         body { font-family: sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 90vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e1e4e8; width: 280px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e1e4e8; width: 280px; text-align: center; }
         h3 { margin-top: 0; color: #0052cc; }
-        input[type="password"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 16px; }
+        input[type="password"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; text-align: center; font-size: 16px; }
         button { width: 100%; padding: 12px; background: #0052cc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .error { color: red; font-size: 13px; margin-bottom: 10px; }
     </style>
@@ -180,36 +201,13 @@ ADMIN_TEMPLATE = """
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Dashboard</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #172b4d; }
-        .container { max-width: 960px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .header h2 { margin: 0; color: #0052cc; }
-        .btn-logout { background: #ff5630; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card { background: white; padding: 18px; border-radius: 10px; border: 1px solid #e1e4e8; }
-        .card .lbl { font-size: 12px; color: #5e6c84; font-weight: bold; text-transform: uppercase; }
-        .card .val { font-size: 22px; font-weight: bold; color: #0052cc; margin-top: 4px; }
-        .box { background: white; padding: 20px; border-radius: 10px; border: 1px solid #e1e4e8; margin-bottom: 20px; }
-        .box h3 { margin-top: 0; border-bottom: 1px solid #e1e4e8; padding-bottom: 10px; font-size: 16px; }
-        .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .form-row input { flex: 1; min-width: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-        .btn-gen { background: #0052cc; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e1e4e8; }
-        th { background: #fafbfc; color: #5e6c84; }
-        .badge { background: #ebecf0; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
-        .st-active { color: #006644; background: #e3fcef; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
-        .st-used { color: #bf2600; background: #ffebe6; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
-        .btn-revoke { color: #de350b; font-weight: bold; text-decoration: none; }
-        .btn-revoke:hover { text-decoration: underline; }
-    </style>
+    """ + BASE_STYLE + """
 </head>
 <body>
-    <div class="container">
+    """ + NAV_SIDEBAR + """
+    <div class="main-content">
         <div class="header">
-            <h2>HANS WIFI Admin Panel</h2>
-            <a href="/admin/logout" class="btn-logout">Logout</a>
+            <h2>Dashboard</h2>
         </div>
         <div class="grid">
             <div class="card"><div class="lbl">Total Revenue</div><div class="val">TZS {{ total_revenue }}</div></div>
@@ -220,38 +218,16 @@ ADMIN_TEMPLATE = """
         <div class="box">
             <h3>🖨️ Generate 5-Digit Vouchers</h3>
             <form action="/admin/generate" method="POST">
-                <div class="form-row">
-                    <input type="number" name="quantity" value="8" placeholder="Quantity" required>
-                    <input type="number" name="duration" value="360" placeholder="Duration (Mins)" required>
-                    <input type="number" name="price" value="500" placeholder="Price (TZS)" required>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="number" name="quantity" value="8" placeholder="Quantity" required style="padding:10px; border:1px solid #ccc; border-radius:6px;">
+                    <input type="number" name="duration" value="360" placeholder="Duration (Mins)" required style="padding:10px; border:1px solid #ccc; border-radius:6px;">
+                    <input type="number" name="price" value="500" placeholder="Price (TZS)" required style="padding:10px; border:1px solid #ccc; border-radius:6px;">
                 </div>
-                <button type="submit" class="btn-gen">Generate Printable Sheet</button>
+                <button type="submit" style="background:#0052cc; color:white; padding:10px 20px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; margin-top:10px;">Generate Printable Sheet</button>
             </form>
         </div>
         <div class="box">
-            <h3>📡 Connected Devices (Active Sessions)</h3>
-            <table>
-                <tr><th>MAC Address</th><th>Voucher Code</th><th>Expire Date</th><th>Action</th></tr>
-                {% for s in active_sessions %}
-                <tr>
-                    <td><b>{{ s._id }}</b></td>
-                    <td><span class="badge">{{ s.code }}</span></td>
-                    <td><span class="st-active">{{ s.expire_date.strftime('%Y-%m-%d %H:%M') if s.expire_date else '-' }}</span></td>
-                    <td>
-                        <a href="/admin/revoke/{{ s._id }}" 
-                           class="btn-revoke"
-                           onclick="return confirm('Disconnect this device instantly?');">
-                           Disconnect
-                        </a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4" style="color: #888;">No active sessions.</td></tr>
-                {% endfor %}
-            </table>
-        </div>
-        <div class="box">
-            <h3>🎟️ Recent Voucher Inventory</h3>
+            <h3>🎟️ Recent Vouchers</h3>
             <table>
                 <tr><th>Code</th><th>Duration</th><th>Price</th><th>Status</th><th>Used By MAC</th></tr>
                 {% for v in vouchers %}
@@ -259,9 +235,65 @@ ADMIN_TEMPLATE = """
                     <td><span class="badge">{{ v.code }}</span></td>
                     <td>{{ v.duration_minutes }} mins</td>
                     <td>TZS {{ v.price }}</td>
-                    <td><span class="{{ 'st-active' if v.status == 'ACTIVE' else 'st-used' }}">{{ v.status }}</span></td>
+                    <td><span class="{{ 'st-active' if v.status == 'ACTIVE' else 'st-revoked' }}">{{ v.status }}</span></td>
                     <td>{{ v.used_by_mac or '-' }}</td>
                 </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+SESSIONS_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HANS WIFI - Sessions Management</title>
+    """ + BASE_STYLE + """
+</head>
+<body>
+    """ + NAV_SIDEBAR + """
+    <div class="main-content">
+        <div class="header">
+            <h2>Sessions Management</h2>
+        </div>
+        <div class="box">
+            <h3>👥 All Device Sessions (Active, Disconnected & Expired)</h3>
+            <table>
+                <tr>
+                    <th>MAC Address</th>
+                    <th>Voucher Code</th>
+                    <th>Expire Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                {% for s in sessions %}
+                <tr>
+                    <td><b>{{ s._id }}</b></td>
+                    <td><span class="badge">{{ s.code }}</span></td>
+                    <td>{{ s.expire_date.strftime('%Y-%m-%d %H:%M') if s.expire_date else '-' }}</td>
+                    <td>
+                        {% if s.status == 'ACTIVE' %}
+                            <span class="st-active">ACTIVE</span>
+                        {% elif s.status == 'REVOKED' %}
+                            <span class="st-revoked">DISCONNECTED</span>
+                        {% else %}
+                            <span class="st-expired">EXPIRED</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.status == 'ACTIVE' %}
+                            <a href="/admin/revoke/{{ s._id }}" class="btn-action btn-revoke" onclick="return confirm('Disconnect this device?');">Disconnect</a>
+                        {% else %}
+                            <a href="/admin/reconnect/{{ s._id }}" class="btn-action btn-reconnect" onclick="return confirm('Reconnect this device?');">Reconnect</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="color: #888; text-align:center;">No session records found.</td></tr>
                 {% endfor %}
             </table>
         </div>
@@ -314,26 +346,19 @@ PRINT_TEMPLATE = """
 @app.route('/login.html')
 @app.route('/wifidog/portal')
 @app.route('/wifidog/portal/')
-@app.route('/api/wifidog/portal')
-@app.route('/api/wifidog/portal/')
 def captive_login_page():
-    """Renders voucher entry page or auto-reconnects existing active MAC sessions."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
 
-    logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
-
-    # --- AUTO-RECONNECT CHECK AFTER AP REBOOT ---
+    # Auto-reconnect active sessions after AP restart
     now = datetime.now(timezone.utc)
     if mac and not mac.startswith("UNKNOWN"):
         try:
-            active_session = sessions_col.find_one({"_id": mac, "expire_date": {"$gt": now}})
+            active_session = sessions_col.find_one({"_id": mac, "status": "ACTIVE", "expire_date": {"$gt": now}})
             if active_session:
-                logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
-                
                 token = secrets.token_hex(16)
                 tokens_col.insert_one({
                     "token": token,
@@ -342,11 +367,10 @@ def captive_login_page():
                     "expire_date": active_session.get("expire_date"),
                     "created_at": now
                 })
-                
                 auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
                 return redirect(auth_action_url)
         except Exception as e:
-            logger.error(f"Error checking active session during portal load: {str(e)}")
+            logger.error(f"Error during auto-reconnect lookup: {str(e)}")
 
     return render_template_string(
         PORTAL_TEMPLATE,
@@ -360,29 +384,21 @@ def captive_login_page():
 
 @app.route('/favicon.ico')
 def favicon():
-    """Silence browser favicon requests with 204 No Content."""
     return Response(status=204)
 
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Catch routing errors without corrupting API background checks."""
     path = request.path.lower()
-    
     if 'favicon.ico' in path:
         return Response(status=204)
-
     if path.startswith('/wifidog') or path.startswith('/api/wifidog') or 'auth' in path or 'ping' in path:
-        logger.warning(f"Unhandled WifiDog API route requested: {request.path}")
         return Response("Not Found\n", status=404, mimetype='text/plain')
-    
-    logger.warning(f"404 redirect triggered for path: {request.path} from IP: {request.remote_addr}")
     return captive_login_page()
 
 
 @app.route('/login', methods=['POST'])
 def process_login():
-    """Validates voucher and redirects client to local AP auth endpoint."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -390,16 +406,13 @@ def process_login():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
-    logger.info(f"Voucher attempt submitted: Code '{code}' from MAC: {mac}")
-
     try:
         voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
     except Exception as e:
-        logger.error(f"Database error while checking voucher {code}: {str(e)}")
+        logger.error(f"DB error checking voucher {code}: {str(e)}")
         voucher = None
 
     if not voucher:
-        logger.warning(f"Failed login attempt: Invalid or used voucher code '{code}' from MAC: {mac}")
         return render_template_string(
             PORTAL_TEMPLATE,
             mac=mac,
@@ -414,7 +427,6 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -424,7 +436,6 @@ def process_login():
         "created_at": now
     })
 
-    # 2. Register Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -439,9 +450,6 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}' for {duration_minutes} minutes.")
-
-    # 3. Form destination URL pointing back to local AP
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
     return f"""
@@ -453,10 +461,10 @@ def process_login():
         <title>Inaunganisha...</title>
         <style>
             body {{ font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; color: #172b4d; }}
-            .card {{ background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 320px; margin: 0 auto; }}
+            .card {{ background: white; padding: 30px 20px; border-radius: 12px; max-width: 320px; margin: 0 auto; }}
             .loader {{ border: 4px solid #dfe1e6; border-top: 4px solid #0052cc; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 0 auto 20px auto; }}
             @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
-            .btn {{ display: block; width: 100%; padding: 12px; background: #0052cc; color: white; text-decoration: none; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 15px; font-size: 14px; box-sizing: border-box; }}
+            .btn {{ display: block; width: 100%; padding: 12px; background: #0052cc; color: white; text-decoration: none; font-weight: bold; border-radius: 6px; margin-top: 15px; font-size: 14px; box-sizing: border-box; }}
         </style>
     </head>
     <body>
@@ -488,38 +496,40 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """ReyeeOS Background Auth Verification with strict expiration enforcement."""
+    """Background authentication verification with status validation."""
     stage = request.args.get('stage', '').strip()
-    token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    # 1. Handle explicit client logout request
+    # 1. Client Logout Request
     if stage == 'logout':
         if mac:
-            sessions_col.delete_one({"_id": mac})
+            sessions_col.update_one({"_id": mac}, {"$set": {"status": "REVOKED"}})
             tokens_col.delete_many({"mac": mac})
-            logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # 2. Strict Session Lookup
+    # 2. Lookup Session in DB
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
+        status = session_doc.get('status', 'ACTIVE')
         exp = session_doc.get('expire_date')
+        
         if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
             exp = exp.replace(tzinfo=timezone.utc)
 
-        # Active session found -> Allow access
-        if exp and exp > now:
+        # Allow access ONLY if status is ACTIVE and time hasn't expired
+        if status == 'ACTIVE' and exp and exp > now:
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # 3. If session is missing or expired, clean up tokens and block access immediately
+        # Auto-mark expired sessions without deleting the record
+        if exp and exp <= now and status == 'ACTIVE':
+            sessions_col.update_one({"_id": mac}, {"$set": {"status": "EXPIRED"}})
+
+    # Purge tokens and deny internet
     if mac:
         tokens_col.delete_many({"mac": mac})
-        sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
-    logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 
@@ -527,25 +537,14 @@ def wifidog_auth_check():
 @app.route('/ping/', methods=['GET'])
 @app.route('/wifidog/ping', methods=['GET'])
 @app.route('/wifidog/ping/', methods=['GET'])
-@app.route('/api/wifidog/ping', methods=['GET'])
-@app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """Periodic Reyee AP Heartbeat."""
-    gw_id = request.args.get('gw_id', 'Unknown')
-    logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
 
 
 @app.route('/gw_message', methods=['GET'])
-@app.route('/gw_message/', methods=['GET'])
 @app.route('/wifidog/gw_message', methods=['GET'])
-@app.route('/wifidog/gw_message/', methods=['GET'])
-@app.route('/api/wifidog/gw_message', methods=['GET'])
-@app.route('/api/wifidog/gw_message/', methods=['GET'])
 def wifidog_gw_message():
-    """Displays router-level status messages."""
     msg = request.args.get('message', 'Unknown Error')
-    logger.warning(f"Gateway status message: {msg}")
     return f"""
     <div style="font-family:sans-serif; text-align:center; padding: 40px;">
         <h2>WifiDog Gateway Status</h2>
@@ -556,7 +555,7 @@ def wifidog_gw_message():
 
 
 # ==========================================
-# 📊 ADMIN PANEL ROUTES
+# 📊 ADMIN PANEL & SESSIONS MANAGEMENT
 # ==========================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -564,9 +563,7 @@ def admin_login():
     if request.method == 'POST':
         if request.form.get('password') == ADMIN_PW:
             session['admin'] = True
-            logger.info("Admin login successful.")
             return redirect('/admin')
-        logger.warning(f"Failed admin login attempt from IP: {request.remote_addr}")
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
     return render_template_string(ADMIN_LOGIN_TEMPLATE)
 
@@ -574,7 +571,6 @@ def admin_login():
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
-    logger.info("Admin logged out.")
     return redirect('/admin/login')
 
 
@@ -585,7 +581,6 @@ def admin_dashboard():
 
     now = datetime.now(timezone.utc)
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(50))
-    active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
 
     rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED"}},
@@ -595,29 +590,70 @@ def admin_dashboard():
 
     return render_template_string(
         ADMIN_TEMPLATE,
+        active_page="dashboard",
         vouchers=vouchers,
-        active_sessions=active_sessions,
         active_vouchers_count=vouchers_col.count_documents({"status": "ACTIVE"}),
         used_vouchers_count=vouchers_col.count_documents({"status": "USED"}),
-        active_sessions_count=len(active_sessions),
+        active_sessions_count=sessions_col.count_documents({"status": "ACTIVE", "expire_date": {"$gt": now}}),
         total_revenue=f"{total_rev:,.0f}"
+    )
+
+
+@app.route('/admin/sessions')
+def admin_sessions_page():
+    """Dedicated page to view and manage all active, revoked, and expired sessions."""
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    sessions_list = list(sessions_col.find().sort("used_time", -1))
+    return render_template_string(
+        SESSIONS_TEMPLATE,
+        active_page="sessions",
+        sessions=sessions_list
     )
 
 
 @app.route('/admin/revoke/<mac>')
 def revoke_session(mac):
-    """Instantly revokes a device's access from the admin dashboard."""
+    """Soft-revokes session access without deleting historical records."""
     if not session.get('admin'):
         return redirect('/admin/login')
 
     mac = mac.strip().upper()
-    
-    # Remove session and associated tokens immediately
-    sessions_col.delete_one({"_id": mac})
+    sessions_col.update_one({"_id": mac}, {"$set": {"status": "REVOKED"}})
     tokens_col.delete_many({"mac": mac})
     
-    logger.info(f"Admin manually revoked internet access for MAC: {mac}")
-    return redirect('/admin')
+    logger.info(f"Admin disconnected MAC: {mac}")
+    return redirect(request.referrer or '/admin/sessions')
+
+
+@app.route('/admin/reconnect/<mac>')
+def reconnect_session(mac):
+    """Reactivates a disconnected/expired session, extending duration if necessary."""
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    mac = mac.strip().upper()
+    now = datetime.now(timezone.utc)
+    session_doc = sessions_col.find_one({"_id": mac})
+
+    if session_doc:
+        exp = session_doc.get('expire_date')
+        if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+            exp = exp.replace(tzinfo=timezone.utc)
+
+        duration = session_doc.get('duration_minutes', 60)
+        
+        # If already expired, give fresh time based on original duration
+        new_expire = now + timedelta(minutes=duration) if (not exp or exp <= now) else exp
+
+        sessions_col.update_one(
+            {"_id": mac},
+            {"$set": {"status": "ACTIVE", "expire_date": new_expire}}
+        )
+        logger.info(f"Admin re-connected MAC: {mac}")
+
+    return redirect(request.referrer or '/admin/sessions')
 
 
 @app.route('/admin/generate', methods=['POST'])
@@ -647,7 +683,6 @@ def generate_vouchers():
 
     if new_vouchers:
         vouchers_col.insert_many(new_vouchers)
-        logger.info(f"Generated {len(new_vouchers)} new vouchers (Duration: {duration} mins, Price: TZS {price})")
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
@@ -658,5 +693,4 @@ def generate_vouchers():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
-    logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
