@@ -27,7 +27,7 @@ app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 
-# Hardcoded MONGO_URI as requested
+# Database URI
 MONGO_URI = "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 
 # --- DATABASE SETUP ---
@@ -131,7 +131,7 @@ PORTAL_TEMPLATE = """
                     id="voucher" 
                     name="voucher" 
                     maxlength="5" 
-                    pattern="\d{5}" 
+                    pattern="\\d{5}" 
                     placeholder="12345" 
                     inputmode="numeric"
                     required 
@@ -326,15 +326,28 @@ def captive_login_page():
         userurl=userurl
     ), 200
 
+
+@app.route('/favicon.ico')
+def favicon():
+    """Silence browser favicon requests with 204 No Content."""
+    return Response(status=204)
+
+
 @app.errorhandler(404)
 def handle_404(e):
     """Catch routing errors without corrupting API background checks."""
-    if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
+    path = request.path.lower()
+    
+    if 'favicon.ico' in path:
+        return Response(status=204)
+
+    if path.startswith('/wifidog') or path.startswith('/api/wifidog') or 'auth' in path or 'ping' in path:
         logger.warning(f"Unhandled WifiDog API route requested: {request.path}")
         return Response("Not Found\n", status=404, mimetype='text/plain')
     
     logger.warning(f"404 redirect triggered for path: {request.path} from IP: {request.remote_addr}")
     return captive_login_page()
+
 
 @app.route('/login', methods=['POST'])
 def process_login():
@@ -437,6 +450,8 @@ def process_login():
 # 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
+@app.route('/auth', methods=['GET'])
+@app.route('/auth/', methods=['GET'])
 @app.route('/wifidog/auth', methods=['GET'])
 @app.route('/wifidog/auth/', methods=['GET'])
 @app.route('/api/wifidog/auth', methods=['GET'])
@@ -479,6 +494,9 @@ def wifidog_auth_check():
     logger.warning(f"WifiDog Auth rejected for MAC: '{mac}', Token: '{token}'")
     return Response("Auth: 0\n", mimetype='text/plain')
 
+
+@app.route('/ping', methods=['GET'])
+@app.route('/ping/', methods=['GET'])
 @app.route('/wifidog/ping', methods=['GET'])
 @app.route('/wifidog/ping/', methods=['GET'])
 @app.route('/api/wifidog/ping', methods=['GET'])
@@ -489,6 +507,9 @@ def wifidog_ping():
     logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
 
+
+@app.route('/gw_message', methods=['GET'])
+@app.route('/gw_message/', methods=['GET'])
 @app.route('/wifidog/gw_message', methods=['GET'])
 @app.route('/wifidog/gw_message/', methods=['GET'])
 @app.route('/api/wifidog/gw_message', methods=['GET'])
@@ -521,11 +542,13 @@ def admin_login():
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
     return render_template_string(ADMIN_LOGIN_TEMPLATE)
 
+
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
     logger.info("Admin logged out.")
     return redirect('/admin/login')
+
 
 @app.route('/admin')
 def admin_dashboard():
@@ -551,6 +574,7 @@ def admin_dashboard():
         active_sessions_count=len(active_sessions),
         total_revenue=f"{total_rev:,.0f}"
     )
+
 
 @app.route('/admin/generate', methods=['POST'])
 def generate_vouchers():
