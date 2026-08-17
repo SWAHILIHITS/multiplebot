@@ -1,9 +1,14 @@
 import os
 import random
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
 from pymongo import MongoClient
+
+# Setup application logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("WifiDogPortal")
 
 app = Flask(__name__)
 
@@ -286,12 +291,35 @@ PRINT_TEMPLATE = """
 @app.route('/api/wifidog/portal')
 @app.route('/api/wifidog/portal/')
 def captive_login_page():
-    """Renders voucher entry page on connection with dynamic gateway detection."""
+    """Renders voucher entry page, or auto-redirects if device MAC has active session."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
+
+    now = datetime.now(timezone.utc)
+    
+    # Auto-login recovery: Check if device MAC already has a valid active session
+    if mac and mac != "DEMO:MAC:00:11:22":
+        active_session = sessions_col.find_one({"_id": mac})
+        if active_session:
+            exp = active_session.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp > now:
+                # Create fresh token for local AP authentication bypass
+                token = secrets.token_hex(16)
+                tokens_col.insert_one({
+                    "token": token,
+                    "mac": mac,
+                    "code": active_session.get('code', ''),
+                    "expire_date": exp,
+                    "created_at": now
+                })
+                auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+                logger.info(f"Auto-restoring session for MAC: {mac}")
+                return redirect(auth_action_url)
 
     return render_template_string(
         PORTAL_TEMPLATE,
@@ -319,9 +347,19 @@ def process_login():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
-    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+    now = datetime.now(timezone.utc)
+
+    # Search for an active voucher OR a voucher previously used by this exact MAC
+    voucher = vouchers_col.find_one({
+        "code": code,
+        "$or": [
+            {"status": "ACTIVE"},
+            {"used_by_mac": mac}
+        ]
+    })
 
     if not voucher:
+        logger.warning(f"Failed login attempt for MAC: {mac} with Voucher: {code}")
         return render_template_string(
             PORTAL_TEMPLATE,
             mac=mac,
@@ -332,11 +370,31 @@ def process_login():
             error="Vocha hii siyo sahihi au ishatumika."
         )
 
-    now = datetime.now(timezone.utc)
+    # Verify if reused voucher has expired
     duration_minutes = voucher['duration_minutes']
-    expire_date = now + timedelta(minutes=duration_minutes)
+    if voucher.get('status') == "USED":
+        existing_session = sessions_col.find_one({"_id": mac, "code": code})
+        if existing_session:
+            exp = existing_session.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp <= now:
+                return render_template_string(
+                    PORTAL_TEMPLATE,
+                    mac=mac,
+                    gw_address=gw_address,
+                    gw_port=gw_port,
+                    gw_id=gw_id,
+                    userurl=userurl,
+                    error="Muda wa vocha hii umekwisha."
+                )
+            expire_date = exp
+        else:
+            expire_date = now + timedelta(minutes=duration_minutes)
+    else:
+        expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary token
+    # 1. Create temporary authentication token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -346,7 +404,7 @@ def process_login():
         "created_at": now
     })
 
-    # 2. Register Active MAC session
+    # 2. Register or update Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -363,6 +421,7 @@ def process_login():
 
     # 3. Form destination URL pointing back to local AP
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+    logger.info(f"Redirecting MAC {mac} to {auth_action_url}")
 
     # 4. Hybrid Meta Refresh + JavaScript redirect page
     return f"""
@@ -407,14 +466,13 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """
-    ReyeeOS Background Auth Verification.
-    Supports stage=login, stage=counters, stage=logout.
-    """
+    """ReyeeOS Background Auth Verification."""
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
+
+    logger.info(f"Auth check received: stage='{stage}', mac='{mac}', token='{token}'")
 
     # Handle client disconnect/logout
     if stage == 'logout':
@@ -430,6 +488,7 @@ def wifidog_auth_check():
             if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
                 exp = exp.replace(tzinfo=timezone.utc)
             if exp and exp > now:
+                logger.info(f"Token auth granted for MAC: {mac}")
                 return Response("Auth: 1\n", mimetype='text/plain')
 
     # MAC Address Validation (Periodic heartbeat checks)
@@ -442,6 +501,7 @@ def wifidog_auth_check():
             if exp and exp > now:
                 return Response("Auth: 1\n", mimetype='text/plain')
 
+    logger.warning(f"Auth denied for MAC: {mac}")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 @app.route('/wifidog/ping', methods=['GET'])
