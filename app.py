@@ -660,4 +660,3 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
-l
