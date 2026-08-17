@@ -1,28 +1,50 @@
 import os
 import random
 import secrets
+import logging
+import logging.config
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
 from pymongo import MongoClient
 
 app = Flask(__name__)
 
+# --- LOGGING INITIALIZATION ---
+LOG_CONFIG_FILE = "logging.conf"
+
+if os.path.exists(LOG_CONFIG_FILE):
+    logging.config.fileConfig(LOG_CONFIG_FILE, disable_existing_loggers=False)
+    logger = logging.getLogger("appLogger")
+    logger.info("Successfully loaded logging configuration from logging.conf")
+else:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("appLogger")
+    logger.warning("logging.conf not found. Falling back to basic standard logging.")
+
+
 # --- ENVIRONMENT CONFIGURATION ---
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 
-MONGO_URI = os.getenv(
-    "MONGO_URI",
-    "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
-)
+# Hardcoded MONGO_URI as requested
+MONGO_URI = "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 
 # --- DATABASE SETUP ---
-client = MongoClient(MONGO_URI)
-db = client['swahilihit56']
-vouchers_col = db["vouchers"]
-sessions_col = db["sessions"]
-tokens_col = db["wifidog_tokens"]
+try:
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    db = client['swahilihit56']
+    vouchers_col = db["vouchers"]
+    sessions_col = db["sessions"]
+    tokens_col = db["wifidog_tokens"]
+    
+    # Initialize indexes for performance and security
+    vouchers_col.create_index("code", unique=True)
+    tokens_col.create_index("created_at", expireAfterSeconds=600)
+    sessions_col.create_index("expire_date")
+    logger.info("Successfully connected to MongoDB and verified collection indexes.")
+except Exception as e:
+    logger.error(f"Failed to connect to MongoDB: {str(e)}")
 
 
 # --- HELPER FUNCTIONS ---
@@ -36,7 +58,7 @@ def get_client_mac():
         val = get_param(key)
         if val:
             return val.strip().upper()
-    return "DEMO:MAC:00:11:22"
+    return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
 def get_gateway_address():
     """Extract Access Point LAN IP. Falls back strictly to DEFAULT_GW_ADDRESS for cloud hosts."""
@@ -293,6 +315,8 @@ def captive_login_page():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
 
+    logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
+
     return render_template_string(
         PORTAL_TEMPLATE,
         mac=mac,
@@ -306,7 +330,10 @@ def captive_login_page():
 def handle_404(e):
     """Catch routing errors without corrupting API background checks."""
     if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
+        logger.warning(f"Unhandled WifiDog API route requested: {request.path}")
         return Response("Not Found\n", status=404, mimetype='text/plain')
+    
+    logger.warning(f"404 redirect triggered for path: {request.path} from IP: {request.remote_addr}")
     return captive_login_page()
 
 @app.route('/login', methods=['POST'])
@@ -319,9 +346,16 @@ def process_login():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
-    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+    logger.info(f"Voucher attempt submitted: Code '{code}' from MAC: {mac}")
+
+    try:
+        voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+    except Exception as e:
+        logger.error(f"Database error while checking voucher {code}: {str(e)}")
+        voucher = None
 
     if not voucher:
+        logger.warning(f"Failed login attempt: Invalid or used voucher code '{code}' from MAC: {mac}")
         return render_template_string(
             PORTAL_TEMPLATE,
             mac=mac,
@@ -361,10 +395,11 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
+    logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}' for {duration_minutes} minutes.")
+
     # 3. Form destination URL pointing back to local AP
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
-    # 4. Hybrid Meta Refresh + JavaScript redirect page
     return f"""
     <!DOCTYPE html>
     <html lang="sw">
@@ -407,10 +442,7 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """
-    ReyeeOS Background Auth Verification.
-    Supports stage=login, stage=counters, stage=logout.
-    """
+    """ReyeeOS Background Auth Verification."""
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
@@ -420,9 +452,10 @@ def wifidog_auth_check():
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
+            logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Token Validation (Primary login check)
+    # Token Validation
     if token:
         token_doc = tokens_col.find_one({"token": token})
         if token_doc:
@@ -430,6 +463,7 @@ def wifidog_auth_check():
             if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
                 exp = exp.replace(tzinfo=timezone.utc)
             if exp and exp > now:
+                logger.info(f"WifiDog Auth success via Token for MAC: {mac}")
                 return Response("Auth: 1\n", mimetype='text/plain')
 
     # MAC Address Validation (Periodic heartbeat checks)
@@ -442,6 +476,7 @@ def wifidog_auth_check():
             if exp and exp > now:
                 return Response("Auth: 1\n", mimetype='text/plain')
 
+    logger.warning(f"WifiDog Auth rejected for MAC: '{mac}', Token: '{token}'")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 @app.route('/wifidog/ping', methods=['GET'])
@@ -450,6 +485,8 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
     """Periodic Reyee AP Heartbeat."""
+    gw_id = request.args.get('gw_id', 'Unknown')
+    logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
 
 @app.route('/wifidog/gw_message', methods=['GET'])
@@ -459,6 +496,7 @@ def wifidog_ping():
 def wifidog_gw_message():
     """Displays router-level status messages."""
     msg = request.args.get('message', 'Unknown Error')
+    logger.warning(f"Gateway status message: {msg}")
     return f"""
     <div style="font-family:sans-serif; text-align:center; padding: 40px;">
         <h2>WifiDog Gateway Status</h2>
@@ -477,13 +515,16 @@ def admin_login():
     if request.method == 'POST':
         if request.form.get('password') == ADMIN_PW:
             session['admin'] = True
+            logger.info("Admin login successful.")
             return redirect('/admin')
+        logger.warning(f"Failed admin login attempt from IP: {request.remote_addr}")
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
     return render_template_string(ADMIN_LOGIN_TEMPLATE)
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
+    logger.info("Admin logged out.")
     return redirect('/admin/login')
 
 @app.route('/admin')
@@ -538,6 +579,7 @@ def generate_vouchers():
 
     if new_vouchers:
         vouchers_col.insert_many(new_vouchers)
+        logger.info(f"Generated {len(new_vouchers)} new vouchers (Duration: {duration} mins, Price: TZS {price})")
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
@@ -548,4 +590,5 @@ def generate_vouchers():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
