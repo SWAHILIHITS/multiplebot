@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HANS WIFI - Admin Login</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 90vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e1e4e8; width: 280px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        h3 { margin-top: 0; color: #0052cc; }
+        input[type="password"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #0052cc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .error { color: red; font-size: 13px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h3>HANS WIFI Admin</h3>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form action="/admin/login" method="POST">
+            <input type="password" name="password" placeholder="Ingiza Nenosiri" required autofocus>
+            <button type="submit">LOGIN</button>
+        </form>
+    </div>
+</body>
+</html>
