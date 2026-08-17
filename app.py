@@ -201,6 +201,8 @@ ADMIN_TEMPLATE = """
         .badge { background: #ebecf0; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
         .st-active { color: #006644; background: #e3fcef; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
         .st-used { color: #bf2600; background: #ffebe6; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
+        .btn-revoke { color: #de350b; font-weight: bold; text-decoration: none; }
+        .btn-revoke:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -229,15 +231,22 @@ ADMIN_TEMPLATE = """
         <div class="box">
             <h3>📡 Connected Devices (Active Sessions)</h3>
             <table>
-                <tr><th>MAC Address</th><th>Voucher Code</th><th>Expire Date</th></tr>
+                <tr><th>MAC Address</th><th>Voucher Code</th><th>Expire Date</th><th>Action</th></tr>
                 {% for s in active_sessions %}
                 <tr>
                     <td><b>{{ s._id }}</b></td>
                     <td><span class="badge">{{ s.code }}</span></td>
                     <td><span class="st-active">{{ s.expire_date.strftime('%Y-%m-%d %H:%M') if s.expire_date else '-' }}</span></td>
+                    <td>
+                        <a href="/admin/revoke/{{ s._id }}" 
+                           class="btn-revoke"
+                           onclick="return confirm('Disconnect this device instantly?');">
+                           Disconnect
+                        </a>
+                    </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="3" style="color: #888;">No active sessions.</td></tr>
+                <tr><td colspan="4" style="color: #888;">No active sessions.</td></tr>
                 {% endfor %}
             </table>
         </div>
@@ -317,7 +326,7 @@ def captive_login_page():
 
     logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
 
-    # --- AUTO-RECONNECT CHECK AFTER REBOOT ---
+    # --- AUTO-RECONNECT CHECK AFTER AP REBOOT ---
     now = datetime.now(timezone.utc)
     if mac and not mac.startswith("UNKNOWN"):
         try:
@@ -325,7 +334,6 @@ def captive_login_page():
             if active_session:
                 logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
                 
-                # Generate a new token for router re-authentication
                 token = secrets.token_hex(16)
                 tokens_col.insert_one({
                     "token": token,
@@ -335,7 +343,6 @@ def captive_login_page():
                     "created_at": now
                 })
                 
-                # Instantly send user back to gateway auth endpoint
                 auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
                 return redirect(auth_action_url)
         except Exception as e:
@@ -481,41 +488,38 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """ReyeeOS Background Auth Verification."""
+    """ReyeeOS Background Auth Verification with strict expiration enforcement."""
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    # Handle client disconnect/logout
+    # 1. Handle explicit client logout request
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
+            tokens_col.delete_many({"mac": mac})
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Token Validation
-    if token:
-        token_doc = tokens_col.find_one({"token": token})
-        if token_doc:
-            exp = token_doc.get('expire_date')
-            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
-                exp = exp.replace(tzinfo=timezone.utc)
-            if exp and exp > now:
-                logger.info(f"WifiDog Auth success via Token for MAC: {mac}")
-                return Response("Auth: 1\n", mimetype='text/plain')
+    # 2. Strict Session Lookup
+    session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
-    # MAC Address Validation (Periodic heartbeat checks)
+    if session_doc:
+        exp = session_doc.get('expire_date')
+        if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+            exp = exp.replace(tzinfo=timezone.utc)
+
+        # Active session found -> Allow access
+        if exp and exp > now:
+            return Response("Auth: 1\n", mimetype='text/plain')
+
+    # 3. If session is missing or expired, clean up tokens and block access immediately
     if mac:
-        session_doc = sessions_col.find_one({"_id": mac})
-        if session_doc:
-            exp = session_doc.get('expire_date')
-            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
-                exp = exp.replace(tzinfo=timezone.utc)
-            if exp and exp > now:
-                return Response("Auth: 1\n", mimetype='text/plain')
+        tokens_col.delete_many({"mac": mac})
+        sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
-    logger.warning(f"WifiDog Auth rejected for MAC: '{mac}', Token: '{token}'")
+    logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 
@@ -600,6 +604,22 @@ def admin_dashboard():
     )
 
 
+@app.route('/admin/revoke/<mac>')
+def revoke_session(mac):
+    """Instantly revokes a device's access from the admin dashboard."""
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    mac = mac.strip().upper()
+    
+    # Remove session and associated tokens immediately
+    sessions_col.delete_one({"_id": mac})
+    tokens_col.delete_many({"mac": mac})
+    
+    logger.info(f"Admin manually revoked internet access for MAC: {mac}")
+    return redirect('/admin')
+
+
 @app.route('/admin/generate', methods=['POST'])
 def generate_vouchers():
     if not session.get('admin'):
@@ -640,3 +660,4 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
+l
