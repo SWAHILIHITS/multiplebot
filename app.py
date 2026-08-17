@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
 from pymongo import MongoClient
 
-# Setup application logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("WifiDogPortal")
 
@@ -44,8 +43,8 @@ def get_client_mac():
     return "DEMO:MAC:00:11:22"
 
 def get_gateway_address():
-    """Extract Access Point LAN IP. Falls back strictly to DEFAULT_GW_ADDRESS for cloud hosts."""
-    for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
+    """Extract Access Point LAN IP with strict fallback to DEFAULT_GW_ADDRESS."""
+    for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip', 'nasip']:
         val = get_param(key)
         if val and val.replace('.', '').isdigit():
             return val.strip()
@@ -53,7 +52,7 @@ def get_gateway_address():
 
 
 # ==========================================
-# 🎨 UI HTML TEMPLATES
+# UI HTML TEMPLATES
 # ==========================================
 
 PORTAL_TEMPLATE = """
@@ -278,20 +277,11 @@ PRINT_TEMPLATE = """
 
 
 # ==========================================
-# 🌐 CAPTIVE PORTAL ROUTES
+# CAPTIVE PORTAL ROUTES
 # ==========================================
 
-@app.route('/')
-@app.route('/portal')
-@app.route('/portal/')
-@app.route('/index.html')
-@app.route('/login.html')
-@app.route('/wifidog/portal')
-@app.route('/wifidog/portal/')
-@app.route('/api/wifidog/portal')
-@app.route('/api/wifidog/portal/')
-def captive_login_page():
-    """Renders voucher entry page, or auto-redirects if device MAC has active session."""
+def render_portal_page():
+    """Helper function to parse parameters and render the voucher screen."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
@@ -308,7 +298,6 @@ def captive_login_page():
             if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
                 exp = exp.replace(tzinfo=timezone.utc)
             if exp and exp > now:
-                # Create fresh token for local AP authentication bypass
                 token = secrets.token_hex(16)
                 tokens_col.insert_one({
                     "token": token,
@@ -318,7 +307,7 @@ def captive_login_page():
                     "created_at": now
                 })
                 auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-                logger.info(f"Auto-restoring session for MAC: {mac}")
+                logger.info(f"Auto-restoring active session for MAC: {mac}")
                 return redirect(auth_action_url)
 
     return render_template_string(
@@ -330,16 +319,27 @@ def captive_login_page():
         userurl=userurl
     ), 200
 
-@app.errorhandler(404)
-def handle_404(e):
-    """Catch routing errors without corrupting API background checks."""
-    if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
-        return Response("Not Found\n", status=404, mimetype='text/plain')
-    return captive_login_page()
 
-@app.route('/login', methods=['POST'])
+@app.route('/')
+@app.route('/portal')
+@app.route('/portal/')
+@app.route('/index.html')
+@app.route('/login.html')
+@app.route('/wifidog/portal')
+@app.route('/wifidog/portal/')
+@app.route('/api/wifidog/portal')
+@app.route('/api/wifidog/portal/')
+def captive_login_page():
+    return render_portal_page()
+
+
+@app.route('/login', methods=['GET', 'POST'])
+@app.route('/login/', methods=['GET', 'POST'])
 def process_login():
-    """Validates voucher and redirects client to local AP auth endpoint."""
+    """Handles GET requests from router redirects and POST requests for voucher validation."""
+    if request.method == 'GET':
+        return render_portal_page()
+
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -370,7 +370,6 @@ def process_login():
             error="Vocha hii siyo sahihi au ishatumika."
         )
 
-    # Verify if reused voucher has expired
     duration_minutes = voucher['duration_minutes']
     if voucher.get('status') == "USED":
         existing_session = sessions_col.find_one({"_id": mac, "code": code})
@@ -394,7 +393,6 @@ def process_login():
     else:
         expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary authentication token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -404,7 +402,6 @@ def process_login():
         "created_at": now
     })
 
-    # 2. Register or update Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -419,11 +416,9 @@ def process_login():
     )
     vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Form destination URL pointing back to local AP
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-    logger.info(f"Redirecting MAC {mac} to {auth_action_url}")
+    logger.info(f"Redirecting MAC {mac} to AP endpoint: {auth_action_url}")
 
-    # 4. Hybrid Meta Refresh + JavaScript redirect page
     return f"""
     <!DOCTYPE html>
     <html lang="sw">
@@ -457,8 +452,15 @@ def process_login():
     """
 
 
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
+        return Response("Not Found\n", status=404, mimetype='text/plain')
+    return render_portal_page()
+
+
 # ==========================================
-# 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
+# REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
 @app.route('/wifidog/auth', methods=['GET'])
@@ -466,7 +468,6 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """ReyeeOS Background Auth Verification."""
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
@@ -474,13 +475,11 @@ def wifidog_auth_check():
 
     logger.info(f"Auth check received: stage='{stage}', mac='{mac}', token='{token}'")
 
-    # Handle client disconnect/logout
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Token Validation (Primary login check)
     if token:
         token_doc = tokens_col.find_one({"token": token})
         if token_doc:
@@ -491,7 +490,6 @@ def wifidog_auth_check():
                 logger.info(f"Token auth granted for MAC: {mac}")
                 return Response("Auth: 1\n", mimetype='text/plain')
 
-    # MAC Address Validation (Periodic heartbeat checks)
     if mac:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
@@ -509,7 +507,6 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping', methods=['GET'])
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """Periodic Reyee AP Heartbeat."""
     return Response("Pong\n", mimetype='text/plain')
 
 @app.route('/wifidog/gw_message', methods=['GET'])
@@ -517,7 +514,6 @@ def wifidog_ping():
 @app.route('/api/wifidog/gw_message', methods=['GET'])
 @app.route('/api/wifidog/gw_message/', methods=['GET'])
 def wifidog_gw_message():
-    """Displays router-level status messages."""
     msg = request.args.get('message', 'Unknown Error')
     return f"""
     <div style="font-family:sans-serif; text-align:center; padding: 40px;">
@@ -529,7 +525,7 @@ def wifidog_gw_message():
 
 
 # ==========================================
-# 📊 ADMIN PANEL ROUTES
+# ADMIN PANEL ROUTES
 # ==========================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -601,10 +597,6 @@ def generate_vouchers():
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
-
-# ==========================================
-# 🚀 SERVER STARTUP
-# ==========================================
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
