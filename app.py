@@ -4,7 +4,7 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument, ASCENDING
 
 app = Flask(__name__)
 
@@ -13,20 +13,44 @@ app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 
+# Cookie Security Configuration
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+)
+
 MONGO_URI = os.getenv(
     "MONGO_URI",
     "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 )
 
-# --- DATABASE SETUP ---
+# --- DATABASE SETUP & INDEXING ---
 client = MongoClient(MONGO_URI)
 db = client['swahilihit56']
 vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
 tokens_col = db["wifidog_tokens"]
 
+# Ensure Database Indexes for Speed and Automatic Token Cleanup
+try:
+    vouchers_col.create_index("code", unique=True)
+    tokens_col.create_index("token", unique=True)
+    # TTL Index: MongoDB automatically removes expired token records
+    tokens_col.create_index("expire_date", expireAfterSeconds=0)
+    sessions_col.create_index("expire_date")
+except Exception as e:
+    print(f"Index Initialization Warning: {e}")
+
 
 # --- HELPER FUNCTIONS ---
+def ensure_utc(dt):
+    """Ensure a datetime object is timezone-aware in UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 def get_param(key, default=""):
     """Extract parameter from POST form or GET query string."""
     return request.form.get(key) or request.args.get(key) or default
@@ -41,7 +65,7 @@ def clean_mac(raw_mac):
     return raw_mac.strip().upper()
 
 def get_client_mac():
-    """Detect client MAC address across ReyeeOS parameter keys."""
+    """Detect client MAC address across common WiFiDog parameter keys."""
     for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
         val = get_param(key)
         if val:
@@ -207,7 +231,7 @@ ADMIN_TEMPLATE = """
             <h3>🖨️ Generate 5-Digit Vouchers</h3>
             <form action="/admin/generate" method="POST">
                 <div class="form-row">
-                    <input type="number" name="quantity" value="8" placeholder="Quantity" required>
+                    <input type="number" name="quantity" value="8" placeholder="Quantity" min="1" max="100" required>
                     <input type="number" name="duration" value="360" placeholder="Duration (Mins)" required>
                     <input type="number" name="price" value="500" placeholder="Price (TZS)" required>
                 </div>
@@ -298,7 +322,7 @@ PRINT_TEMPLATE = """
 @app.route('/api/wifidog/portal', methods=['GET'])
 @app.route('/api/wifidog/portal/', methods=['GET'])
 def captive_login_page():
-    """Renders portal page and handles router GET parameters."""
+    """Renders portal page and automatically logs in clients with active sessions."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
@@ -306,12 +330,10 @@ def captive_login_page():
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
     now = datetime.now(timezone.utc)
 
-    # Automatically grant access if active session exists
+    # Automatically grant access if an unexpired active session exists
     existing_session = sessions_col.find_one({"_id": mac})
     if existing_session and existing_session.get("expire_date"):
-        exp = existing_session["expire_date"]
-        if exp.tzinfo is None:
-            exp = exp.replace(tzinfo=timezone.utc)
+        exp = ensure_utc(existing_session["expire_date"])
         if exp > now:
             token = secrets.token_hex(16)
             tokens_col.insert_one({
@@ -335,14 +357,14 @@ def captive_login_page():
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Catch routing errors without corrupting background API requests."""
+    """Catch-all for portal redirects while passing through WiFiDog API paths."""
     if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
         return Response("Not Found\n", status=404, mimetype='text/plain')
     return captive_login_page()
 
 @app.route('/process-voucher', methods=['POST'])
 def process_login():
-    """Validates voucher and issues standard HTTP 302 redirect back to AP."""
+    """Atomically validates voucher and issues HTTP 302 redirect back to AP."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -350,7 +372,12 @@ def process_login():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
-    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+    # Atomic redemption: Marks voucher as USED in one single query step
+    voucher = vouchers_col.find_one_and_update(
+        {"code": code, "status": "ACTIVE"},
+        {"$set": {"status": "USED", "used_by_mac": mac, "used_at": datetime.now(timezone.utc)}},
+        return_document=ReturnDocument.AFTER
+    )
 
     if not voucher:
         return render_template_string(
@@ -367,7 +394,7 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary token
+    # 1. Create temporary authentication token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -390,9 +417,8 @@ def process_login():
         },
         upsert=True
     )
-    vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    # 3. Direct HTTP 302 redirect directly to the router's WifiDog auth endpoint
+    # 3. Direct HTTP 302 redirect to router's WifiDog endpoint
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
     return redirect(auth_action_url, code=302)
 
@@ -406,36 +432,32 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """ReyeeOS background Auth Verification."""
+    """Background authentication verification endpoint pinged by Reyee AP."""
     try:
         stage = request.args.get('stage', '').strip()
         token = request.args.get('token', '').strip()
         mac = clean_mac(request.args.get('mac', ''))
         now = datetime.now(timezone.utc)
 
-        # Handle disconnect/logout
+        # Handle disconnect/logout requests
         if stage == 'logout':
             if mac:
                 sessions_col.delete_one({"_id": mac})
             return Response("Auth: 0\n", mimetype='text/plain')
 
-        # Check Token (Login phase)
+        # Check Token validation during login phase
         if token:
             token_doc = tokens_col.find_one({"token": token})
             if token_doc:
-                exp = token_doc.get('expire_date')
-                if exp and exp.tzinfo is None:
-                    exp = exp.replace(tzinfo=timezone.utc)
+                exp = ensure_utc(token_doc.get('expire_date'))
                 if exp and exp > now:
                     return Response("Auth: 1\n", mimetype='text/plain')
 
-        # Check MAC Address (Heartbeat check)
+        # Check MAC Address during periodic heartbeat checks
         if mac:
             session_doc = sessions_col.find_one({"_id": mac})
             if session_doc:
-                exp = session_doc.get('expire_date')
-                if exp and exp.tzinfo is None:
-                    exp = exp.replace(tzinfo=timezone.utc)
+                exp = ensure_utc(session_doc.get('expire_date'))
                 if exp and exp > now:
                     return Response("Auth: 1\n", mimetype='text/plain')
 
@@ -474,7 +496,7 @@ def wifidog_gw_message():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        if request.form.get('password') == ADMIN_PW:
+        if secrets.compare_digest(request.form.get('password', ''), ADMIN_PW):
             session['admin'] = True
             return redirect('/admin')
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
@@ -515,17 +537,18 @@ def generate_vouchers():
     if not session.get('admin'):
         return redirect('/admin/login')
 
-    qty = int(request.form.get('quantity', 8))
+    qty = min(int(request.form.get('quantity', 8)), 100)
     duration = int(request.form.get('duration', 360))
     price = float(request.form.get('price', 500))
 
-    existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
+    attempts = 0
     
-    while len(new_vouchers) < qty and len(existing_codes) < 90000:
-        code = f"{random.randint(0, 99999):05d}"
-        if code not in existing_codes:
-            existing_codes.add(code)
+    # Generate unique 5-digit vouchers
+    while len(new_vouchers) < qty and attempts < 1000:
+        attempts += 1
+        code = f"{secrets.randbelow(100000):05d}"
+        if not vouchers_col.find_one({"code": code}):
             doc = {
                 "code": code,
                 "duration_minutes": duration,
@@ -533,10 +556,11 @@ def generate_vouchers():
                 "status": "ACTIVE",
                 "created_at": datetime.now(timezone.utc)
             }
-            new_vouchers.append(doc)
-
-    if new_vouchers:
-        vouchers_col.insert_many(new_vouchers)
+            try:
+                vouchers_col.insert_one(doc)
+                new_vouchers.append(doc)
+            except Exception:
+                continue
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
