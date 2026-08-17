@@ -308,7 +308,7 @@ PRINT_TEMPLATE = """
 @app.route('/api/wifidog/portal')
 @app.route('/api/wifidog/portal/')
 def captive_login_page():
-    """Renders voucher entry page on connection with dynamic gateway detection."""
+    """Renders voucher entry page or auto-reconnects existing active MAC sessions."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
@@ -316,6 +316,30 @@ def captive_login_page():
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
 
     logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
+
+    # --- AUTO-RECONNECT CHECK AFTER REBOOT ---
+    now = datetime.now(timezone.utc)
+    if mac and not mac.startswith("UNKNOWN"):
+        try:
+            active_session = sessions_col.find_one({"_id": mac, "expire_date": {"$gt": now}})
+            if active_session:
+                logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
+                
+                # Generate a new token for router re-authentication
+                token = secrets.token_hex(16)
+                tokens_col.insert_one({
+                    "token": token,
+                    "mac": mac,
+                    "code": active_session.get("code"),
+                    "expire_date": active_session.get("expire_date"),
+                    "created_at": now
+                })
+                
+                # Instantly send user back to gateway auth endpoint
+                auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+                return redirect(auth_action_url)
+        except Exception as e:
+            logger.error(f"Error checking active session during portal load: {str(e)}")
 
     return render_template_string(
         PORTAL_TEMPLATE,
