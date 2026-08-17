@@ -4,7 +4,7 @@ import secrets
 import logging
 import logging.config
 from datetime import datetime, timedelta, timezone
-from flask import Flask, render_template_string, request, redirect, session, Response
+from flask import Flask, render_template, request, redirect, session, Response
 from pymongo import MongoClient
 
 app = Flask(__name__)
@@ -70,240 +70,6 @@ def get_gateway_address():
 
 
 # ==========================================
-# 🎨 UI HTML TEMPLATES
-# ==========================================
-
-PORTAL_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="sw">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Connect</title>
-    <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f4f6f8; margin: 0; padding: 20px;
-            display: flex; justify-content: center; align-items: center; min-height: 90vh;
-        }
-        .container { width: 100%; max-width: 350px; }
-        .box { 
-            background: white; padding: 30px 22px; border-radius: 16px; 
-            border: 1px solid #e1e4e8; box-shadow: 0 4px 14px rgba(0,0,0,0.06); text-align: center; 
-            box-sizing: border-box;
-        }
-        h2 { margin: 0; color: #0052cc; font-size: 24px; }
-        p { color: #5e6c84; font-size: 14px; margin-top: 6px; margin-bottom: 20px; }
-        label { font-weight: bold; font-size: 13px; color: #172b4d; display: block; margin-bottom: 8px; text-align: left; }
-        input[type="text"] { 
-            width: 100%; padding: 14px; font-size: 24px; border: 2px solid #dfe1e6; 
-            border-radius: 8px; box-sizing: border-box; margin-bottom: 18px; 
-            text-align: center; letter-spacing: 6px; font-weight: bold; color: #0052cc;
-        }
-        input[type="text"]:focus { border-color: #0052cc; outline: none; }
-        button { 
-            width: 100%; padding: 14px; background: #0052cc; color: white; 
-            border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; 
-            transition: background 0.2s;
-        }
-        button:hover { background: #0065ff; }
-        .error { color: #de350b; background: #ffebe6; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; }
-        .mac-info { font-size: 11px; color: #888; margin-top: 15px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="box">
-            <h2>HANS WIFI</h2>
-            <p>Ingiza namba ya vocha kuunganisha intaneti</p>
-            {% if error %}
-                <div class="error">{{ error }}</div>
-            {% endif %}
-            <form action="/login" method="POST">
-                <input type="hidden" name="mac" value="{{ mac }}">
-                <input type="hidden" name="gw_address" value="{{ gw_address }}">
-                <input type="hidden" name="gw_port" value="{{ gw_port }}">
-                <input type="hidden" name="gw_id" value="{{ gw_id }}">
-                <input type="hidden" name="userurl" value="{{ userurl }}">
-                
-                <label for="voucher">Namba ya Vocha (Digits 5):</label>
-                <input 
-                    type="text" 
-                    id="voucher" 
-                    name="voucher" 
-                    maxlength="5" 
-                    pattern="\\d{5}" 
-                    placeholder="12345" 
-                    inputmode="numeric"
-                    required 
-                    autofocus
-                >
-                <button type="submit">CONNECT INTERNET</button>
-            </form>
-            <div class="mac-info">Device MAC: {{ mac }}</div>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-ADMIN_LOGIN_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="sw">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Admin Login</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 90vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 12px; border: 1px solid #e1e4e8; width: 280px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h3 { margin-top: 0; color: #0052cc; }
-        input[type="password"] { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #0052cc; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .error { color: red; font-size: 13px; margin-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h3>HANS WIFI Admin</h3>
-        {% if error %}<div class="error">{{ error }}</div>{% endif %}
-        <form action="/admin/login" method="POST">
-            <input type="password" name="password" placeholder="Ingiza Nenosiri" required autofocus>
-            <button type="submit">LOGIN</button>
-        </form>
-    </div>
-</body>
-</html>
-"""
-
-ADMIN_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="sw">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Dashboard</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; color: #172b4d; }
-        .container { max-width: 960px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .header h2 { margin: 0; color: #0052cc; }
-        .btn-logout { background: #ff5630; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .card { background: white; padding: 18px; border-radius: 10px; border: 1px solid #e1e4e8; }
-        .card .lbl { font-size: 12px; color: #5e6c84; font-weight: bold; text-transform: uppercase; }
-        .card .val { font-size: 22px; font-weight: bold; color: #0052cc; margin-top: 4px; }
-        .box { background: white; padding: 20px; border-radius: 10px; border: 1px solid #e1e4e8; margin-bottom: 20px; }
-        .box h3 { margin-top: 0; border-bottom: 1px solid #e1e4e8; padding-bottom: 10px; font-size: 16px; }
-        .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-        .form-row input { flex: 1; min-width: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-        .btn-gen { background: #0052cc; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 10px; width: 100%; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e1e4e8; }
-        th { background: #fafbfc; color: #5e6c84; }
-        .badge { background: #ebecf0; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-family: monospace; }
-        .st-active { color: #006644; background: #e3fcef; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
-        .st-used { color: #bf2600; background: #ffebe6; padding: 3px 8px; border-radius: 10px; font-weight: bold; font-size: 11px; }
-        .btn-revoke { color: #de350b; font-weight: bold; text-decoration: none; }
-        .btn-revoke:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>HANS WIFI Admin Panel</h2>
-            <a href="/admin/logout" class="btn-logout">Logout</a>
-        </div>
-        <div class="grid">
-            <div class="card"><div class="lbl">Total Revenue</div><div class="val">TZS {{ total_revenue }}</div></div>
-            <div class="card"><div class="lbl">Online Devices</div><div class="val">{{ active_sessions_count }}</div></div>
-            <div class="card"><div class="lbl">Active Vouchers</div><div class="val">{{ active_vouchers_count }}</div></div>
-            <div class="card"><div class="lbl">Used Vouchers</div><div class="val">{{ used_vouchers_count }}</div></div>
-        </div>
-        <div class="box">
-            <h3>🖨️ Generate 5-Digit Vouchers</h3>
-            <form action="/admin/generate" method="POST">
-                <div class="form-row">
-                    <input type="number" name="quantity" value="8" placeholder="Quantity" required>
-                    <input type="number" name="duration" value="360" placeholder="Duration (Mins)" required>
-                    <input type="number" name="price" value="500" placeholder="Price (TZS)" required>
-                </div>
-                <button type="submit" class="btn-gen">Generate Printable Sheet</button>
-            </form>
-        </div>
-        <div class="box">
-            <h3>📡 Connected Devices (Active Sessions)</h3>
-            <table>
-                <tr><th>MAC Address</th><th>Voucher Code</th><th>Expire Date</th><th>Action</th></tr>
-                {% for s in active_sessions %}
-                <tr>
-                    <td><b>{{ s._id }}</b></td>
-                    <td><span class="badge">{{ s.code }}</span></td>
-                    <td><span class="st-active">{{ s.expire_date.strftime('%Y-%m-%d %H:%M') if s.expire_date else '-' }}</span></td>
-                    <td>
-                        <a href="/admin/revoke/{{ s._id }}" 
-                           class="btn-revoke"
-                           onclick="return confirm('Disconnect this device instantly?');">
-                           Disconnect
-                        </a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="4" style="color: #888;">No active sessions.</td></tr>
-                {% endfor %}
-            </table>
-        </div>
-        <div class="box">
-            <h3>🎟️ Recent Voucher Inventory</h3>
-            <table>
-                <tr><th>Code</th><th>Duration</th><th>Price</th><th>Status</th><th>Used By MAC</th></tr>
-                {% for v in vouchers %}
-                <tr>
-                    <td><span class="badge">{{ v.code }}</span></td>
-                    <td>{{ v.duration_minutes }} mins</td>
-                    <td>TZS {{ v.price }}</td>
-                    <td><span class="{{ 'st-active' if v.status == 'ACTIVE' else 'st-used' }}">{{ v.status }}</span></td>
-                    <td>{{ v.used_by_mac or '-' }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-PRINT_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Print Vouchers - HANS WIFI</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f6f8; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: white; padding: 20px; }
-        .card { border: 2px dashed #333; border-radius: 8px; padding: 12px; text-align: center; }
-        .code { font-size: 26px; font-weight: bold; letter-spacing: 4px; background: #f4f6f8; padding: 6px; margin: 6px 0; border-radius: 4px; }
-        .details { font-size: 11px; color: #555; }
-        @media print { .no-print { display: none; } body { background: white; padding: 0; } .grid { padding: 0; } }
-    </style>
-</head>
-<body>
-    <div class="no-print" style="margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ Print Sheet</button>
-        <a href="/admin" style="margin-left: 15px;">Back to Admin</a>
-    </div>
-    <div class="grid">
-        {% for v in vouchers %}
-        <div class="card">
-            <h4 style="margin: 0; font-size: 12px;">HANS WIFI PASS</h4>
-            <div class="code">{{ v.code }}</div>
-            <div class="details">Muda: <b>{{ v.duration_minutes }} Mins</b> | Bei: <b>TZS {{ v.price }}</b></div>
-        </div>
-        {% endfor %}
-    </div>
-</body>
-</html>
-"""
-
-
-# ==========================================
 # 🌐 CAPTIVE PORTAL ROUTES
 # ==========================================
 
@@ -348,8 +114,8 @@ def captive_login_page():
         except Exception as e:
             logger.error(f"Error checking active session during portal load: {str(e)}")
 
-    return render_template_string(
-        PORTAL_TEMPLATE,
+    return render_template(
+        'portal.html',
         mac=mac,
         gw_address=gw_address,
         gw_port=gw_port,
@@ -400,8 +166,8 @@ def process_login():
 
     if not voucher:
         logger.warning(f"Failed login attempt: Invalid or used voucher code '{code}' from MAC: {mac}")
-        return render_template_string(
-            PORTAL_TEMPLATE,
+        return render_template(
+            'portal.html',
             mac=mac,
             gw_address=gw_address,
             gw_port=gw_port,
@@ -567,8 +333,8 @@ def admin_login():
             logger.info("Admin login successful.")
             return redirect('/admin')
         logger.warning(f"Failed admin login attempt from IP: {request.remote_addr}")
-        return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
-    return render_template_string(ADMIN_LOGIN_TEMPLATE)
+        return render_template('admin_login.html', error="Nenosiri sio sahihi!")
+    return render_template('admin_login.html')
 
 
 @app.route('/admin/logout')
@@ -593,8 +359,8 @@ def admin_dashboard():
     ]))
     total_rev = rev_agg[0]['total'] if rev_agg else 0.0
 
-    return render_template_string(
-        ADMIN_TEMPLATE,
+    return render_template(
+        'admin.html',
         vouchers=vouchers,
         active_sessions=active_sessions,
         active_vouchers_count=vouchers_col.count_documents({"status": "ACTIVE"}),
@@ -649,7 +415,7 @@ def generate_vouchers():
         vouchers_col.insert_many(new_vouchers)
         logger.info(f"Generated {len(new_vouchers)} new vouchers (Duration: {duration} mins, Price: TZS {price})")
 
-    return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
+    return render_template('print.html', vouchers=new_vouchers)
 
 
 # ==========================================
