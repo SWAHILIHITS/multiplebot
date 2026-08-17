@@ -1,14 +1,9 @@
-import os
-import re
+Import os
+import random
 import secrets
-import logging
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template_string, request, redirect, session, Response
-from pymongo import MongoClient, ReturnDocument
-
-# --- LOGGING SETUP ---
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("HANS_WIFI")
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
@@ -16,12 +11,6 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
-
-# Security cookie flags
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-)
 
 MONGO_URI = os.getenv(
     "MONGO_URI",
@@ -35,49 +24,23 @@ vouchers_col = db["vouchers"]
 sessions_col = db["sessions"]
 tokens_col = db["wifidog_tokens"]
 
-# Initialize Database Indexes
-try:
-    vouchers_col.create_index("code", unique=True)
-    tokens_col.create_index("token", unique=True)
-    tokens_col.create_index("expire_date", expireAfterSeconds=0)  # Auto-delete expired tokens
-    sessions_col.create_index("expire_date")
-except Exception as e:
-    logger.warning(f"Index Initialization Warning: {e}")
-
 
 # --- HELPER FUNCTIONS ---
-def ensure_utc(dt):
-    """Ensure a datetime object is timezone-aware in UTC."""
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
-
 def get_param(key, default=""):
     """Extract parameter from POST form or GET query string."""
     return request.form.get(key) or request.args.get(key) or default
-
-def clean_mac(raw_mac):
-    """Normalize MAC address string to standard XX:XX:XX:XX:XX:XX format."""
-    if not raw_mac:
-        return "DEMO:MAC:00:11:22"
-    cleaned = re.sub(r'[^a-fA-F0-9]', '', raw_mac).upper()
-    if len(cleaned) == 12:
-        return ":".join(cleaned[i:i+2] for i in range(0, 12, 2))
-    return raw_mac.strip().upper()
 
 def get_client_mac():
     """Detect client MAC address across ReyeeOS parameter keys."""
     for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
         val = get_param(key)
         if val:
-            return clean_mac(val)
+            return val.strip().upper()
     return "DEMO:MAC:00:11:22"
 
 def get_gateway_address():
-    """Extract Access Point LAN IP from query params or form data."""
-    for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip', 'nasip', 'sip']:
+    """Extract Access Point LAN IP. Falls back strictly to DEFAULT_GW_ADDRESS for cloud hosts."""
+    for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
         val = get_param(key)
         if val and val.replace('.', '').isdigit():
             return val.strip()
@@ -133,7 +96,7 @@ PORTAL_TEMPLATE = """
             {% if error %}
                 <div class="error">{{ error }}</div>
             {% endif %}
-            <form action="/process-voucher" method="POST">
+            <form action="/login" method="POST">
                 <input type="hidden" name="mac" value="{{ mac }}">
                 <input type="hidden" name="gw_address" value="{{ gw_address }}">
                 <input type="hidden" name="gw_port" value="{{ gw_port }}">
@@ -234,7 +197,7 @@ ADMIN_TEMPLATE = """
             <h3>🖨️ Generate 5-Digit Vouchers</h3>
             <form action="/admin/generate" method="POST">
                 <div class="form-row">
-                    <input type="number" name="quantity" value="8" placeholder="Quantity" min="1" max="100" required>
+                    <input type="number" name="quantity" value="8" placeholder="Quantity" required>
                     <input type="number" name="duration" value="360" placeholder="Duration (Mins)" required>
                     <input type="number" name="price" value="500" placeholder="Price (TZS)" required>
                 </div>
@@ -313,45 +276,22 @@ PRINT_TEMPLATE = """
 # 🌐 CAPTIVE PORTAL ROUTES
 # ==========================================
 
-@app.route('/', methods=['GET'])
-@app.route('/login', methods=['GET'])
-@app.route('/login/', methods=['GET'])
-@app.route('/portal', methods=['GET'])
-@app.route('/portal/', methods=['GET'])
-@app.route('/index.html', methods=['GET'])
-@app.route('/login.html', methods=['GET'])
-@app.route('/wifidog/portal', methods=['GET'])
-@app.route('/wifidog/portal/', methods=['GET'])
+@app.route('/')
+@app.route('/portal')
+@app.route('/portal/')
+@app.route('/index.html')
+@app.route('/login.html')
+@app.route('/wifidog/portal')
+@app.route('/wifidog/portal/')
+@app.route('/api/wifidog/portal')
+@app.route('/api/wifidog/portal/')
 def captive_login_page():
-    """Renders portal login page and handles auto-login with loop protection."""
+    """Renders voucher entry page on connection with dynamic gateway detection."""
     mac = get_client_mac()
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
-    gw_id = get_param('gw_sn') or get_param('gw_id', 'G1UQ6C8027360')
+    gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
-    
-    # Check if this request came from a failed redirect loop
-    loop_check = request.args.get('loop_check', '0')
-    now = datetime.now(timezone.utc)
-
-    # Auto-login known devices if loop_check is not set
-    if loop_check == '0':
-        existing_session = sessions_col.find_one({"_id": mac})
-        if existing_session and existing_session.get("expire_date"):
-            exp = ensure_utc(existing_session["expire_date"])
-            if exp > now:
-                token = secrets.token_hex(16)
-                tokens_col.insert_one({
-                    "token": token,
-                    "mac": mac,
-                    "code": existing_session.get("code", "ACTIVE"),
-                    "expire_date": exp,
-                    "created_at": now
-                })
-                # Append loop_check=1 to prevent infinite loops if the router rejects token
-                grant_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}&userurl={userurl}&loop_check=1"
-                logger.info(f"Auto-granting access to MAC: {mac} via token: {token}")
-                return redirect(grant_url, code=302)
 
     return render_template_string(
         PORTAL_TEMPLATE,
@@ -359,20 +299,19 @@ def captive_login_page():
         gw_address=gw_address,
         gw_port=gw_port,
         gw_id=gw_id,
-        userurl=userurl,
-        error="Matatizo ya kuunganisha. Ingiza vocha tena." if loop_check != '0' else None
+        userurl=userurl
     ), 200
 
 @app.errorhandler(404)
 def handle_404(e):
-    """Fallback handler to route portal requests correctly."""
+    """Catch routing errors without corrupting API background checks."""
     if request.path.startswith('/wifidog') or request.path.startswith('/api/wifidog'):
         return Response("Not Found\n", status=404, mimetype='text/plain')
     return captive_login_page()
 
-@app.route('/process-voucher', methods=['POST'])
+@app.route('/login', methods=['POST'])
 def process_login():
-    """Atomically validates voucher and redirects user to router Grant URL."""
+    """Validates voucher and redirects client to local AP auth endpoint."""
     code = request.form.get('voucher', '').strip()
     mac = get_client_mac()
     gw_address = get_gateway_address()
@@ -380,12 +319,7 @@ def process_login():
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
-    # Atomic Voucher Redemption
-    voucher = vouchers_col.find_one_and_update(
-        {"code": code, "status": "ACTIVE"},
-        {"$set": {"status": "USED", "used_by_mac": mac, "used_at": datetime.now(timezone.utc)}},
-        return_document=ReturnDocument.AFTER
-    )
+    voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
 
     if not voucher:
         return render_template_string(
@@ -402,7 +336,7 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # Generate token and register session
+    # 1. Create temporary token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -412,6 +346,7 @@ def process_login():
         "created_at": now
     })
 
+    # 2. Register Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -424,10 +359,43 @@ def process_login():
         },
         upsert=True
     )
+    vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
 
-    grant_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}&userurl={userurl}&loop_check=1"
-    logger.info(f"Voucher {code} redeemed by MAC {mac}. Redirecting to {grant_url}")
-    return redirect(grant_url, code=302)
+    # 3. Form destination URL pointing back to local AP
+    auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+
+    # 4. Hybrid Meta Refresh + JavaScript redirect page
+    return f"""
+    <!DOCTYPE html>
+    <html lang="sw">
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="refresh" content="0;url={auth_action_url}">
+        <title>Inaunganisha...</title>
+        <style>
+            body {{ font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; color: #172b4d; }}
+            .card {{ background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 320px; margin: 0 auto; }}
+            .loader {{ border: 4px solid #dfe1e6; border-top: 4px solid #0052cc; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 0 auto 20px auto; }}
+            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            .btn {{ display: block; width: 100%; padding: 12px; background: #0052cc; color: white; text-decoration: none; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 15px; font-size: 14px; box-sizing: border-box; }}
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="loader"></div>
+            <h3 style="margin: 0 0 8px 0; color: #0052cc;">Vocha Imekubaliwa!</h3>
+            <p style="font-size: 14px; color: #5e6c84; margin-bottom: 10px;">Inaunganisha intaneti...</p>
+            <a href="{auth_action_url}" class="btn">Bonyeza Hapa Kama Haujaunganishwa</a>
+        </div>
+
+        <script>
+            setTimeout(function() {{
+                window.location.replace("{auth_action_url}");
+            }}, 100);
+        </script>
+    </body>
+    </html>
+    """
 
 
 # ==========================================
@@ -439,38 +407,41 @@ def process_login():
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """ReyeeOS background Auth Verification Endpoint."""
+    """
+    ReyeeOS Background Auth Verification.
+    Supports stage=login, stage=counters, stage=logout.
+    """
     stage = request.args.get('stage', '').strip()
     token = request.args.get('token', '').strip()
-    mac = clean_mac(request.args.get('mac', ''))
+    mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    logger.info(f"Auth Request -> stage: '{stage}', token: '{token}', mac: '{mac}'")
-
+    # Handle client disconnect/logout
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Token Verification
+    # Token Validation (Primary login check)
     if token:
         token_doc = tokens_col.find_one({"token": token})
         if token_doc:
-            exp = ensure_utc(token_doc.get('expire_date'))
+            exp = token_doc.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
             if exp and exp > now:
-                logger.info(f"Auth SUCCESS via Token: {token}")
                 return Response("Auth: 1\n", mimetype='text/plain')
 
-    # MAC Address Verification
-    if mac and mac != "DEMO:MAC:00:11:22":
+    # MAC Address Validation (Periodic heartbeat checks)
+    if mac:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
-            exp = ensure_utc(session_doc.get('expire_date'))
+            exp = session_doc.get('expire_date')
+            if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+                exp = exp.replace(tzinfo=timezone.utc)
             if exp and exp > now:
-                logger.info(f"Auth SUCCESS via MAC: {mac}")
                 return Response("Auth: 1\n", mimetype='text/plain')
 
-    logger.warning("Auth DENIED: Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 @app.route('/wifidog/ping', methods=['GET'])
@@ -483,14 +454,16 @@ def wifidog_ping():
 
 @app.route('/wifidog/gw_message', methods=['GET'])
 @app.route('/wifidog/gw_message/', methods=['GET'])
+@app.route('/api/wifidog/gw_message', methods=['GET'])
+@app.route('/api/wifidog/gw_message/', methods=['GET'])
 def wifidog_gw_message():
-    """Displays router status messages."""
-    msg = request.args.get('message', 'Success')
+    """Displays router-level status messages."""
+    msg = request.args.get('message', 'Unknown Error')
     return f"""
     <div style="font-family:sans-serif; text-align:center; padding: 40px;">
-        <h2>WifiDog Status</h2>
-        <p>Status: <b>{msg}</b></p>
-        <a href="/">Return to Home</a>
+        <h2>WifiDog Gateway Status</h2>
+        <p>Message: <b>{msg}</b></p>
+        <a href="/">Try Again</a>
     </div>
     """, 200
 
@@ -502,7 +475,7 @@ def wifidog_gw_message():
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        if secrets.compare_digest(request.form.get('password', ''), ADMIN_PW):
+        if request.form.get('password') == ADMIN_PW:
             session['admin'] = True
             return redirect('/admin')
         return render_template_string(ADMIN_LOGIN_TEMPLATE, error="Nenosiri sio sahihi!")
@@ -543,17 +516,17 @@ def generate_vouchers():
     if not session.get('admin'):
         return redirect('/admin/login')
 
-    qty = min(int(request.form.get('quantity', 8)), 100)
+    qty = int(request.form.get('quantity', 8))
     duration = int(request.form.get('duration', 360))
     price = float(request.form.get('price', 500))
 
+    existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
-    attempts = 0
     
-    while len(new_vouchers) < qty and attempts < 1000:
-        attempts += 1
-        code = f"{secrets.randbelow(100000):05d}"
-        if not vouchers_col.find_one({"code": code}):
+    while len(new_vouchers) < qty and len(existing_codes) < 90000:
+        code = f"{random.randint(0, 99999):05d}"
+        if code not in existing_codes:
+            existing_codes.add(code)
             doc = {
                 "code": code,
                 "duration_minutes": duration,
@@ -561,11 +534,10 @@ def generate_vouchers():
                 "status": "ACTIVE",
                 "created_at": datetime.now(timezone.utc)
             }
-            try:
-                vouchers_col.insert_one(doc)
-                new_vouchers.append(doc)
-            except Exception:
-                continue
+            new_vouchers.append(doc)
+
+    if new_vouchers:
+        vouchers_col.insert_many(new_vouchers)
 
     return render_template_string(PRINT_TEMPLATE, vouchers=new_vouchers)
 
