@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Print Vouchers - HANS WIFI</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f6f8; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: white; padding: 20px; }
+        .card { border: 2px dashed #333; border-radius: 8px; padding: 12px; text-align: center; }
+        .code { font-size: 26px; font-weight: bold; letter-spacing: 4px; background: #f4f6f8; padding: 6px; margin: 6px 0; border-radius: 4px; }
+        .details { font-size: 11px; color: #555; }
+        @media print { .no-print { display: none; } body { background: white; padding: 0; } .grid { padding: 0; } }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">🖨️ Print Sheet</button>
+        <a href="/admin" style="margin-left: 15px;">Back to Admin</a>
+    </div>
+    <div class="grid">
+        {% for v in vouchers %}
+        <div class="card">
+            <h4 style="margin: 0; font-size: 12px;">HANS WIFI PASS</h4>
+            <div class="code">{{ v.code }}</div>
+            <div class="details">Muda: <b>{{ v.duration_minutes }} Mins</b> | Bei: <b>TZS {{ v.price }}</b></div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
