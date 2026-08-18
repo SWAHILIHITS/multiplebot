@@ -17,31 +17,45 @@
             --success-color: #36b37e;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
 
+        /* Mobile Top Navigation Bar */
         .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 0 15px; align-items: center; justify-content: space-between; z-index: 1000; }
         .toggle-btn { font-size: 24px; background: none; border: none; cursor: pointer; color: var(--primary-color); }
 
+        /* Sidebar Styling */
         .sidebar { width: var(--sidebar-width); background: var(--card-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 999; transition: transform 0.3s ease; }
         .sidebar-brand { padding: 20px; font-size: 20px; font-weight: bold; color: var(--primary-color); border-bottom: 1px solid var(--border-color); }
         .sidebar-menu { list-style: none; padding: 15px 0; flex: 1; }
         .sidebar-menu li a { display: flex; align-items: center; padding: 12px 20px; color: var(--text-sub); text-decoration: none; font-weight: 600; font-size: 14px; }
         .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #ebf3ff; color: var(--primary-color); border-left: 4px solid var(--primary-color); }
 
+        /* Main Content Workspace */
         .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 25px; width: calc(100% - var(--sidebar-width)); }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
 
+        /* Cards & Container Containers */
         .box { background: var(--card-bg); padding: 20px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 25px; }
         .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .box-title { font-size: 16px; font-weight: bold; }
 
+        /* Dashboard Stat Cards Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; }
+        .stat-card h3 { font-size: 12px; color: var(--text-sub); text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card .value { font-size: 22px; font-weight: bold; color: var(--primary-color); }
+
+        /* Table & Data Display */
         .table-responsive { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         th, td { padding: 12px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-        th { background: #fafbfc; color: var(--text-sub); }
+        th { background: #fafbfc; color: var(--text-sub); user-select: none; }
+        th.sortable { cursor: pointer; }
+        th.sortable:hover { background: #ebf3ff; color: var(--primary-color); }
 
+        /* Buttons & Badges */
         .btn { padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
         .btn-primary { background: var(--primary-color); color: white; }
         .btn-secondary { background: #ebecf0; color: var(--text-main); }
@@ -54,13 +68,15 @@
         .st-expired, .st-revoked { color: #bf2600; background: #ffebe6; }
         .st-unused { color: #403294; background: #eae6ff; }
 
+        /* Forms Layout */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         .form-group label { font-size: 12px; font-weight: bold; color: var(--text-sub); }
         .form-group input, .form-group select { padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; }
 
+        /* Package Cards Layout */
         .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; margin-top: 15px; }
-        .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; position: relative; }
+        .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 18px; }
 
         .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; font-size: 13px; color: var(--text-sub); }
         .hidden { display: none !important; }
@@ -75,11 +91,13 @@
 </head>
 <body>
 
+    <!-- Mobile Top Navigation Header -->
     <div class="mobile-header">
         <div style="font-weight:bold; color:var(--primary-color)">HANS WIFI</div>
         <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
     </div>
 
+    <!-- Sidebar Navigation -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-brand">HANS WIFI Admin</div>
         <ul class="sidebar-menu">
@@ -87,12 +105,44 @@
             <li><a href="#packages" onclick="switchTab('packages', event)">📦 Packages</a></li>
             <li><a href="#vouchers" onclick="switchTab('vouchers', event)">🎟️ Vouchers</a></li>
             <li><a href="#users" onclick="switchTab('users', event)">👥 Users</a></li>
+            <li><a href="#settings" onclick="switchTab('settings', event)">⚙️ Settings</a></li>
         </ul>
     </div>
 
+    <!-- Main Application Workspace -->
     <div class="main-content">
 
-        <!-- PACKAGES TAB -->
+        <!-- 1. DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-panel active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Revenue</h3>
+                    <div class="value">TZS {{ total_revenue }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Active Connected Users</h3>
+                    <div class="value">{{ active_sessions_count }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Available Vouchers</h3>
+                    <div class="value">{{ active_vouchers_count }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Redeemed Vouchers</h3>
+                    <div class="value">{{ used_vouchers_count }}</div>
+                </div>
+            </div>
+
+            <div class="box">
+                <div class="box-title" style="margin-bottom: 15px;">🚀 Quick Actions</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="switchTab('vouchers'); toggleForm('new-voucher-box');">+ Generate Voucher</button>
+                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');">+ Add Package</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. PACKAGES TAB -->
         <div id="tab-packages" class="tab-panel">
             <div class="box">
                 <div class="box-header">
@@ -100,18 +150,19 @@
                     <button class="btn btn-primary" onclick="toggleForm('new-package-box')">+ New Package</button>
                 </div>
 
+                <!-- Create Package Form -->
                 <div id="new-package-box" class="box hidden" style="background:#fafbfc;">
                     <form action="/admin/packages/create" method="POST">
                         <div class="form-grid">
-                            <div class="form-group"><label>Package Name</label><input type="text" name="name" required></div>
-                            <div class="form-group"><label>Price (TZS)</label><input type="number" name="price" required></div>
-                            <div class="form-group"><label>Duration</label><input type="number" name="duration" required></div>
+                            <div class="form-group"><label>Package Name</label><input type="text" name="name" placeholder="e.g. Daily Pass" required></div>
+                            <div class="form-group"><label>Price (TZS)</label><input type="number" name="price" placeholder="1000" required></div>
+                            <div class="form-group"><label>Duration</label><input type="number" name="duration" placeholder="24" required></div>
                             <div class="form-group">
                                 <label>Duration Unit</label>
                                 <select name="unit">
                                     <option value="minutes">Minutes</option>
-                                    <option value="hours">Hours</option>
-                                    <option value="days" selected>Days</option>
+                                    <option value="hours" selected>Hours</option>
+                                    <option value="days">Days</option>
                                     <option value="months">Months</option>
                                 </select>
                             </div>
@@ -123,6 +174,7 @@
                     </form>
                 </div>
 
+                <!-- Existing Packages Grid -->
                 <div class="package-grid">
                     {% for p in packages %}
                     <div class="package-card">
@@ -140,36 +192,40 @@
             </div>
         </div>
 
-        <!-- VOUCHERS TAB -->
+        <!-- 3. EXTENDED VOUCHERS TAB -->
         <div id="tab-vouchers" class="tab-panel">
             <div class="box">
                 <div class="box-header">
-                    <div class="box-title">🎟️ Vouchers</div>
+                    <div class="box-title">🎟️ Vouchers Management</div>
                     <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')">+ New Voucher</button>
                 </div>
 
+                <!-- Generate Voucher Form -->
                 <div id="new-voucher-box" class="box hidden" style="background:#fafbfc;">
                     <form action="/admin/generate" method="POST">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Package</label>
+                                <label>Select Package</label>
                                 <select name="package_id" required>
+                                    <option value="" disabled selected>-- Choose Package --</option>
                                     {% for p in packages %}
                                     <option value="{{ p._id }}">{{ p.name }} - TZS {{ p.price }} ({{ p.duration_value }} {{ p.duration_unit }})</option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="form-group"><label>Amount</label><input type="number" name="quantity" value="1" min="1"></div>
-                            <div class="form-group"><label>Custom Code (Optional)</label><input type="text" name="custom_code"></div>
-                            <div class="form-group"><label>Expire Date (Optional)</label><input type="datetime-local" name="expire_at"></div>
+                            <div class="form-group"><label>Quantity</label><input type="number" name="quantity" value="1" min="1" max="100"></div>
+                            <div class="form-group"><label>Custom Code (Optional)</label><input type="text" name="custom_code" placeholder="e.g. VIP2026"></div>
+                            <div class="form-group"><label>Expiration Date (Optional)</label><input type="datetime-local" name="expire_at"></div>
+                            <div class="form-group"><label>Note (Optional)</label><input type="text" name="note" placeholder="e.g. Front Desk Sale"></div>
                         </div>
                         <div style="margin-top: 15px; display: flex; gap: 10px;">
-                            <button type="submit" class="btn btn-primary">🖨️ Print Voucher(s)</button>
+                            <button type="submit" class="btn btn-primary">🖨️ Generate & Print</button>
                             <button type="button" class="btn btn-secondary" onclick="toggleForm('new-voucher-box')">Cancel</button>
                         </div>
                     </form>
                 </div>
 
+                <!-- Filter Controls -->
                 <div style="margin-bottom: 15px; display: flex; gap: 10px;">
                     <select id="voucher-status-filter" class="btn-sm" onchange="filterVouchers()">
                         <option value="all">All Statuses</option>
@@ -180,27 +236,38 @@
                     </select>
                 </div>
 
+                <!-- Vouchers Data Table -->
                 <div class="table-responsive">
                     <table id="vouchers-table" class="paginated-table" data-page-size="25">
                         <thead>
                             <tr>
-                                <th>Device MAC</th>
-                                <th>Package Price</th>
                                 <th>Code</th>
+                                <th>Package</th>
+                                <th>Price</th>
+                                <th>Duration</th>
                                 <th>Status</th>
+                                <th>Device MAC</th>
+                                <th>Used At</th>
+                                <th>Expire Date</th>
+                                <th>Note</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for v in vouchers %}
                             <tr data-status="{{ v.computed_status | lower }}">
-                                <td>{{ v.used_by_mac or '-' }}</td>
-                                <td>TZS {{ "{:,.0f}".format(v.price) }}</td>
                                 <td><span class="badge">{{ v.code }}</span></td>
+                                <td>{{ v.package_name or 'Custom' }}</td>
+                                <td>TZS {{ "{:,.0f}".format(v.price) }}</td>
+                                <td>{{ v.duration_minutes }} Mins</td>
                                 <td><span class="badge st-{{ v.computed_status | lower }}">{{ v.computed_status }}</span></td>
+                                <td>{{ v.used_by_mac or '-' }}</td>
+                                <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
+                                <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
+                                <td>{{ v.note or '-' }}</td>
                                 <td>
                                     {% if v.computed_status in ['UNUSED', 'ACTIVE'] %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Revoke and delete this unused voucher?');">Revoke (Delete)</a>
+                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this unused voucher?');">Revoke (Delete)</a>
                                     {% elif v.computed_status == 'USED' %}
                                         <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke Access</a>
                                     {% elif v.computed_status == 'REVOKED' %}
@@ -218,21 +285,27 @@
             </div>
         </div>
 
-        <!-- USERS TAB -->
+        <!-- 4. USERS TAB WITH COLUMN SORTING -->
         <div id="tab-users" class="tab-panel">
             <div class="box">
                 <div class="box-header">
-                    <div class="box-title">👥 Users</div>
+                    <div class="box-title">👥 Connected Users Insights</div>
                     <div style="display: flex; gap: 8px;">
                         <button id="btn-fewer" class="btn btn-primary btn-sm" onclick="toggleUserView('fewer')">Fewer Details</button>
                         <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details</button>
                     </div>
                 </div>
 
+                <!-- Aggregated User Summary View -->
                 <div id="user-view-fewer" class="table-responsive">
-                    <table class="paginated-table" data-page-size="25">
+                    <table id="users-fewer-table" class="paginated-table" data-page-size="25">
                         <thead>
-                            <tr><th>MAC Address</th><th>Status</th><th>Vouchers Bought</th><th>Total Spend</th></tr>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('users-fewer-table', 0)">MAC Address ↕</th>
+                                <th class="sortable" onclick="sortTable('users-fewer-table', 1)">Status ↕</th>
+                                <th class="sortable" onclick="sortTable('users-fewer-table', 2, true)">Vouchers Bought ↕</th>
+                                <th class="sortable" onclick="sortTable('users-fewer-table', 3, true)">Total Spend ↕</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for u in user_summary %}
@@ -248,18 +321,24 @@
                     <div class="pagination"></div>
                 </div>
 
+                <!-- Detailed Live Session View -->
                 <div id="user-view-more" class="table-responsive hidden">
-                    <table class="paginated-table" data-page-size="25">
+                    <table id="users-more-table" class="paginated-table" data-page-size="25">
                         <thead>
-                            <tr><th>MAC + Voucher Code</th><th>Status</th><th>Time</th><th>Data Consumed</th></tr>
+                            <tr>
+                                <th class="sortable" onclick="sortTable('users-more-table', 0)">MAC + Code ↕</th>
+                                <th class="sortable" onclick="sortTable('users-more-table', 1)">Status ↕</th>
+                                <th>Session Start</th>
+                                <th>Duration</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {% for s in active_sessions %}
                             <tr>
                                 <td><b>{{ s._id }}</b> <br><span class="badge">{{ s.code }}</span></td>
                                 <td><span class="badge st-active">ONLINE</span></td>
-                                <td>Now</td>
-                                <td>150 MB / hr</td>
+                                <td>{{ s.used_time.strftime('%Y-%m-%d %H:%M') if s.used_time else 'Active' }}</td>
+                                <td>{{ s.duration_minutes }} Mins</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -269,11 +348,38 @@
             </div>
         </div>
 
+        <!-- 5. SETTINGS TAB -->
+        <div id="tab-settings" class="tab-panel">
+            <div class="box">
+                <div class="box-title" style="margin-bottom: 15px;">⚙️ Gateway Configuration</div>
+                <form>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Gateway IP Address</label>
+                            <input type="text" value="192.168.0.46" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Gateway Port</label>
+                            <input type="text" value="2060" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Router Gateway ID</label>
+                            <input type="text" value="G1UQ6C8027360" readonly>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 
+    <!-- Client-Side Logic -->
     <script>
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('open'); 
+        }
 
+        // Tab Switching Engine
         function switchTab(tabId, e) {
             if(e) e.preventDefault();
             document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
@@ -286,8 +392,11 @@
             if(activeLink) activeLink.classList.add('active');
         }
 
-        function toggleForm(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function toggleForm(id) { 
+            document.getElementById(id).classList.toggle('hidden'); 
+        }
 
+        // Toggle User View Sub-tabs
         function toggleUserView(type) {
             const fewer = document.getElementById('user-view-fewer');
             const more = document.getElementById('user-view-more');
@@ -307,6 +416,32 @@
             }
         }
 
+        // Interactive Column Sorting Engine
+        function sortTable(tableId, colIndex, isNumeric = false) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            let dir = table.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
+
+            rows.sort((a, b) => {
+                let valA = a.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
+                let valB = b.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
+
+                if (!isNumeric) {
+                    valA = a.children[colIndex].innerText.toLowerCase();
+                    valB = b.children[colIndex].innerText.toLowerCase();
+                    return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+
+                return dir === 'asc' ? (parseFloat(valA) - parseFloat(valB)) : (parseFloat(valB) - parseFloat(valA));
+            });
+
+            table.setAttribute('data-sort-dir', dir);
+            rows.forEach(row => tbody.appendChild(row));
+            paginateTable(table);
+        }
+
+        // Voucher Status Filtering Engine
         function filterVouchers() {
             const filter = document.getElementById('voucher-status-filter').value.toLowerCase();
             const rows = document.querySelectorAll('#vouchers-table tbody tr');
@@ -317,6 +452,7 @@
             paginateTable(document.getElementById('vouchers-table'));
         }
 
+        // Client-Side Pagination Engine
         function paginateTable(table) {
             const pageSize = parseInt(table.getAttribute('data-page-size')) || 25;
             const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.style.display !== 'none');
@@ -354,8 +490,9 @@
             paginateTable(table);
         }
 
+        // Initialize Tabs & Tables on Load
         document.addEventListener("DOMContentLoaded", function() {
-            const hash = window.location.hash.replace('#', '') || 'packages';
+            const hash = window.location.hash.replace('#', '') || 'dashboard';
             switchTab(hash);
             document.querySelectorAll('table.paginated-table').forEach(t => paginateTable(t));
         });
