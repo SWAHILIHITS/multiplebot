@@ -272,14 +272,16 @@ def admin_dashboard():
 
 @app.route('/admin/packages/create', methods=['POST'])
 def create_package():
-    """Creates a new tariff package in MongoDB."""
+    """Creates a new package with name, price, duration, badge, and description."""
     if not session.get('admin'):
         return redirect('/admin/login')
 
     name = request.form.get('name', '').strip()
     price = float(request.form.get('price', 0))
     duration_val = int(request.form.get('duration', 1))
-    unit = request.form.get('unit', 'days')
+    unit = request.form.get('unit', 'hours')
+    badge = request.form.get('badge', '').strip()
+    description = request.form.get('description', '').strip()
 
     duration_minutes = calculate_duration_minutes(duration_val, unit)
 
@@ -289,15 +291,48 @@ def create_package():
         "duration_value": duration_val,
         "duration_unit": unit,
         "duration_minutes": duration_minutes,
+        "badge": badge,
+        "description": description,
         "created_at": datetime.now(timezone.utc)
     })
 
     return redirect('/admin#packages')
 
 
+@app.route('/admin/packages/edit/<pkg_id>', methods=['POST'])
+def edit_package(pkg_id):
+    """Updates an existing package by ObjectId."""
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    name = request.form.get('name', '').strip()
+    price = float(request.form.get('price', 0))
+    duration_val = int(request.form.get('duration', 1))
+    unit = request.form.get('unit', 'hours')
+    badge = request.form.get('badge', '').strip()
+    description = request.form.get('description', '').strip()
+
+    duration_minutes = calculate_duration_minutes(duration_val, unit)
+
+    packages_col.update_one(
+        {"_id": ObjectId(pkg_id)},
+        {"$set": {
+            "name": name,
+            "price": price,
+            "duration_value": duration_val,
+            "duration_unit": unit,
+            "duration_minutes": duration_minutes,
+            "badge": badge,
+            "description": description
+        }}
+    )
+
+    return redirect('/admin#packages')
+
+
 @app.route('/admin/packages/delete/<pkg_id>')
 def delete_package(pkg_id):
-    """Deletes a package by its ObjectId."""
+    """Deletes a package by ObjectId."""
     if not session.get('admin'):
         return redirect('/admin/login')
 
@@ -345,8 +380,8 @@ def generate_vouchers():
             "price": price,
             "status": "UNUSED",
             "created_at": now,
-            "used_at": None,          # Set to None until redeemed
-            "expire_at": expire_date, # Optional admin expiration
+            "used_at": None,
+            "expire_at": expire_date,
             "note": note
         }
         vouchers_col.update_one({"code": custom_code}, {"$set": doc}, upsert=True)
@@ -365,7 +400,7 @@ def generate_vouchers():
                     "price": price,
                     "status": "UNUSED",
                     "created_at": now,
-                    "used_at": None,      # Set to None until redeemed
+                    "used_at": None,
                     "expire_at": expire_date,
                     "note": note
                 }
