@@ -4,10 +4,11 @@ import secrets
 import logging
 import logging.config
 from datetime import datetime, timedelta, timezone
+from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response
 
-# Import MongoDB collection objects from database.py
-from templates.database import vouchers_col, sessions_col, tokens_col
+# Import MongoDB collection objects from templates/database.py
+from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
 app = Flask(__name__)
 
@@ -50,6 +51,19 @@ def get_gateway_address():
         if val and val.replace('.', '').isdigit():
             return val.strip()
     return DEFAULT_GW_ADDRESS
+
+def calculate_duration_minutes(val, unit):
+    """Converts user package duration inputs to total minutes."""
+    val = int(val)
+    if unit == 'minutes':
+        return val
+    elif unit == 'hours':
+        return val * 60
+    elif unit == 'days':
+        return val * 60 * 24
+    elif unit == 'months':
+        return val * 60 * 24 * 30
+    return val
 
 
 # ==========================================
@@ -141,14 +155,21 @@ def process_login():
 
     logger.info(f"Voucher attempt submitted: Code '{code}' from MAC: {mac}")
 
+    now = datetime.now(timezone.utc)
+
     try:
-        voucher = vouchers_col.find_one({"code": code, "status": "ACTIVE"})
+        voucher = vouchers_col.find_one({"code": code})
     except Exception as e:
         logger.error(f"Database error while checking voucher {code}: {str(e)}")
         voucher = None
 
-    if not voucher:
-        logger.warning(f"Failed login attempt: Invalid or used voucher code '{code}' from MAC: {mac}")
+    # Validate Voucher availability and expiration
+    if not voucher or voucher.get("status") in ["USED", "REVOKED"]:
+        error_msg = "Vocha hii siyo sahihi au ishatumika."
+        if voucher and voucher.get("status") == "REVOKED":
+            error_msg = "Vocha hii imesitishwa au kufutwa."
+        
+        logger.warning(f"Failed login attempt: Invalid/Used voucher '{code}' from MAC: {mac}")
         return render_template(
             'portal.html',
             mac=mac,
@@ -156,10 +177,22 @@ def process_login():
             gw_port=gw_port,
             gw_id=gw_id,
             userurl=userurl,
-            error="Vocha hii siyo sahihi au ishatumika."
+            error=error_msg
         )
 
-    now = datetime.now(timezone.utc)
+    # Check optional voucher expiration date
+    if voucher.get("expire_at"):
+        exp_at = voucher.get("expire_at")
+        if exp_at.tzinfo is None:
+            exp_at = exp_at.replace(tzinfo=timezone.utc)
+        if exp_at <= now:
+            logger.warning(f"Expired voucher code entry '{code}' from MAC: {mac}")
+            return render_template(
+                'portal.html',
+                mac=mac, gw_address=gw_address, gw_port=gw_port,
+                gw_id=gw_id, userurl=userurl, error="Vocha hii imepitiliza muda wake wa matumizi (Expired)."
+            )
+
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
@@ -186,11 +219,16 @@ def process_login():
         },
         upsert=True
     )
-    vouchers_col.update_one({"code": code}, {"$set": {"status": "USED", "used_by_mac": mac}})
+    
+    # 3. Update Voucher Status to USED
+    vouchers_col.update_one(
+        {"code": code}, 
+        {"$set": {"status": "USED", "used_by_mac": mac, "used_at": now}}
+    )
 
     logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}' for {duration_minutes} minutes.")
 
-    # 3. Form destination URL pointing back to local AP
+    # 4. Redirect URL to Gateway
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
     return f"""
@@ -239,7 +277,6 @@ def process_login():
 def wifidog_auth_check():
     """ReyeeOS Background Auth Verification with strict expiration enforcement."""
     stage = request.args.get('stage', '').strip()
-    token = request.args.get('token', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
@@ -251,7 +288,7 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # 2. Strict Session Lookup
+    # 2. Session Lookup
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
@@ -263,7 +300,7 @@ def wifidog_auth_check():
         if exp and exp > now:
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # 3. If session is missing or expired, clean up tokens and block access immediately
+    # 3. Clean up expired tokens/sessions
     if mac:
         tokens_col.delete_many({"mac": mac})
         sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
@@ -305,7 +342,7 @@ def wifidog_gw_message():
 
 
 # ==========================================
-# 📊 ADMIN PANEL ROUTES
+# 📊 ADMIN PANEL & PACKAGE ROUTES
 # ==========================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -333,72 +370,237 @@ def admin_dashboard():
         return redirect('/admin/login')
 
     now = datetime.now(timezone.utc)
-    vouchers = list(vouchers_col.find().sort("_id", -1).limit(50))
-    active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
+    
+    # Packages
+    packages = list(packages_col.find().sort("created_at", -1))
+    
+    # Vouchers and computed status
+    vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
+    for v in vouchers:
+        status = v.get("status", "ACTIVE")
+        exp_at = v.get("expire_at")
+        
+        if status == "REVOKED":
+            v["computed_status"] = "REVOKED"
+        elif status == "USED":
+            v["computed_status"] = "USED"
+        elif exp_at and exp_at.replace(tzinfo=timezone.utc if exp_at.tzinfo is None else exp_at.tzinfo) <= now:
+            v["computed_status"] = "EXPIRED"
+        elif status == "ACTIVE":
+            v["computed_status"] = "UNUSED"
+        else:
+            v["computed_status"] = status
 
+    # Sessions & Counts
+    active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
+    active_vouchers_count = vouchers_col.count_documents({"status": "ACTIVE"})
+    used_vouchers_count = vouchers_col.count_documents({"status": "USED"})
+
+    # Revenue Aggregation
     rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED"}},
         {"$group": {"_id": None, "total": {"$sum": "$price"}}}
     ]))
     total_rev = rev_agg[0]['total'] if rev_agg else 0.0
 
+    # User Summary Insights Aggregation
+    user_pipeline = [
+        {"$match": {"used_by_mac": {"$ne": None}}},
+        {"$group": {
+            "_id": "$used_by_mac",
+            "vouchers_count": {"$sum": 1},
+            "total_spend": {"$sum": "$price"}
+        }}
+    ]
+    user_docs = list(vouchers_col.aggregate(user_pipeline))
+    active_macs = set(s["_id"] for s in active_sessions)
+    
+    user_summary = []
+    for u in user_docs:
+        mac_addr = u["_id"]
+        user_summary.append({
+            "mac": mac_addr,
+            "status": "online" if mac_addr in active_macs else "offline",
+            "vouchers_count": u["vouchers_count"],
+            "total_spend": u["total_spend"]
+        })
+
     return render_template(
         'admin.html',
+        packages=packages,
         vouchers=vouchers,
         active_sessions=active_sessions,
-        active_vouchers_count=vouchers_col.count_documents({"status": "ACTIVE"}),
-        used_vouchers_count=vouchers_col.count_documents({"status": "USED"}),
+        active_vouchers_count=active_vouchers_count,
+        used_vouchers_count=used_vouchers_count,
         active_sessions_count=len(active_sessions),
-        total_revenue=f"{total_rev:,.0f}"
+        total_revenue=f"{total_rev:,.0f}",
+        user_summary=user_summary
     )
 
 
-@app.route('/admin/revoke/<mac>')
-def revoke_session(mac):
-    """Instantly revokes a device's access from the admin dashboard."""
+# --- PACKAGE MANAGEMENT ROUTES ---
+
+@app.route('/admin/packages/create', methods=['POST'])
+def create_package():
     if not session.get('admin'):
         return redirect('/admin/login')
 
-    mac = mac.strip().upper()
-    
-    # Remove session and associated tokens immediately
-    sessions_col.delete_one({"_id": mac})
-    tokens_col.delete_many({"mac": mac})
-    
-    logger.info(f"Admin manually revoked internet access for MAC: {mac}")
-    return redirect('/admin')
+    name = request.form.get('name', '').strip()
+    price = float(request.form.get('price', 0))
+    duration_value = int(request.form.get('duration', 1))
+    duration_unit = request.form.get('unit', 'hours')
+    badge = request.form.get('badge', '').strip()
+    description = request.form.get('description', '').strip()
 
+    package_doc = {
+        "name": name,
+        "price": price,
+        "duration_value": duration_value,
+        "duration_unit": duration_unit,
+        "duration_minutes": calculate_duration_minutes(duration_value, duration_unit),
+        "badge": badge,
+        "description": description,
+        "created_at": datetime.now(timezone.utc)
+    }
+
+    packages_col.insert_one(package_doc)
+    logger.info(f"Admin created package: '{name}' (TZS {price})")
+    return redirect('/admin#packages')
+
+
+@app.route('/admin/packages/edit/<pkg_id>', methods=['POST'])
+def edit_package(pkg_id):
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    name = request.form.get('name', '').strip()
+    price = float(request.form.get('price', 0))
+    duration_value = int(request.form.get('duration', 1))
+    duration_unit = request.form.get('unit', 'hours')
+    badge = request.form.get('badge', '').strip()
+    description = request.form.get('description', '').strip()
+
+    packages_col.update_one(
+        {"_id": ObjectId(pkg_id)},
+        {"$set": {
+            "name": name,
+            "price": price,
+            "duration_value": duration_value,
+            "duration_unit": duration_unit,
+            "duration_minutes": calculate_duration_minutes(duration_value, duration_unit),
+            "badge": badge,
+            "description": description
+        }}
+    )
+    logger.info(f"Admin updated package ID: {pkg_id}")
+    return redirect('/admin#packages')
+
+
+@app.route('/admin/packages/delete/<pkg_id>')
+def delete_package(pkg_id):
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    packages_col.delete_one({"_id": ObjectId(pkg_id)})
+    logger.info(f"Admin deleted package ID: {pkg_id}")
+    return redirect('/admin#packages')
+
+
+# --- VOUCHER MANAGEMENT ROUTES ---
 
 @app.route('/admin/generate', methods=['POST'])
 def generate_vouchers():
     if not session.get('admin'):
         return redirect('/admin/login')
 
-    qty = int(request.form.get('quantity', 8))
-    duration = int(request.form.get('duration', 360))
-    price = float(request.form.get('price', 500))
+    pkg_id = request.form.get('package_id')
+    qty = int(request.form.get('quantity', 1))
+    custom_code = request.form.get('custom_code', '').strip()
+    expire_at_str = request.form.get('expire_at', '').strip()
+    note = request.form.get('note', '').strip()
+
+    # Look up package details
+    pkg = packages_col.find_one({"_id": ObjectId(pkg_id)}) if pkg_id else None
+
+    duration_minutes = pkg['duration_minutes'] if pkg else 360
+    price = pkg['price'] if pkg else 500.0
+    package_name = pkg['name'] if pkg else "Custom"
+
+    expire_at = None
+    if expire_at_str:
+        try:
+            expire_at = datetime.fromisoformat(expire_at_str).replace(tzinfo=timezone.utc)
+        except ValueError:
+            pass
 
     existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
-    
-    while len(new_vouchers) < qty and len(existing_codes) < 90000:
-        code = f"{random.randint(0, 99999):05d}"
-        if code not in existing_codes:
-            existing_codes.add(code)
-            doc = {
-                "code": code,
-                "duration_minutes": duration,
-                "price": price,
-                "status": "ACTIVE",
-                "created_at": datetime.now(timezone.utc)
-            }
-            new_vouchers.append(doc)
+
+    # Custom single code generation
+    if custom_code and custom_code not in existing_codes:
+        doc = {
+            "code": custom_code,
+            "package_name": package_name,
+            "duration_minutes": duration_minutes,
+            "price": price,
+            "status": "ACTIVE",
+            "note": note,
+            "expire_at": expire_at,
+            "created_at": datetime.now(timezone.utc)
+        }
+        new_vouchers.append(doc)
+    else:
+        # Batch random codes generation
+        while len(new_vouchers) < qty and len(existing_codes) < 90000:
+            code = f"{random.randint(0, 99999):05d}"
+            if code not in existing_codes:
+                existing_codes.add(code)
+                doc = {
+                    "code": code,
+                    "package_name": package_name,
+                    "duration_minutes": duration_minutes,
+                    "price": price,
+                    "status": "ACTIVE",
+                    "note": note,
+                    "expire_at": expire_at,
+                    "created_at": datetime.now(timezone.utc)
+                }
+                new_vouchers.append(doc)
 
     if new_vouchers:
         vouchers_col.insert_many(new_vouchers)
-        logger.info(f"Generated {len(new_vouchers)} new vouchers (Duration: {duration} mins, Price: TZS {price})")
+        logger.info(f"Generated {len(new_vouchers)} new vouchers for package '{package_name}'")
 
     return render_template('print.html', vouchers=new_vouchers)
+
+
+@app.route('/admin/voucher/revoke/<code>')
+def revoke_voucher(code):
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    voucher = vouchers_col.find_one({"code": code})
+    if voucher:
+        # Revoke active MAC session if in use
+        if voucher.get("used_by_mac"):
+            mac = voucher["used_by_mac"]
+            sessions_col.delete_one({"_id": mac})
+            tokens_col.delete_many({"mac": mac})
+
+        vouchers_col.update_one({"code": code}, {"$set": {"status": "REVOKED"}})
+        logger.info(f"Admin revoked voucher code: {code}")
+
+    return redirect('/admin#vouchers')
+
+
+@app.route('/admin/voucher/unrevoke/<code>')
+def unrevoke_voucher(code):
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    vouchers_col.update_one({"code": code}, {"$set": {"status": "ACTIVE"}})
+    logger.info(f"Admin unrevoked voucher code: {code}")
+    return redirect('/admin#vouchers')
 
 
 # ==========================================
