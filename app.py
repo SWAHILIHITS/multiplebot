@@ -300,21 +300,33 @@ def extract_byte_count(args_dict):
     incoming = 0
     outgoing = 0
 
-    # Check common keys for download/incoming traffic
-    for key in ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down']:
-        val = args_dict.get(key)
-        if val and str(val).isdigit():
-            incoming = int(val)
-            break
+    # Keys commonly used for download / incoming traffic
+    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down', 'bytes_downloaded']
+    # Keys commonly used for upload / outgoing traffic
+    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up', 'bytes_uploaded']
 
-    # Check common keys for upload/outgoing traffic
-    for key in ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up']:
+    for key in download_keys:
         val = args_dict.get(key)
-        if val and str(val).isdigit():
-            outgoing = int(val)
-            break
+        if val is not None:
+            try:
+                incoming = int(str(val).strip())
+                if incoming > 0:
+                    break
+            except ValueError:
+                continue
+
+    for key in upload_keys:
+        val = args_dict.get(key)
+        if val is not None:
+            try:
+                outgoing = int(str(val).strip())
+                if outgoing > 0:
+                    break
+            except ValueError:
+                continue
 
     return incoming + outgoing
+
 
 
 # ==========================================
@@ -330,7 +342,7 @@ def extract_byte_count(args_dict):
 def wifidog_auth_check():
     """
     ReyeeOS Background Auth Verification.
-    Validates session and increments byte usage counters.
+    Validates session and updates byte usage counters.
     """
     stage = request.args.get('stage', '').strip()
     mac = request.args.get('mac', '').strip().upper()
@@ -343,9 +355,7 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Extract traffic bytes from request parameters
     total_bytes = extract_byte_count(request.args)
-
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
@@ -354,21 +364,21 @@ def wifidog_auth_check():
             exp = exp.replace(tzinfo=timezone.utc)
 
         if exp and exp > now:
-            # Update data consumption counters if traffic is present
             if total_bytes > 0:
-                # Update total bytes in current active session
+                # Update current active session total bytes
                 sessions_col.update_one(
                     {"_id": mac},
                     {"$set": {"bytes_used": total_bytes}}
                 )
 
-                # Increment or set total consumed data on the associated voucher
+                # Update data consumed on the corresponding voucher
                 voucher_code = session_doc.get("code")
                 if voucher_code:
                     vouchers_col.update_one(
                         {"code": voucher_code},
                         {"$set": {"data_consumed_bytes": total_bytes}}
                     )
+                logger.info(f"Auth updated byte usage for MAC {mac}: {total_bytes} bytes")
 
             return Response("Auth: 1\n", mimetype='text/plain')
 
@@ -378,6 +388,7 @@ def wifidog_auth_check():
 
     logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
+
 
 
 # ==========================================
@@ -398,7 +409,6 @@ def wifidog_ping():
     gw_id = request.args.get('gw_id', 'Unknown')
     mac = request.args.get('mac', '').strip().upper()
 
-    # Extract bytes sent during heartbeat ping
     total_bytes = extract_byte_count(request.args)
 
     if mac and total_bytes > 0:
@@ -418,8 +428,6 @@ def wifidog_ping():
 
     logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
-
-
 
 # ==========================================
 # ERROR HANDLERS
