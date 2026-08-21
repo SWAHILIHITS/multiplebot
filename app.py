@@ -341,13 +341,12 @@ def extract_byte_count(args_dict):
 def wifidog_auth_check():
     """
     ReyeeOS Background Auth Verification.
-    Validates expiration and records incoming/outgoing byte counters from router requests.
+    Validates session and increments byte usage counters.
     """
     stage = request.args.get('stage', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    # 1. Handle client logout requests
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
@@ -355,7 +354,7 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # 2. Parse bandwidth usage counters sent by WifiDog gateway protocol
+    # Extract byte counters (defaults to 0 if missing)
     try:
         incoming_bytes = int(request.args.get('incoming', 0) or 0)
         outgoing_bytes = int(request.args.get('outgoing', 0) or 0)
@@ -365,7 +364,6 @@ def wifidog_auth_check():
 
     total_bytes = incoming_bytes + outgoing_bytes
 
-    # 3. Retrieve existing session
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
@@ -373,33 +371,66 @@ def wifidog_auth_check():
         if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
             exp = exp.replace(tzinfo=timezone.utc)
 
-        # 4. Check if active session is still valid
         if exp and exp > now:
+            # Increment byte count if traffic is reported
             if total_bytes > 0:
-                # Update total bytes in active session collection
                 sessions_col.update_one(
                     {"_id": mac},
-                    {"$set": {"bytes_used": total_bytes}}
+                    {"$inc": {"bytes_used": total_bytes}}
                 )
 
-                # Persist bytes consumed to historical voucher collection
                 voucher_code = session_doc.get("code")
                 if voucher_code:
                     vouchers_col.update_one(
                         {"code": voucher_code},
-                        {"$set": {"data_consumed_bytes": total_bytes}}
+                        {"$inc": {"data_consumed_bytes": total_bytes}}
                     )
 
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # 5. Clean up expired tokens/sessions if auth fails
     if mac:
         tokens_col.delete_many({"mac": mac})
         sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
     logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
+@app.route('/ping', methods=['GET'])
+@app.route('/ping/', methods=['GET'])
+@app.route('/wifidog/ping', methods=['GET'])
+@app.route('/wifidog/ping/', methods=['GET'])
+@app.route('/api/wifidog/ping', methods=['GET'])
+@app.route('/api/wifidog/ping/', methods=['GET'])
+def wifidog_ping():
+    """Periodic Reyee AP Heartbeat with data tracking backup."""
+    gw_id = request.args.get('gw_id', 'Unknown')
+    mac = request.args.get('mac', '').strip().upper()
 
+    # Capture traffic data if sent during ping
+    try:
+        incoming_bytes = int(request.args.get('incoming', 0) or 0)
+        outgoing_bytes = int(request.args.get('outgoing', 0) or 0)
+    except ValueError:
+        incoming_bytes = 0
+        outgoing_bytes = 0
+
+    total_bytes = incoming_bytes + outgoing_bytes
+
+    if mac and total_bytes > 0:
+        session_doc = sessions_col.find_one({"_id": mac})
+        if session_doc:
+            sessions_col.update_one(
+                {"_id": mac},
+                {"$inc": {"bytes_used": total_bytes}}
+            )
+            voucher_code = session_doc.get("code")
+            if voucher_code:
+                vouchers_col.update_one(
+                    {"code": voucher_code},
+                    {"$inc": {"data_consumed_bytes": total_bytes}}
+                )
+
+    logger.debug(f"Ping received from AP Gateway ID: {gw_id}")
+    return Response("Pong\n", mimetype='text/plain')
 
 @app.route('/gw_message', methods=['GET'])
 @app.route('/gw_message/', methods=['GET'])
