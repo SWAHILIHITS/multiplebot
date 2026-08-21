@@ -173,22 +173,6 @@ def favicon():
     return Response(status=204)
 
 
-@app.errorhandler(404)
-def handle_404(e):
-    """Catch routing errors without corrupting API background checks."""
-    path = request.path.lower()
-    
-    if 'favicon.ico' in path:
-        return Response(status=204)
-
-    if path.startswith('/wifidog') or path.startswith('/api/wifidog') or 'auth' in path or 'ping' in path:
-        logger.warning(f"Unhandled WifiDog API route requested: {request.path}")
-        return Response("Not Found\n", status=404, mimetype='text/plain')
-    
-    logger.warning(f"404 redirect triggered for path: {request.path} from IP: {request.remote_addr}")
-    return captive_login_page()
-
-
 @app.route('/login', methods=['POST'])
 def process_login():
     """Validates voucher and redirects client to local AP auth endpoint."""
@@ -394,6 +378,10 @@ def wifidog_auth_check():
 
     logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
+# ==========================================
+# REYEE / REYEEOS WIFIDOG PING & HEARTBEAT
+# ==========================================
+
 @app.route('/ping', methods=['GET'])
 @app.route('/ping/', methods=['GET'])
 @app.route('/wifidog/ping', methods=['GET'])
@@ -401,36 +389,76 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping', methods=['GET'])
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """Periodic Reyee AP Heartbeat with data tracking backup."""
+    """
+    Handles periodic Reyee AP Heartbeats.
+    Extracts data usage parameters and responds with 'Pong'.
+    """
     gw_id = request.args.get('gw_id', 'Unknown')
     mac = request.args.get('mac', '').strip().upper()
 
-    # Capture traffic data if sent during ping
-    try:
-        incoming_bytes = int(request.args.get('incoming', 0) or 0)
-        outgoing_bytes = int(request.args.get('outgoing', 0) or 0)
-    except ValueError:
-        incoming_bytes = 0
-        outgoing_bytes = 0
+    # Extract traffic parameters sent during heartbeat pings
+    incoming_bytes = 0
+    outgoing_bytes = 0
+
+    for key in ['incoming', 'incoming_bytes', 'down', 'bytes_in']:
+        val = request.args.get(key)
+        if val and str(val).isdigit():
+            incoming_bytes = int(val)
+            break
+
+    for key in ['outgoing', 'outgoing_bytes', 'up', 'bytes_out']:
+        val = request.args.get(key)
+        if val and str(val).isdigit():
+            outgoing_bytes = int(val)
+            break
 
     total_bytes = incoming_bytes + outgoing_bytes
 
+    # If traffic is reported for a device MAC address, update database
     if mac and total_bytes > 0:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
+            # Increment current active session usage
             sessions_col.update_one(
                 {"_id": mac},
                 {"$inc": {"bytes_used": total_bytes}}
             )
+            # Increment historical voucher usage
             voucher_code = session_doc.get("code")
             if voucher_code:
                 vouchers_col.update_one(
                     {"code": voucher_code},
                     {"$inc": {"data_consumed_bytes": total_bytes}}
                 )
+            logger.info(f"Ping updated data for MAC {mac}: +{total_bytes} bytes")
 
-    logger.debug(f"Ping received from AP Gateway ID: {gw_id}")
+    logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
+
+
+# ==========================================
+# ERROR HANDLERS
+# ==========================================
+
+@app.errorhandler(404)
+def handle_404(e):
+    """Catch routing errors without breaking API background checks."""
+    path = request.path.lower()
+    
+    if 'favicon.ico' in path:
+        return Response(status=204)
+
+    # Route any unhandled wifidog ping requests directly to wifidog_ping
+    if 'ping' in path:
+        logger.warning(f"Redirecting loose ping request '{request.path}' to wifidog_ping handler.")
+        return wifidog_ping()
+
+    if path.startswith('/wifidog') or path.startswith('/api/wifidog') or 'auth' in path:
+        logger.warning(f"Unhandled WifiDog API route requested: {request.path}")
+        return Response("Not Found\n", status=404, mimetype='text/plain')
+    
+    logger.warning(f"404 redirect triggered for path: {request.path} from IP: {request.remote_addr}")
+    return captive_login_page()
 
 @app.route('/gw_message', methods=['GET'])
 @app.route('/gw_message/', methods=['GET'])
