@@ -333,28 +333,22 @@ def extract_byte_count(args_dict):
 
 
 @app.route('/auth', methods=['GET'])
+@app.route('/auth', methods=['GET'])
 @app.route('/auth/', methods=['GET'])
 @app.route('/wifidog/auth', methods=['GET'])
 @app.route('/wifidog/auth/', methods=['GET'])
 @app.route('/api/wifidog/auth', methods=['GET'])
 @app.route('/api/wifidog/auth/', methods=['GET'])
-@app.route('/wifidog/counters', methods=['GET'])
-@app.route('/wifidog/counters/', methods=['GET'])
 def wifidog_auth_check():
     """
-    ReyeeOS Auth & Data Counter Verification endpoint.
-    Handles stage=login, stage=counters, stage=logout, and periodic validation.
+    ReyeeOS Background Auth Verification with strict expiration enforcement
+    and real-time data consumption tracking.
     """
     stage = request.args.get('stage', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    # Log query args to terminal for debugging exact router payload
-    logger.info(f"WifiDog Request -> Stage: '{stage}' | MAC: '{mac}' | Query Args: {dict(request.args)}")
-
-    # Extract bytes using flexible parameter checking
-    total_bytes = extract_byte_count(request.args)
-
+    # 1. Handle Logout
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
@@ -362,6 +356,12 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
+    # 2. Extract Data Usage Parameters (WifiDog Standard)
+    incoming_bytes = int(request.args.get('incoming', 0) or 0)
+    outgoing_bytes = int(request.args.get('outgoing', 0) or 0)
+    total_bytes = incoming_bytes + outgoing_bytes
+
+    # 3. Retrieve Session
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
@@ -369,39 +369,34 @@ def wifidog_auth_check():
         if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
             exp = exp.replace(tzinfo=timezone.utc)
 
+        # Validate Expiration
         if exp and exp > now:
-            # Update consumed data using $max to ensure counts never drop or get overwritten with 0
+            # Update data consumption if traffic counters are supplied
             if total_bytes > 0:
+                # Update current active session
                 sessions_col.update_one(
                     {"_id": mac},
-                    {
-                        "$max": {"bytes_used": total_bytes},
-                        "$set": {"last_seen": now}
-                    }
+                    {"$set": {"bytes_used": total_bytes}}
                 )
 
-                code = session_doc.get("code")
-                if code:
+                # Persist data usage to the corresponding active voucher document
+                voucher_code = session_doc.get("code")
+                if voucher_code:
                     vouchers_col.update_one(
-                        {"code": code},
-                        {
-                            "$max": {"data_consumed_bytes": total_bytes},
-                            "$set": {"used_at_last": now}
-                        }
+                        {"code": voucher_code},
+                        {"$set": {"data_consumed_bytes": total_bytes}}
                     )
-                logger.info(f"Updated data consumption for MAC {mac}: {total_bytes} bytes")
+                logger.debug(f"Updated MAC {mac} data usage: {total_bytes} bytes")
 
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # Session expired or not found
+    # 4. Handle Expired or Invalid Sessions
     if mac:
         tokens_col.delete_many({"mac": mac})
         sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
     logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
-
-
 
 @app.route('/gw_message', methods=['GET'])
 @app.route('/gw_message/', methods=['GET'])
