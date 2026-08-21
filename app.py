@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, redirect, session, Response
 
 # Import MongoDB collection objects from database.py
-from database import vouchers_col, sessions_col, tokens_col
+from templates.database import vouchers_col, sessions_col, tokens_col
 
 app = Flask(__name__)
 
