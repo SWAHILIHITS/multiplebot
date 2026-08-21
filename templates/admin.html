@@ -40,10 +40,10 @@
         .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .box-title { font-size: 18px; font-weight: 700; color: var(--primary-color); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 28px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 28px; }
         .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
         .stat-card h3 { font-size: 13px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
-        .stat-card .value { font-size: 26px; font-weight: 800; color: var(--primary-color); }
+        .stat-card .value { font-size: 24px; font-weight: 800; color: var(--primary-color); }
 
         .table-responsive { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); }
         table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
@@ -67,8 +67,8 @@
         .badge { padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 11px; display: inline-block; text-transform: uppercase; }
         .badge-custom { background: #0f172a; color: #ffffff; }
         .badge-status { background: #d1fae5; color: #065f46; }
-        .st-active, .st-used { color: #065f46; background: #d1fae5; }
-        .st-expired, .st-revoked { color: #991b1b; background: #fee2e2; }
+        .st-active, .st-used, .st-online { color: #065f46; background: #d1fae5; }
+        .st-expired, .st-revoked, .st-offline { color: #991b1b; background: #fee2e2; }
         .st-unused { color: #3730a3; background: #e0e7ff; }
 
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
@@ -122,20 +122,24 @@
         <div id="tab-dashboard" class="tab-panel active">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Total Revenue</h3>
-                    <div class="value">TZS {{ total_revenue }}</div>
+                    <h3>Today Revenue</h3>
+                    <div class="value">TZS {{ today_revenue }}</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Active Connected Users</h3>
-                    <div class="value">{{ active_sessions_count }}</div>
+                    <h3>Monthly Revenue</h3>
+                    <div class="value">TZS {{ monthly_revenue }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Data Consumed</h3>
+                    <div class="value">{{ total_data_consumed }}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Online Users</h3>
+                    <div class="value">{{ online_users_count }}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Available Vouchers</h3>
                     <div class="value">{{ active_vouchers_count }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Redeemed Vouchers</h3>
-                    <div class="value">{{ used_vouchers_count }}</div>
                 </div>
             </div>
 
@@ -391,7 +395,7 @@
                                 {% for u in user_summary %}
                                 <tr>
                                     <td><b>{{ u.mac }}</b></td>
-                                    <td><span class="badge {{ 'st-active' if u.status == 'online' else 'st-expired' }}">{{ u.status | upper }}</span></td>
+                                    <td><span class="badge st-{{ u.status | lower }}">{{ u.status | upper }}</span></td>
                                     <td>{{ u.vouchers_count }}</td>
                                     <td>TZS {{ "{:,.0f}".format(u.total_spend) }}</td>
                                 </tr>
@@ -436,12 +440,12 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge {% if item.connection_status == 'online' %}st-active{% else %}st-expired{% endif %}">
+                                        <span class="badge st-{{ item.connection_status | lower }}">
                                             {{ item.connection_status | upper }}
                                         </span>
                                     </td>
                                     <td>{{ item.time_label }}</td>
-                                    <td>{{ item.duration_hours }}</td>
+                                    <td>{{ item.duration_formatted }}</td>
                                     <td><b>{{ item.data_consumed }}</b></td>
                                 </tr>
                                 {% else %}
