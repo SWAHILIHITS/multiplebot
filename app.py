@@ -5,7 +5,9 @@ import logging
 import logging.config
 from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, redirect, session, Response
-from pymongo import MongoClient
+
+# Import MongoDB collection objects from database.py
+from database import vouchers_col, sessions_col, tokens_col
 
 app = Flask(__name__)
 
@@ -26,25 +28,6 @@ else:
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
-
-# Database URI
-MONGO_URI = "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
-
-# --- DATABASE SETUP ---
-try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    db = client['swahilihit56']
-    vouchers_col = db["vouchers"]
-    sessions_col = db["sessions"]
-    tokens_col = db["wifidog_tokens"]
-    
-    # Initialize indexes for performance and security
-    vouchers_col.create_index("code", unique=True)
-    tokens_col.create_index("created_at", expireAfterSeconds=600)
-    sessions_col.create_index("expire_date")
-    logger.info("Successfully connected to MongoDB and verified collection indexes.")
-except Exception as e:
-    logger.error(f"Failed to connect to MongoDB: {str(e)}")
 
 
 # --- HELPER FUNCTIONS ---
