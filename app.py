@@ -289,25 +289,26 @@ def process_login():
 
 
 # ==========================================
-# REYEE / REYEEOS WIFIDOG PROTOCOL
+# REYEE / REYEEOS WIFIDOG PROTOCOL HELPERS
 # ==========================================
 
 def extract_byte_count(args_dict):
     """
     Extracts incoming and outgoing bytes across common WifiDog / ReyeeOS parameter keys.
+    Returns total byte usage reported in the request.
     """
     incoming = 0
     outgoing = 0
 
     # Check common keys for download/incoming traffic
-    for key in ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes']:
+    for key in ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down']:
         val = args_dict.get(key)
         if val and str(val).isdigit():
             incoming = int(val)
             break
 
     # Check common keys for upload/outgoing traffic
-    for key in ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes']:
+    for key in ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up']:
         val = args_dict.get(key)
         if val and str(val).isdigit():
             outgoing = int(val)
@@ -315,6 +316,10 @@ def extract_byte_count(args_dict):
 
     return incoming + outgoing
 
+
+# ==========================================
+# WIFIDOG AUTH CHECK
+# ==========================================
 
 @app.route('/auth', methods=['GET'])
 @app.route('/auth/', methods=['GET'])
@@ -338,15 +343,8 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # Extract byte counters (defaults to 0 if missing)
-    try:
-        incoming_bytes = int(request.args.get('incoming', 0) or 0)
-        outgoing_bytes = int(request.args.get('outgoing', 0) or 0)
-    except ValueError:
-        incoming_bytes = 0
-        outgoing_bytes = 0
-
-    total_bytes = incoming_bytes + outgoing_bytes
+    # Extract traffic bytes from request parameters
+    total_bytes = extract_byte_count(request.args)
 
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
@@ -356,18 +354,20 @@ def wifidog_auth_check():
             exp = exp.replace(tzinfo=timezone.utc)
 
         if exp and exp > now:
-            # Increment byte count if traffic is reported
+            # Update data consumption counters if traffic is present
             if total_bytes > 0:
+                # Update total bytes in current active session
                 sessions_col.update_one(
                     {"_id": mac},
-                    {"$inc": {"bytes_used": total_bytes}}
+                    {"$set": {"bytes_used": total_bytes}}
                 )
 
+                # Increment or set total consumed data on the associated voucher
                 voucher_code = session_doc.get("code")
                 if voucher_code:
                     vouchers_col.update_one(
                         {"code": voucher_code},
-                        {"$inc": {"data_consumed_bytes": total_bytes}}
+                        {"$set": {"data_consumed_bytes": total_bytes}}
                     )
 
             return Response("Auth: 1\n", mimetype='text/plain')
@@ -378,6 +378,8 @@ def wifidog_auth_check():
 
     logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
+
+
 # ==========================================
 # REYEE / REYEEOS WIFIDOG PING & HEARTBEAT
 # ==========================================
@@ -396,44 +398,27 @@ def wifidog_ping():
     gw_id = request.args.get('gw_id', 'Unknown')
     mac = request.args.get('mac', '').strip().upper()
 
-    # Extract traffic parameters sent during heartbeat pings
-    incoming_bytes = 0
-    outgoing_bytes = 0
+    # Extract bytes sent during heartbeat ping
+    total_bytes = extract_byte_count(request.args)
 
-    for key in ['incoming', 'incoming_bytes', 'down', 'bytes_in']:
-        val = request.args.get(key)
-        if val and str(val).isdigit():
-            incoming_bytes = int(val)
-            break
-
-    for key in ['outgoing', 'outgoing_bytes', 'up', 'bytes_out']:
-        val = request.args.get(key)
-        if val and str(val).isdigit():
-            outgoing_bytes = int(val)
-            break
-
-    total_bytes = incoming_bytes + outgoing_bytes
-
-    # If traffic is reported for a device MAC address, update database
     if mac and total_bytes > 0:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
-            # Increment current active session usage
             sessions_col.update_one(
                 {"_id": mac},
-                {"$inc": {"bytes_used": total_bytes}}
+                {"$set": {"bytes_used": total_bytes}}
             )
-            # Increment historical voucher usage
             voucher_code = session_doc.get("code")
             if voucher_code:
                 vouchers_col.update_one(
                     {"code": voucher_code},
-                    {"$inc": {"data_consumed_bytes": total_bytes}}
+                    {"$set": {"data_consumed_bytes": total_bytes}}
                 )
-            logger.info(f"Ping updated data for MAC {mac}: +{total_bytes} bytes")
+            logger.info(f"Ping updated data for MAC {mac}: Total {total_bytes} bytes")
 
     logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
+
 
 
 # ==========================================
