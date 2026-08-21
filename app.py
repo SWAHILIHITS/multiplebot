@@ -36,6 +36,7 @@ def get_param(key, default=""):
     """Extract parameter from POST form or GET query string."""
     return request.form.get(key) or request.args.get(key) or default
 
+
 def get_client_mac():
     """Detect client MAC address across ReyeeOS parameter keys."""
     for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
@@ -44,6 +45,7 @@ def get_client_mac():
             return val.strip().upper()
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
+
 def get_gateway_address():
     """Extract Access Point LAN IP. Falls back strictly to DEFAULT_GW_ADDRESS for cloud hosts."""
     for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
@@ -51,6 +53,7 @@ def get_gateway_address():
         if val and val.replace('.', '').isdigit():
             return val.strip()
     return DEFAULT_GW_ADDRESS
+
 
 def calculate_duration_minutes(val, unit):
     """Converts user package duration inputs to total minutes."""
@@ -64,6 +67,37 @@ def calculate_duration_minutes(val, unit):
     elif unit == 'months':
         return val * 60 * 24 * 30
     return val
+
+
+def format_report_time(dt_obj, current_time):
+    """
+    Formats a datetime object based on the current hour:
+    - Current hour -> "Now"
+    - Earlier today -> "HH:00" (24h)
+    - Previous days -> "YYYY-MM-DD HH:00"
+    """
+    if dt_obj.tzinfo is None:
+        dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+        
+    # Check if entry is in the exact same hour today
+    if dt_obj.date() == current_time.date() and dt_obj.hour == current_time.hour:
+        return "Now"
+    # Earlier today
+    elif dt_obj.date() == current_time.date():
+        return dt_obj.strftime("%H:00")
+    # Previous days
+    else:
+        return dt_obj.strftime("%Y-%m-%d %H:00")
+
+
+def format_bytes(bytes_count):
+    """Converts bytes to MB or GB readable text."""
+    if not bytes_count or bytes_count <= 0:
+        return "0 MB"
+    mb = bytes_count / (1024 * 1024)
+    if mb >= 1024:
+        return f"{mb / 1024:.2f} GB"
+    return f"{mb:.2f} MB"
 
 
 # ==========================================
@@ -370,12 +404,14 @@ def admin_dashboard():
         return redirect('/admin/login')
 
     now = datetime.now(timezone.utc)
-    
-    # Packages
+
+    # Active sessions lookup map
+    active_sessions = {s["_id"]: s for s in sessions_col.find({"expire_date": {"$gt": now}})}
+
+    # Fetch packages and vouchers
     packages = list(packages_col.find().sort("created_at", -1))
-    
-    # Vouchers and computed status
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
+
     for v in vouchers:
         status = v.get("status", "ACTIVE")
         exp_at = v.get("expire_at")
@@ -391,50 +427,63 @@ def admin_dashboard():
         else:
             v["computed_status"] = status
 
-    # Sessions & Counts
-    active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
-    active_vouchers_count = vouchers_col.count_documents({"status": "ACTIVE"})
-    used_vouchers_count = vouchers_col.count_documents({"status": "USED"})
+    # Redeemed vouchers for reports
+    used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
 
-    # Revenue Aggregation
+    fewer_details_summary = {
+        "all_users_count": len(used_vouchers),
+        "online_count": 0,
+        "offline_count": 0,
+        "total_data_bytes": 0
+    }
+
+    more_details_report = []
+
+    for v in used_vouchers:
+        mac = v.get("used_by_mac", "UNKNOWN")
+        used_at = v.get("used_at", now)
+        
+        is_online = mac in active_sessions
+        connection_status = "online" if is_online else "offline"
+
+        if is_online:
+            fewer_details_summary["online_count"] += 1
+        else:
+            fewer_details_summary["offline_count"] += 1
+
+        time_display = format_report_time(used_at, now)
+        bytes_used = v.get("data_consumed_bytes", 0) or active_sessions.get(mac, {}).get("bytes_used", 0)
+        fewer_details_summary["total_data_bytes"] += bytes_used
+
+        duration_mins = v.get("duration_minutes", 0)
+        duration_hours = round(duration_mins / 60, 1)
+
+        more_details_report.append({
+            "mac": mac,
+            "voucher_code": v.get("code"),
+            "voucher_status": v.get("status", "USED"),
+            "connection_status": connection_status,
+            "time_label": time_display,
+            "duration_hours": f"{duration_hours} hrs",
+            "data_consumed": format_bytes(bytes_used)
+        })
+
+    fewer_details_summary["total_data_formatted"] = format_bytes(fewer_details_summary["total_data_bytes"])
+
+    # Revenue Calculation
     rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED"}},
         {"$group": {"_id": None, "total": {"$sum": "$price"}}}
     ]))
     total_rev = rev_agg[0]['total'] if rev_agg else 0.0
 
-    # User Summary Insights Aggregation
-    user_pipeline = [
-        {"$match": {"used_by_mac": {"$ne": None}}},
-        {"$group": {
-            "_id": "$used_by_mac",
-            "vouchers_count": {"$sum": 1},
-            "total_spend": {"$sum": "$price"}
-        }}
-    ]
-    user_docs = list(vouchers_col.aggregate(user_pipeline))
-    active_macs = set(s["_id"] for s in active_sessions)
-    
-    user_summary = []
-    for u in user_docs:
-        mac_addr = u["_id"]
-        user_summary.append({
-            "mac": mac_addr,
-            "status": "online" if mac_addr in active_macs else "offline",
-            "vouchers_count": u["vouchers_count"],
-            "total_spend": u["total_spend"]
-        })
-
     return render_template(
         'admin.html',
         packages=packages,
         vouchers=vouchers,
-        active_sessions=active_sessions,
-        active_vouchers_count=active_vouchers_count,
-        used_vouchers_count=used_vouchers_count,
-        active_sessions_count=len(active_sessions),
-        total_revenue=f"{total_rev:,.0f}",
-        user_summary=user_summary
+        summary=fewer_details_summary,
+        detailed_report=more_details_report,
+        total_revenue=f"{total_rev:,.0f}"
     )
 
 
@@ -519,7 +568,6 @@ def generate_vouchers():
     expire_at_str = request.form.get('expire_at', '').strip()
     note = request.form.get('note', '').strip()
 
-    # Look up package details
     pkg = packages_col.find_one({"_id": ObjectId(pkg_id)}) if pkg_id else None
 
     duration_minutes = pkg['duration_minutes'] if pkg else 360
@@ -536,7 +584,6 @@ def generate_vouchers():
     existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
 
-    # Custom single code generation
     if custom_code and custom_code not in existing_codes:
         doc = {
             "code": custom_code,
@@ -550,7 +597,6 @@ def generate_vouchers():
         }
         new_vouchers.append(doc)
     else:
-        # Batch random codes generation
         while len(new_vouchers) < qty and len(existing_codes) < 90000:
             code = f"{random.randint(0, 99999):05d}"
             if code not in existing_codes:
@@ -581,7 +627,6 @@ def revoke_voucher(code):
 
     voucher = vouchers_col.find_one({"code": code})
     if voucher:
-        # Revoke active MAC session if in use
         if voucher.get("used_by_mac"):
             mac = voucher["used_by_mac"]
             sessions_col.delete_one({"_id": mac})
