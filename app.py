@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response
 
-# Import MongoDB collection objects from templates/database.py
+# Import MongoDB collection objects
 from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
 app = Flask(__name__)
@@ -69,6 +69,22 @@ def calculate_duration_minutes(val, unit):
     return val
 
 
+def format_duration_human(duration_minutes):
+    """Converts duration in minutes into a human-readable text string."""
+    if not duration_minutes or duration_minutes <= 0:
+        return "0 mins"
+    
+    if duration_minutes < 60:
+        return f"{duration_minutes} mins"
+    
+    hours = duration_minutes / 60
+    if hours < 24:
+        return f"{hours:.1f}".rstrip('0').rstrip('.') + " hrs"
+    
+    days = hours / 24
+    return f"{days:.1f}".rstrip('0').rstrip('.') + " days"
+
+
 def format_report_time(dt_obj, current_time):
     """
     Formats a datetime object based on the current hour:
@@ -79,13 +95,10 @@ def format_report_time(dt_obj, current_time):
     if dt_obj.tzinfo is None:
         dt_obj = dt_obj.replace(tzinfo=timezone.utc)
         
-    # Check if entry is in the exact same hour today
     if dt_obj.date() == current_time.date() and dt_obj.hour == current_time.hour:
         return "Now"
-    # Earlier today
     elif dt_obj.date() == current_time.date():
         return dt_obj.strftime("%H:00")
-    # Previous days
     else:
         return dt_obj.strftime("%Y-%m-%d %H:00")
 
@@ -101,7 +114,7 @@ def format_bytes(bytes_count):
 
 
 # ==========================================
-# 🌐 CAPTIVE PORTAL ROUTES
+# CAPTIVE PORTAL ROUTES
 # ==========================================
 
 @app.route('/')
@@ -123,7 +136,6 @@ def captive_login_page():
 
     logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
 
-    # --- AUTO-RECONNECT CHECK AFTER AP REBOOT ---
     now = datetime.now(timezone.utc)
     if mac and not mac.startswith("UNKNOWN"):
         try:
@@ -197,7 +209,6 @@ def process_login():
         logger.error(f"Database error while checking voucher {code}: {str(e)}")
         voucher = None
 
-    # Validate Voucher availability and expiration
     if not voucher or voucher.get("status") in ["USED", "REVOKED"]:
         error_msg = "Vocha hii siyo sahihi au ishatumika."
         if voucher and voucher.get("status") == "REVOKED":
@@ -214,7 +225,6 @@ def process_login():
             error=error_msg
         )
 
-    # Check optional voucher expiration date
     if voucher.get("expire_at"):
         exp_at = voucher.get("expire_at")
         if exp_at.tzinfo is None:
@@ -230,7 +240,6 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
-    # 1. Create temporary token
     token = secrets.token_hex(16)
     tokens_col.insert_one({
         "token": token,
@@ -240,7 +249,6 @@ def process_login():
         "created_at": now
     })
 
-    # 2. Register Active MAC session
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -254,7 +262,6 @@ def process_login():
         upsert=True
     )
     
-    # 3. Update Voucher Status to USED
     vouchers_col.update_one(
         {"code": code}, 
         {"$set": {"status": "USED", "used_by_mac": mac, "used_at": now}}
@@ -262,7 +269,6 @@ def process_login():
 
     logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}' for {duration_minutes} minutes.")
 
-    # 4. Redirect URL to Gateway
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
     return f"""
@@ -299,7 +305,7 @@ def process_login():
 
 
 # ==========================================
-# 🐶 REYEE / REYEEOS WIFIDOG PROTOCOL
+# REYEE / REYEEOS WIFIDOG PROTOCOL
 # ==========================================
 
 @app.route('/auth', methods=['GET'])
@@ -314,7 +320,6 @@ def wifidog_auth_check():
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
 
-    # 1. Handle explicit client logout request
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
@@ -322,7 +327,6 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    # 2. Session Lookup
     session_doc = sessions_col.find_one({"_id": mac}) if mac else None
 
     if session_doc:
@@ -330,11 +334,9 @@ def wifidog_auth_check():
         if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
             exp = exp.replace(tzinfo=timezone.utc)
 
-        # Active session found -> Allow access
         if exp and exp > now:
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    # 3. Clean up expired tokens/sessions
     if mac:
         tokens_col.delete_many({"mac": mac})
         sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
@@ -376,7 +378,7 @@ def wifidog_gw_message():
 
 
 # ==========================================
-# 📊 ADMIN PANEL & PACKAGE ROUTES
+# ADMIN PANEL & PACKAGE ROUTES
 # ==========================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -404,12 +406,14 @@ def admin_dashboard():
         return redirect('/admin/login')
 
     now = datetime.now(timezone.utc)
+    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
 
-    # Fetch active sessions and build lookup map
+    # 1. Fetch active sessions lookup map
     active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
 
-    # Fetch packages and vouchers
+    # 2. Fetch packages and vouchers
     packages = list(packages_col.find().sort("created_at", -1))
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
 
@@ -433,12 +437,12 @@ def admin_dashboard():
         else:
             v["computed_status"] = status
 
-    # Fetch redeemed vouchers for usage reporting
+    # 3. Fetch redeemed vouchers for usage reporting
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
 
-    # Aggregate summary per unique MAC address (Fewer Details View)
     mac_agg = {}
     detailed_report = []
+    total_bytes_consumed = 0
 
     for v in used_vouchers:
         mac = v.get("used_by_mac")
@@ -459,9 +463,12 @@ def admin_dashboard():
             }
         mac_agg[mac]["vouchers_count"] += 1
         mac_agg[mac]["total_spend"] += price
+        if is_online:
+            mac_agg[mac]["status"] = "online"
 
-        # Build itemized report entries (More Details View)
         bytes_used = v.get("data_consumed_bytes", 0) or active_sessions_map.get(mac, {}).get("bytes_used", 0)
+        total_bytes_consumed += bytes_used
+
         duration_mins = v.get("duration_minutes", 0)
 
         detailed_report.append({
@@ -470,18 +477,24 @@ def admin_dashboard():
             "voucher_status": v.get("status", "USED"),
             "connection_status": connection_status,
             "time_label": format_report_time(used_at, now),
-            "duration_hours": f"{round(duration_mins / 60, 1)} hrs",
+            "duration_formatted": format_duration_human(duration_mins),
             "data_consumed": format_bytes(bytes_used)
         })
 
     user_summary = list(mac_agg.values())
 
-    # Total revenue calculation
-    rev_agg = list(vouchers_col.aggregate([
-        {"$match": {"status": "USED"}},
+    # 4. Revenue Aggregations
+    today_rev_agg = list(vouchers_col.aggregate([
+        {"$match": {"status": "USED", "used_at": {"$gte": start_of_today}}},
         {"$group": {"_id": None, "total": {"$sum": "$price"}}}
     ]))
-    total_rev = rev_agg[0]['total'] if rev_agg else 0.0
+    today_revenue = today_rev_agg[0]['total'] if today_rev_agg else 0.0
+
+    month_rev_agg = list(vouchers_col.aggregate([
+        {"$match": {"status": "USED", "used_at": {"$gte": start_of_month}}},
+        {"$group": {"_id": None, "total": {"$sum": "$price"}}}
+    ]))
+    monthly_revenue = month_rev_agg[0]['total'] if month_rev_agg else 0.0
 
     return render_template(
         'admin.html',
@@ -490,10 +503,11 @@ def admin_dashboard():
         active_sessions=active_sessions_cursor,
         user_summary=user_summary,
         detailed_report=detailed_report,
-        total_revenue=f"{total_rev:,.0f}",
-        active_sessions_count=len(active_sessions_map),
-        active_vouchers_count=active_vouchers_count,
-        used_vouchers_count=used_vouchers_count
+        today_revenue=f"{today_revenue:,.0f}",
+        monthly_revenue=f"{monthly_revenue:,.0f}",
+        total_data_consumed=format_bytes(total_bytes_consumed),
+        online_users_count=len(active_sessions_map),
+        active_vouchers_count=active_vouchers_count
     )
 
 
@@ -659,7 +673,7 @@ def unrevoke_voucher(code):
 
 
 # ==========================================
-# 🚀 SERVER STARTUP
+# SERVER STARTUP
 # ==========================================
 
 if __name__ == '__main__':
