@@ -405,12 +405,16 @@ def admin_dashboard():
 
     now = datetime.now(timezone.utc)
 
-    # Active sessions lookup map
-    active_sessions = {s["_id"]: s for s in sessions_col.find({"expire_date": {"$gt": now}})}
+    # Fetch active sessions and build lookup map
+    active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
+    active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
 
     # Fetch packages and vouchers
     packages = list(packages_col.find().sort("created_at", -1))
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
+
+    active_vouchers_count = 0
+    used_vouchers_count = 0
 
     for v in vouchers:
         status = v.get("status", "ACTIVE")
@@ -420,57 +424,59 @@ def admin_dashboard():
             v["computed_status"] = "REVOKED"
         elif status == "USED":
             v["computed_status"] = "USED"
+            used_vouchers_count += 1
         elif exp_at and exp_at.replace(tzinfo=timezone.utc if exp_at.tzinfo is None else exp_at.tzinfo) <= now:
             v["computed_status"] = "EXPIRED"
         elif status == "ACTIVE":
             v["computed_status"] = "UNUSED"
+            active_vouchers_count += 1
         else:
             v["computed_status"] = status
 
-    # Redeemed vouchers for reports
+    # Fetch redeemed vouchers for usage reporting
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
 
-    fewer_details_summary = {
-        "all_users_count": len(used_vouchers),
-        "online_count": 0,
-        "offline_count": 0,
-        "total_data_bytes": 0
-    }
-
-    more_details_report = []
+    # Aggregate summary per unique MAC address (Fewer Details View)
+    mac_agg = {}
+    detailed_report = []
 
     for v in used_vouchers:
-        mac = v.get("used_by_mac", "UNKNOWN")
-        used_at = v.get("used_at", now)
+        mac = v.get("used_by_mac")
+        if not mac:
+            continue
         
-        is_online = mac in active_sessions
+        price = float(v.get("price", 0.0))
+        used_at = v.get("used_at", now)
+        is_online = mac in active_sessions_map
         connection_status = "online" if is_online else "offline"
 
-        if is_online:
-            fewer_details_summary["online_count"] += 1
-        else:
-            fewer_details_summary["offline_count"] += 1
+        if mac not in mac_agg:
+            mac_agg[mac] = {
+                "mac": mac,
+                "status": connection_status,
+                "vouchers_count": 0,
+                "total_spend": 0.0
+            }
+        mac_agg[mac]["vouchers_count"] += 1
+        mac_agg[mac]["total_spend"] += price
 
-        time_display = format_report_time(used_at, now)
-        bytes_used = v.get("data_consumed_bytes", 0) or active_sessions.get(mac, {}).get("bytes_used", 0)
-        fewer_details_summary["total_data_bytes"] += bytes_used
-
+        # Build itemized report entries (More Details View)
+        bytes_used = v.get("data_consumed_bytes", 0) or active_sessions_map.get(mac, {}).get("bytes_used", 0)
         duration_mins = v.get("duration_minutes", 0)
-        duration_hours = round(duration_mins / 60, 1)
 
-        more_details_report.append({
+        detailed_report.append({
             "mac": mac,
             "voucher_code": v.get("code"),
             "voucher_status": v.get("status", "USED"),
             "connection_status": connection_status,
-            "time_label": time_display,
-            "duration_hours": f"{duration_hours} hrs",
+            "time_label": format_report_time(used_at, now),
+            "duration_hours": f"{round(duration_mins / 60, 1)} hrs",
             "data_consumed": format_bytes(bytes_used)
         })
 
-    fewer_details_summary["total_data_formatted"] = format_bytes(fewer_details_summary["total_data_bytes"])
+    user_summary = list(mac_agg.values())
 
-    # Revenue Calculation
+    # Total revenue calculation
     rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED"}},
         {"$group": {"_id": None, "total": {"$sum": "$price"}}}
@@ -481,9 +487,13 @@ def admin_dashboard():
         'admin.html',
         packages=packages,
         vouchers=vouchers,
-        summary=fewer_details_summary,
-        detailed_report=more_details_report,
-        total_revenue=f"{total_rev:,.0f}"
+        active_sessions=active_sessions_cursor,
+        user_summary=user_summary,
+        detailed_report=detailed_report,
+        total_revenue=f"{total_rev:,.0f}",
+        active_sessions_count=len(active_sessions_map),
+        active_vouchers_count=active_vouchers_count,
+        used_vouchers_count=used_vouchers_count
     )
 
 
