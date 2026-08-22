@@ -486,6 +486,8 @@ def admin_logout():
 
 
 @app.route('/admin')
+ = list(mac_agg.values())
+@app.route('/admin')
 def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin/login')
@@ -494,11 +496,11 @@ def admin_dashboard():
     start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
 
-    # 1. Fetch active sessions lookup map
+    # Fetch active sessions lookup map
     active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
 
-    # 2. Fetch packages and vouchers
+    # Fetch packages and vouchers
     packages = list(packages_col.find().sort("created_at", -1))
     vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
 
@@ -522,7 +524,7 @@ def admin_dashboard():
         else:
             v["computed_status"] = status
 
-    # 3. Fetch redeemed vouchers for usage reporting
+    # Fetch redeemed vouchers for usage reporting
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
 
     mac_agg = {}
@@ -568,7 +570,7 @@ def admin_dashboard():
 
     user_summary = list(mac_agg.values())
 
-    # 4. Revenue Aggregations
+    # Revenue Aggregations
     today_rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED", "used_at": {"$gte": start_of_today}}},
         {"$group": {"_id": None, "total": {"$sum": "$price"}}}
@@ -581,6 +583,9 @@ def admin_dashboard():
     ]))
     monthly_revenue = month_rev_agg[0]['total'] if month_rev_agg else 0.0
 
+    # Fetch live gateway & SNMP settings from MongoDB
+    settings = get_snmp_settings()
+
     return render_template(
         'admin.html',
         packages=packages,
@@ -592,8 +597,10 @@ def admin_dashboard():
         monthly_revenue=f"{monthly_revenue:,.0f}",
         total_data_consumed=format_bytes(total_bytes_consumed),
         online_users_count=len(active_sessions_map),
-        active_vouchers_count=active_vouchers_count
+        active_vouchers_count=active_vouchers_count,
+        settings=settings  # <-- Pass settings object to template here
     )
+
 
 
 # --- PACKAGE MANAGEMENT ROUTES ---
