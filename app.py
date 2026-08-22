@@ -765,3 +765,101 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
+import threading
+import time
+from pysnmp.hlapi import (
+    getCmd, SnmpEngine, UsmUserData,
+    UdpTransportTarget, ContextData, ObjectType, ObjectIdentity,
+    usmHMACSHAAuthProtocol, usmAesCfb128Protocol
+)
+
+# --- SNMP CONFIGURATION ---
+SNMP_HOST = os.getenv("SNMP_HOST", DEFAULT_GW_ADDRESS)
+SNMP_PORT = int(os.getenv("SNMP_PORT", 161))
+SNMP_USER = os.getenv("SNMP_USER", "ruijie_admin")
+SNMP_AUTH_KEY = os.getenv("SNMP_AUTH_KEY", "AuthPassword123")
+SNMP_PRIV_KEY = os.getenv("SNMP_PRIV_KEY", "PrivPassword123")
+
+# Standard IF-MIB OIDs for Interface Traffic (In/Out Bytes)
+OID_IF_IN_OCTETS = '1.3.6.1.2.1.2.2.1.10.1'   # Bytes Received on Interface 1
+OID_IF_OUT_OCTETS = '1.3.6.1.2.1.2.2.1.16.1'  # Bytes Transmitted on Interface 1
+
+
+def fetch_snmp_bytes():
+    """
+    Polls total byte counts from the Ruijie AP using SNMP v3.
+    Returns total bytes (rx + tx) or 0 on failure.
+    """
+    try:
+        errorIndication, errorStatus, errorIndex, varBinds = next(
+            getCmd(
+                SnmpEngine(),
+                UsmUserData(
+                    userName=SNMP_USER,
+                    authKey=SNMP_AUTH_KEY,
+                    authProtocol=usmHMACSHAAuthProtocol,
+                    privKey=SNMP_PRIV_KEY,
+                    privProtocol=usmAesCfb128Protocol
+                ),
+                UdpTransportTarget((SNMP_HOST, SNMP_PORT), timeout=2, retries=1),
+                ContextData(),
+                ObjectType(ObjectIdentity(OID_IF_IN_OCTETS)),
+                ObjectType(ObjectIdentity(OID_IF_OUT_OCTETS))
+            )
+        )
+
+        if errorIndication or errorStatus:
+            logger.error(f"SNMP Error: {errorIndication or errorStatus.prettyPrint()}")
+            return 0
+
+        rx_bytes = int(varBinds[0][1])
+        tx_bytes = int(varBinds[1][1])
+        return rx_bytes + tx_bytes
+
+    except Exception as e:
+        logger.error(f"Exception during SNMP fetch: {str(e)}")
+        return 0
+
+
+def snmp_data_poller():
+    """
+    Background worker loop that periodically fetches byte counts via SNMP 
+    and updates active database sessions.
+    """
+    logger.info("SNMP Data Poller started.")
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
+
+            if active_sessions:
+                total_bytes = fetch_snmp_bytes()
+
+                if total_bytes > 0:
+                    for s in active_sessions:
+                        mac = s["_id"]
+                        voucher_code = s.get("code")
+
+                        # Update session byte counts
+                        sessions_col.update_one(
+                            {"_id": mac},
+                            {"$set": {"bytes_used": total_bytes}}
+                        )
+
+                        # Sync with voucher database
+                        if voucher_code:
+                            vouchers_col.update_one(
+                                {"code": voucher_code},
+                                {"$set": {"data_consumed_bytes": total_bytes}}
+                            )
+
+                        logger.info(f"SNMP Poller: Updated MAC {mac} with {total_bytes} bytes.")
+        except Exception as e:
+            logger.error(f"Error in SNMP polling thread: {str(e)}")
+
+        time.sleep(30)  # Poll every 30 seconds
+
+
+# --- START BACKGROUND THREAD AT SERVER LAUNCH ---
+poller_thread = threading.Thread(target=snmp_data_poller, daemon=True)
+poller_thread.start()
