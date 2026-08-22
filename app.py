@@ -94,36 +94,6 @@ def get_client_mac():
             return clean_mac(val)
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
-def extract_byte_count(args_dict):
-    """
-    Extracts incoming and outgoing bytes directly from WifiDog telemetry payload.
-    """
-    incoming = 0
-    outgoing = 0
-
-    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down']
-    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up']
-
-    for key in download_keys:
-        val = args_dict.get(key)
-        if val is not None:
-            try:
-                incoming = int(str(val).strip())
-                if incoming > 0: break
-            except ValueError:
-                continue
-
-    for key in upload_keys:
-        val = args_dict.get(key)
-        if val is not None:
-            try:
-                outgoing = int(str(val).strip())
-                if outgoing > 0: break
-            except ValueError:
-                continue
-
-    return incoming + outgoing
-
 
 # ==========================================
 # CAPTIVE PORTAL ROUTES
@@ -256,21 +226,95 @@ def process_login():
     """
     return render_template_string(success_html)
 
+def extract_byte_count(req):
+    """
+    Extracts incoming and outgoing bytes directly from WifiDog telemetry payload.
+    Checks both GET (req.args) and POST (req.form) via req.values.
+    """
+    incoming = 0
+    outgoing = 0
+
+    # Extended list of keys used by different router brands (Reyee, Mikrotik, OpenWrt, etc.)
+    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'bytes-in', 'rx', 'down']
+    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'bytes-out', 'tx', 'up']
+
+    # Log the payload to see exactly what the router is sending
+    payload = req.values.to_dict()
+    if payload.get('stage') == 'counters' or any(k in payload for k in download_keys):
+        logger.info(f"Telemetry Payload Received: {payload}")
+
+    for key in download_keys:
+        val = req.values.get(key)
+        if val is not None:
+            try:
+                incoming = int(str(val).strip())
+                if incoming > 0: break
+            except ValueError:
+                continue
+
+    for key in upload_keys:
+        val = req.values.get(key)
+        if val is not None:
+            try:
+                outgoing = int(str(val).strip())
+                if outgoing > 0: break
+            except ValueError:
+                continue
+
+    return incoming + outgoing
+
+def update_session_data_usage(mac, total_bytes, session_doc):
+    """
+    Safely increments data consumption. Prevents data from resetting to 0 
+    if the router restarts its counters upon user reconnect.
+    """
+    if total_bytes <= 0:
+        return
+
+    current_session_bytes = session_doc.get("current_session_bytes", 0)
+    accumulated_bytes = session_doc.get("accumulated_bytes", 0)
+    
+    # If the router's counter is lower than last time, it means the router restarted
+    if total_bytes < current_session_bytes:
+        accumulated_bytes += current_session_bytes
+        current_session_bytes = total_bytes
+    else:
+        current_session_bytes = total_bytes
+        
+    grand_total = accumulated_bytes + current_session_bytes
+    
+    # Update Session Database
+    sessions_col.update_one(
+        {"_id": mac}, 
+        {"$set": {
+            "current_session_bytes": current_session_bytes, 
+            "accumulated_bytes": accumulated_bytes,
+            "bytes_used": grand_total
+        }}
+    )
+    
+    # Update Voucher Database
+    voucher_code = session_doc.get("code")
+    if voucher_code:
+        vouchers_col.update_one(
+            {"code": voucher_code}, 
+            {"$set": {"data_consumed_bytes": grand_total}}
+        )
 
 # ==========================================
 # WIFIDOG AUTH CHECK (TELEMETRY)
 # ==========================================
 
-@app.route('/auth', methods=['GET'])
-@app.route('/auth/', methods=['GET'])
-@app.route('/wifidog/auth', methods=['GET'])
-@app.route('/wifidog/auth/', methods=['GET'])
-@app.route('/api/wifidog/auth', methods=['GET'])
-@app.route('/api/wifidog/auth/', methods=['GET'])
+@app.route('/auth', methods=['GET', 'POST'])
+@app.route('/auth/', methods=['GET', 'POST'])
+@app.route('/wifidog/auth', methods=['GET', 'POST'])
+@app.route('/wifidog/auth/', methods=['GET', 'POST'])
+@app.route('/api/wifidog/auth', methods=['GET', 'POST'])
+@app.route('/api/wifidog/auth/', methods=['GET', 'POST'])
 def wifidog_auth_check():
-    token = request.args.get('token', '').strip()
-    stage = request.args.get('stage', '').strip()
-    mac = clean_mac(request.args.get('mac', ''))
+    token = request.values.get('token', '').strip()
+    stage = request.values.get('stage', '').strip()
+    mac = clean_mac(request.values.get('mac', ''))
     now = datetime.now(timezone.utc)
 
     if stage == 'logout':
@@ -295,12 +339,10 @@ def wifidog_auth_check():
             exp = exp.replace(tzinfo=timezone.utc)
 
         if exp and exp > now:
-            total_bytes = extract_byte_count(request.args)
-            if total_bytes > 0:
-                sessions_col.update_one({"_id": mac}, {"$set": {"bytes_used": total_bytes}})
-                voucher_code = session_doc.get("code")
-                if voucher_code:
-                    vouchers_col.update_one({"code": voucher_code}, {"$set": {"data_consumed_bytes": total_bytes}})
+            # Extract data and run the safety update function
+            total_bytes = extract_byte_count(request)
+            update_session_data_usage(mac, total_bytes, session_doc)
+            
             return Response("Auth: 1\n", mimetype='text/plain')
 
     tokens_col.delete_many({"mac": mac})
@@ -308,23 +350,22 @@ def wifidog_auth_check():
     return Response("Auth: 0\n", mimetype='text/plain')
 
 
-@app.route('/ping', methods=['GET'])
-@app.route('/ping/', methods=['GET'])
-@app.route('/wifidog/ping', methods=['GET'])
-@app.route('/wifidog/ping/', methods=['GET'])
-@app.route('/api/wifidog/ping', methods=['GET'])
-@app.route('/api/wifidog/ping/', methods=['GET'])
+@app.route('/ping', methods=['GET', 'POST'])
+@app.route('/ping/', methods=['GET', 'POST'])
+@app.route('/wifidog/ping', methods=['GET', 'POST'])
+@app.route('/wifidog/ping/', methods=['GET', 'POST'])
+@app.route('/api/wifidog/ping', methods=['GET', 'POST'])
+@app.route('/api/wifidog/ping/', methods=['GET', 'POST'])
 def wifidog_ping():
-    mac = clean_mac(request.args.get('mac', ''))
-    total_bytes = extract_byte_count(request.args)
+    mac = clean_mac(request.values.get('mac', ''))
+    
+    # Check if this router sends user telemetry on the /ping route
+    total_bytes = extract_byte_count(request)
 
     if mac and total_bytes > 0:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
-            sessions_col.update_one({"_id": mac}, {"$set": {"bytes_used": total_bytes}})
-            voucher_code = session_doc.get("code")
-            if voucher_code:
-                vouchers_col.update_one({"code": voucher_code}, {"$set": {"data_consumed_bytes": total_bytes}})
+            update_session_data_usage(mac, total_bytes, session_doc)
                 
     return Response("Pong\n", mimetype='text/plain')
 
