@@ -765,70 +765,7 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
-import threading
-import time
-from pysnmp.hlapi import (
-    getCmd, SnmpEngine, UsmUserData,
-    UdpTransportTarget, ContextData, ObjectType, ObjectIdentity,
-    usmHMACSHAAuthProtocol, usmAesCfb128Protocol
-)
 
-def get_snmp_settings():
-    """Fetches SNMP configuration from MongoDB or falls back to defaults."""
-    default_settings = {
-        "_id": "snmp_config",
-        "gw_address": os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46"),
-        "gw_port": "2060",
-        "gw_id": "G1UQ6C8027360",
-        "snmp_port": 161,
-        "snmp_username": "Luv2laf.",
-        "snmp_auth_protocol": "SHA",
-        "snmp_auth_password": "",
-        "snmp_priv_protocol": "AES",
-        "snmp_priv_password": ""
-    }
-    config = settings_col.find_one({"_id": "snmp_config"})
-    if not config:
-        settings_col.insert_one(default_settings)
-        return default_settings
-    return config
-
-# --- UPDATED SNMP FETCH & POLLER ---
-def fetch_snmp_bytes():
-    """Polls total byte counts from the Ruijie AP using live MongoDB SNMP settings."""
-    cfg = get_snmp_settings()
-    
-    # Map text protocols to PySNMP objects
-    auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
-    priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDesCbcProtocol
-
-    try:
-        errorIndication, errorStatus, errorIndex, varBinds = next(
-            getCmd(
-                SnmpEngine(),
-                UsmUserData(
-                    userName=cfg.get("snmp_username", ""),
-                    authKey=cfg.get("snmp_auth_password", ""),
-                    authProtocol=auth_proto,
-                    privKey=cfg.get("snmp_priv_password", ""),
-                    privProtocol=priv_proto
-                ),
-                UdpTransportTarget((cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))), timeout=2, retries=1),
-                ContextData(),
-                ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # In Octets
-                ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # Out Octets
-            )
-        )
-
-        if errorIndication or errorStatus:
-            logger.error(f"SNMP Poll Error: {errorIndication or errorStatus.prettyPrint()}")
-            return 0
-
-        return int(varBinds[0][1]) + int(varBinds[1][1])
-
-    except Exception as e:
-        logger.error(f"Exception during SNMP query: {str(e)}")
-        return 0
 
 # --- ADMIN SETTINGS UPDATE ROUTE ---
 @app.route('/admin/settings/update', methods=['POST'])
@@ -851,12 +788,109 @@ def update_settings():
     settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
     logger.info("Admin updated Gateway & SNMP settings.")
     return redirect('/admin#settings')
+import asyncio
+import threading
+import time
+from datetime import datetime, timezone
+
+# Modern PySNMP (v5 / v6) async imports
+from pysnmp.hlapi.v3arch.asyncio import (
+    get_cmd,
+    SnmpEngine,
+    UsmUserData,
+    UdpTransportTarget,
+    ContextData,
+    ObjectType,
+    ObjectIdentity,
+    usmHMACSHAAuthProtocol,
+    usmHMACMD5AuthProtocol,
+    usmAesCfb128Protocol,
+    usmDESPrivProtocol
+)
+
+def get_snmp_settings():
+    """Fetches SNMP configuration from MongoDB or falls back to defaults."""
+    default_settings = {
+        "_id": "snmp_config",
+        "gw_address": os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46"),
+        "gw_port": "2060",
+        "gw_id": "G1UQ6C8027360",
+        "snmp_port": 161,
+        "snmp_username": "Luv2laf.",
+        "snmp_auth_protocol": "SHA",
+        "snmp_auth_password": "",
+        "snmp_priv_protocol": "AES",
+        "snmp_priv_password": ""
+    }
+    config = settings_col.find_one({"_id": "snmp_config"})
+    if not config:
+        settings_col.insert_one(default_settings)
+        return default_settings
+    return config
+
+
+async def _fetch_snmp_async():
+    """Internal coroutine performing SNMP v3 GET via asyncio."""
+    cfg = get_snmp_settings()
+
+    # Map authentication protocols
+    auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
+    
+    # Map privacy/encryption protocols
+    priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
+
+    snmp_engine = SnmpEngine()
+    
+    try:
+        errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
+            snmp_engine,
+            UsmUserData(
+                userName=cfg.get("snmp_username", ""),
+                authKey=cfg.get("snmp_auth_password", ""),
+                authProtocol=auth_proto,
+                privKey=cfg.get("snmp_priv_password", ""),
+                privProtocol=priv_proto
+            ),
+            await UdpTransportTarget.create(
+                (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
+                timeout=2,
+                retries=1
+            ),
+            ContextData(),
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # IF-MIB: ifInOctets.1
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # IF-MIB: ifOutOctets.1
+        )
+
+        if errorIndication:
+            logger.error(f"SNMP Error Indication: {errorIndication}")
+            return 0
+        elif errorStatus:
+            logger.error(f"SNMP Error Status: {errorStatus.prettyPrint()}")
+            return 0
+
+        in_bytes = int(varBinds[0][1])
+        out_bytes = int(varBinds[1][1])
+        return in_bytes + out_bytes
+
+    except Exception as e:
+        logger.error(f"SNMP Query Exception: {str(e)}")
+        return 0
+    finally:
+        snmp_engine.close_dispatcher()
+
+
+def fetch_snmp_bytes():
+    """Synchronous wrapper for background thread execution."""
+    try:
+        return asyncio.run(_fetch_snmp_async())
+    except Exception as e:
+        logger.error(f"Error running SNMP async loop: {str(e)}")
+        return 0
+
+
 def snmp_data_poller():
-    """
-    Background worker loop that periodically fetches byte counts via SNMP 
-    and updates active database sessions.
-    """
-    logger.info("SNMP Data Poller started.")
+    """Background thread function that updates database session traffic counters."""
+    logger.info("SNMP Data Poller background thread started.")
     while True:
         try:
             now = datetime.now(timezone.utc)
@@ -870,13 +904,11 @@ def snmp_data_poller():
                         mac = s["_id"]
                         voucher_code = s.get("code")
 
-                        # Update session byte counts
                         sessions_col.update_one(
                             {"_id": mac},
                             {"$set": {"bytes_used": total_bytes}}
                         )
 
-                        # Sync with voucher database
                         if voucher_code:
                             vouchers_col.update_one(
                                 {"code": voucher_code},
@@ -885,9 +917,10 @@ def snmp_data_poller():
 
                         logger.info(f"SNMP Poller: Updated MAC {mac} with {total_bytes} bytes.")
         except Exception as e:
-            logger.error(f"Error in SNMP polling thread: {str(e)}")
+            logger.error(f"Error in SNMP polling worker thread: {str(e)}")
 
-        time.sleep(30)  # Poll every 30 seconds
+        time.sleep(30)
+
 
 
 # --- START BACKGROUND THREAD AT SERVER LAUNCH ---
