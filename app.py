@@ -6,7 +6,6 @@ import logging.config
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response
-
 # Import MongoDB collection objects
 from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
@@ -292,58 +291,13 @@ def process_login():
 # REYEE / REYEEOS WIFIDOG PROTOCOL HELPERS
 # ==========================================
 
-def extract_byte_count(args_dict):
-    """
-    Extracts incoming and outgoing bytes across common WifiDog / ReyeeOS parameter keys.
-    Returns total byte usage reported in the request.
-    """
-    incoming = 0
-    outgoing = 0
-
-    # Keys commonly used for download / incoming traffic
-    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down', 'bytes_downloaded']
-    # Keys commonly used for upload / outgoing traffic
-    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up', 'bytes_uploaded']
-
-    for key in download_keys:
-        val = args_dict.get(key)
-        if val is not None:
-            try:
-                incoming = int(str(val).strip())
-                if incoming > 0:
-                    break
-            except ValueError:
-                continue
-
-    for key in upload_keys:
-        val = args_dict.get(key)
-        if val is not None:
-            try:
-                outgoing = int(str(val).strip())
-                if outgoing > 0:
-                    break
-            except ValueError:
-                continue
-
-    return incoming + outgoing
-
-
-
-# ==========================================
-# WIFIDOG AUTH CHECK
-# ==========================================
 
 @app.route('/auth', methods=['GET'])
-@app.route('/auth/', methods=['GET'])
 @app.route('/wifidog/auth', methods=['GET'])
-@app.route('/wifidog/auth/', methods=['GET'])
-@app.route('/api/wifidog/auth', methods=['GET'])
-@app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    """
-    ReyeeOS Background Auth Verification.
-    Validates session and updates byte usage counters.
-    """
+    # LOG ALL INCOMING QUERY PARAMETERS FROM ROUTER
+    logger.info(f"DEBUG /auth received query params: {dict(request.args)}")
+    
     stage = request.args.get('stage', '').strip()
     mac = request.args.get('mac', '').strip().upper()
     now = datetime.now(timezone.utc)
@@ -365,20 +319,16 @@ def wifidog_auth_check():
 
         if exp and exp > now:
             if total_bytes > 0:
-                # Update current active session total bytes
                 sessions_col.update_one(
                     {"_id": mac},
                     {"$set": {"bytes_used": total_bytes}}
                 )
-
-                # Update data consumed on the corresponding voucher
                 voucher_code = session_doc.get("code")
                 if voucher_code:
                     vouchers_col.update_one(
                         {"code": voucher_code},
                         {"$set": {"data_consumed_bytes": total_bytes}}
                     )
-                logger.info(f"Auth updated byte usage for MAC {mac}: {total_bytes} bytes")
 
             return Response("Auth: 1\n", mimetype='text/plain')
 
@@ -386,26 +336,15 @@ def wifidog_auth_check():
         tokens_col.delete_many({"mac": mac})
         sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
-    logger.warning(f"WifiDog Auth denied/expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
 
 
-
-# ==========================================
-# REYEE / REYEEOS WIFIDOG PING & HEARTBEAT
-# ==========================================
-
 @app.route('/ping', methods=['GET'])
-@app.route('/ping/', methods=['GET'])
 @app.route('/wifidog/ping', methods=['GET'])
-@app.route('/wifidog/ping/', methods=['GET'])
-@app.route('/api/wifidog/ping', methods=['GET'])
-@app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    """
-    Handles periodic Reyee AP Heartbeats.
-    Extracts data usage parameters and responds with 'Pong'.
-    """
+    # LOG ALL INCOMING QUERY PARAMETERS FROM ROUTER
+    logger.info(f"DEBUG /ping received query params: {dict(request.args)}")
+
     gw_id = request.args.get('gw_id', 'Unknown')
     mac = request.args.get('mac', '').strip().upper()
 
@@ -424,10 +363,10 @@ def wifidog_ping():
                     {"code": voucher_code},
                     {"$set": {"data_consumed_bytes": total_bytes}}
                 )
-            logger.info(f"Ping updated data for MAC {mac}: Total {total_bytes} bytes")
 
-    logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
+
+
 
 # ==========================================
 # ERROR HANDLERS
