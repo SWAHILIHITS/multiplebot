@@ -774,7 +774,7 @@ import asyncio
 import threading
 import time
 from datetime import datetime, timezone
-
+from pyasn1.type.univ import OctetString
 # --- UNIVERSAL PYSNMP IMPORTS ---
 try:
     # Modern PySNMP (v5+ / pysnmp-lextudio)
@@ -853,66 +853,78 @@ def update_settings():
     return redirect('/admin#settings')
 
 async def _fetch_snmp_async():
-    """Asynchronously polls byte counts using authoritative Engine ID and fixed transport setup."""
+    """
+    Asynchronously fetches interface byte counters from Ruijie AP (192.168.0.46)
+    using SNMPv3 SHA/AES authenticated with exact securityEngineId.
+    """
     cfg = get_snmp_settings()
 
-    # Protocol mappings
-    auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
-    priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
-
-    # Convert Hex string Engine ID to bytes
-    raw_engine_id = cfg.get("snmp_engine_id", "").strip()
+    # Exact Hex Engine ID from Ruijie Device Identifier List
+    # 80001f88044731555136433803237333630
+    raw_engine_id = cfg.get("snmp_engine_id", "80001f88044731555136433803237333630").strip()
+    
     try:
-        engine_id_bytes = bytes.fromhex(raw_engine_id) if raw_engine_id else None
-    except ValueError:
-        engine_id_bytes = None
+        engine_id_bytes = bytes.fromhex(raw_engine_id)
+    except ValueError as e:
+        logger.error(f"Invalid Hex Engine ID string: {raw_engine_id} - Error: {e}")
+        return 0
 
     snmp_engine = SnmpEngine()
 
     try:
-        # Standard UdpTransportTarget instantiation (no .create method needed)
+        # UDP Transport target configured for AP IP 192.168.0.46
         transport = UdpTransportTarget(
             (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
-            timeout=3,
+            timeout=4,
             retries=2
         )
 
+        # USM credentials bound to Ruijie's securityEngineId
         user_data = UsmUserData(
             userName=cfg.get("snmp_username", "Luv2laf."),
             authKey=cfg.get("snmp_auth_password", "Luv2laf."),
-            authProtocol=auth_proto,
+            authProtocol=usmHMACSHAAuthProtocol,
             privKey=cfg.get("snmp_priv_password", "Luv2laf."),
-            privProtocol=priv_proto,
-            securityEngineId=engine_id_bytes  # Binds exact Ruijie Engine ID
+            privProtocol=usmAesCfb128Protocol,
+            securityEngineId=OctetString(engine_id_bytes)  # Binds authoritative Ruijie Engine ID
         )
 
-        # Poll Interface 1 & 2
-        for idx in ['1', '2']:
+        total_bytes = 0
+        successful_polls = 0
+
+        # Scan interface indices 1 through 4 (Ethernet & Radio interfaces)
+        for idx in range(1, 5):
             errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
                 snmp_engine,
                 user_data,
                 transport,
                 ContextData(),
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),  # ifInOctets
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))   # ifOutOctets
             )
 
             if not errorIndication and not errorStatus:
-                in_bytes = int(varBinds[0][1])
-                out_bytes = int(varBinds[1][1])
-                total = in_bytes + out_bytes
-                if total > 0:
-                    return total
+                in_octets = int(varBinds[0][1])
+                out_octets = int(varBinds[1][1])
+                if in_octets > 0 or out_octets > 0:
+                    total_bytes += (in_octets + out_octets)
+                    successful_polls += 1
+
+        if successful_polls > 0:
+            logger.info(f"SNMP Poll Successful: {total_bytes} bytes collected across {successful_polls} interfaces.")
+            return total_bytes
 
         if errorIndication:
             logger.error(f"SNMP Error Indication: {errorIndication}")
+        elif errorStatus:
+            logger.error(f"SNMP Error Status: {errorStatus.prettyPrint()}")
+
         return 0
 
     except Exception as e:
         logger.error(f"SNMP Exception: {str(e)}")
         return 0
     finally:
-        # Safely close engine resources without triggering AttributeError
         if hasattr(snmp_engine, 'close'):
             snmp_engine.close()
 
@@ -960,40 +972,6 @@ def snmp_data_poller():
             logger.error(f"Error in SNMP poller loop: {str(e)}")
 
         time.sleep(30)
-
-def snmp_data_poller():
-    """Background thread function that updates database session traffic counters."""
-    logger.info("SNMP Data Poller background thread started.")
-    while True:
-        try:
-            now = datetime.now(timezone.utc)
-            active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
-
-            if active_sessions:
-                total_bytes = fetch_snmp_bytes()
-
-                if total_bytes > 0:
-                    for s in active_sessions:
-                        mac = s["_id"]
-                        voucher_code = s.get("code")
-
-                        sessions_col.update_one(
-                            {"_id": mac},
-                            {"$set": {"bytes_used": total_bytes}}
-                        )
-
-                        if voucher_code:
-                            vouchers_col.update_one(
-                                {"code": voucher_code},
-                                {"$set": {"data_consumed_bytes": total_bytes}}
-                            )
-
-                        logger.info(f"SNMP Poller: Updated MAC {mac} with {total_bytes} bytes.")
-        except Exception as e:
-            logger.error(f"Error in SNMP polling worker thread: {str(e)}")
-
-        time.sleep(30)
-
 
 
 # --- START BACKGROUND THREAD AT SERVER LAUNCH ---
