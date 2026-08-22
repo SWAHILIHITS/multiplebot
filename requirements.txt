@@ -1,5 +1,4 @@
 flask
-pysnmp-lextudio
 gunicorn
 requests
 moviepy==1.0.3 
