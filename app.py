@@ -484,9 +484,6 @@ def admin_logout():
     logger.info("Admin logged out.")
     return redirect('/admin/login')
 
-
-@app.route('/admin')
- = list(mac_agg.values())
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('admin'):
