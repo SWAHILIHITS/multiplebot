@@ -1,46 +1,30 @@
-from pysnmp.hlapi import *
-import logging
+import socket
 
-# Set up a basic logger to mimic your app's logging style
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-appLogger = logging.getLogger('appLogger')
-
-def test_snmp_v3_connection():
-    # Define the target IP from your device identifier list
-    target_ip = '192.168.0.46'
+def check_udp_port(ip_address: str, port: int, timeout: int = 3):
+    """
+    Sends a test packet to a UDP port to check if it is reachable.
+    """
+    print(f"Testing connection to {ip_address} on UDP port {port}...")
     
-    # We will query the standard SNMP sysDescr OID as a test
-    oid = ObjectIdentity('SNMPv2-MIB', 'sysDescr', 0)
-
+    # Create a UDP socket (SOCK_DGRAM indicates UDP)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.settimeout(timeout)
+    
     try:
-        iterator = getCmd(
-            SnmpEngine(),
-            UsmUserData(
-                'Luv2laf.',                           # User Name
-                authKey='Luv2laf.',                   # Auth Password
-                privKey='Luv2laf.',                   # Encrypted Password
-                authProtocol=usmHMACSHAAuthProtocol,  # Auth Protocol: SHA
-                privProtocol=usmAesCfb128Protocol     # Encryption Protocol: AES
-            ),
-            UdpTransportTarget((target_ip, 161), timeout=2.0, retries=2), # Added explicit timeout
-            ContextData(),
-            ObjectType(oid)
-        )
-
-        errorIndication, errorStatus, errorIndex, varBinds = next(iterator)
-
-        if errorIndication:
-            # This is where your timeout error is currently being caught
-            appLogger.error(f"SNMP Interface 1 Error: {errorIndication}")
-        elif errorStatus:
-            appLogger.error('%s at %s' % (errorStatus.prettyPrint(),
-                                errorIndex and varBinds[int(errorIndex) - 1][0] or '?'))
-        else:
-            for varBind in varBinds:
-                appLogger.info(f"Success! Response: {' = '.join([x.prettyPrint() for x in varBind])}")
-
+        # Send a dummy byte to the target
+        sock.sendto(b'\x00', (ip_address, port))
+        
+        # Try to receive data back
+        data, addr = sock.recvfrom(1024)
+        print("Success! Port is open and responsive.")
+    except socket.timeout:
+        print("Timeout: The port might be blocked by a firewall, or the device ignored the empty packet.")
     except Exception as e:
-        appLogger.error(f"Unexpected application error: {e}")
+        print(f"Network error occurred: {e}")
+    finally:
+        # Always clean up and close the socket
+        sock.close()
 
 if __name__ == "__main__":
-    test_snmp_v3_connection()
+    # Test your Ruijie device IP and the standard SNMP port
+    check_udp_port("192.168.0.46", 161)
