@@ -8,7 +8,6 @@ from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response
 # Import MongoDB collection objects
 from templates.database import vouchers_col, sessions_col, tokens_col, packages_col,settings_col
-from app2 import abc
 app = Flask(__name__)
 
 # --- LOGGING INITIALIZATION ---
