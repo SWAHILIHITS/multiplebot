@@ -305,8 +305,8 @@ def extract_byte_count(args_dict):
     return incoming + outgoing
 
 
-# ==========================================
-# WIFIDOG AUTH CHECK
+ # ==========================================
+# WIFIDOG AUTH CHECK (HANDLES DIRECT TELEMETRY)
 # ==========================================
 
 @app.route('/auth', methods=['GET'])
@@ -318,7 +318,7 @@ def extract_byte_count(args_dict):
 def wifidog_auth_check():
     """
     ReyeeOS Background Auth Verification.
-    Validates active sessions and updates data consumption counters.
+    Validates active sessions and updates data consumption counters from HTTP parameters.
     """
     token = request.args.get('token', '').strip()
     stage = request.args.get('stage', '').strip()
@@ -353,6 +353,7 @@ def wifidog_auth_check():
 
         # Confirm session is still valid
         if exp and exp > now:
+            # Extract live bandwidth reported by the router over HTTP
             total_bytes = extract_byte_count(request.args)
 
             # Update database usage counters if router sent byte counts
@@ -370,7 +371,7 @@ def wifidog_auth_check():
                     )
                 logger.info(f"Auth updated data usage for MAC {mac}: {total_bytes} bytes")
 
-            # Grant internet access
+            # Grant internet access to router
             return Response("Auth: 1\n", mimetype='text/plain')
 
     # Clean up expired session or unauthorized token
@@ -379,6 +380,7 @@ def wifidog_auth_check():
 
     logger.warning(f"WifiDog Auth denied or expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
+
 
 # ==========================================
 # REYEE / WIFIDOG PING & HEARTBEAT
@@ -392,12 +394,13 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
     """
-    Handles periodic Access Point Heartbeats.
-    Extracts telemetry data and updates active session consumption.
+    Handles periodic Access Point Heartbeats sent directly from the Ruijie router.
+    Extracts telemetry data and updates active session consumption in MongoDB.
     """
     gw_id = request.args.get('gw_id', 'Unknown')
     mac = clean_mac(request.args.get('mac', ''))
 
+    # Extract bandwidth reported directly in the ping request parameters
     total_bytes = extract_byte_count(request.args)
 
     if mac and total_bytes > 0:
@@ -417,6 +420,7 @@ def wifidog_ping():
 
     logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
+
 
 # ==========================================
 # ERROR HANDLERS
@@ -758,201 +762,7 @@ def unrevoke_voucher(code):
     vouchers_col.update_one({"code": code}, {"$set": {"status": "ACTIVE"}})
     logger.info(f"Admin unrevoked voucher code: {code}")
     return redirect('/admin#vouchers')
-
-import asyncio
-import threading
-import time
-from datetime import datetime, timezone
-from pyasn1.type.univ import OctetString
-# --- UNIVERSAL PYSNMP IMPORTS ---
-try:
-    # Modern PySNMP (v5+ / pysnmp-lextudio)
-    from pysnmp.hlapi.asyncio import (
-        getCmd as async_getCmd,
-        SnmpEngine,
-        UsmUserData,
-        UdpTransportTarget,
-        ContextData,
-        ObjectType,
-        ObjectIdentity,
-        usmHMACSHAAuthProtocol,
-        usmHMACMD5AuthProtocol,
-        usmAesCfb128Protocol,
-        usmDESPrivProtocol
-    )
-except ImportError:
-    # Fallback for alternative package layouts
-    from pysnmp.hlapi import (
-        getCmd as async_getCmd,
-        SnmpEngine,
-        UsmUserData,
-        UdpTransportTarget,
-        ContextData,
-        ObjectType,
-        ObjectIdentity,
-        usmHMACSHAAuthProtocol,
-        usmHMACMD5AuthProtocol,
-        usmAesCfb128Protocol,
-        usmDESPrivProtocol
-    )
-
-
-def get_snmp_settings():
-    """Fetches SNMP configuration including Engine ID from MongoDB."""
-    default_settings = {
-        "_id": "snmp_config",
-        "gw_address": "192.168.0.46",
-        "gw_port": "2060",
-        "gw_id": "G1UQ6C8027360",
-        "snmp_port": 161,
-        "snmp_username": "Luv2laf.",
-        "snmp_auth_protocol": "SHA",
-        "snmp_auth_password": "Luv2laf.",
-        "snmp_priv_protocol": "AES",
-        "snmp_priv_password": "Luv2laf.",
-        # CORRECT 34-HEX CHAR ENGINE ID FROM RUIJIE DASHBOARD
-        "snmp_engine_id": "80001f880447315551364338303237333630" 
-    }
-    config = settings_col.find_one({"_id": "snmp_config"})
-    if not config:
-        settings_col.insert_one(default_settings)
-        return default_settings
-    return config
-
-
-
-@app.route('/admin/settings/update', methods=['POST'])
-def update_settings():
-    if not session.get('admin'):
-        return redirect('/admin/login')
-
-    updated_config = {
-        "gw_address": request.form.get("gw_address", "").strip(),
-        "gw_port": request.form.get("gw_port", "2060").strip(),
-        "gw_id": request.form.get("gw_id", "").strip(),
-        "snmp_port": int(request.form.get("snmp_port", 161)),
-        "snmp_username": request.form.get("snmp_username", "").strip(),
-        "snmp_auth_protocol": request.form.get("snmp_auth_protocol", "SHA"),
-        "snmp_auth_password": request.form.get("snmp_auth_password", "").strip(),
-        "snmp_priv_protocol": request.form.get("snmp_priv_protocol", "AES"),
-        "snmp_priv_password": request.form.get("snmp_priv_password", "").strip(),
-        "snmp_engine_id": request.form.get("snmp_engine_id", "").strip()
-    }
-
-    settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
-    logger.info("Admin updated Gateway & SNMP settings with Engine ID.")
-    return redirect('/admin#settings')
-
-async def _fetch_snmp_async():
-    cfg = get_snmp_settings()
-    raw_engine_id = cfg.get("snmp_engine_id", "80001f880447315551364338303237333630").strip()
-    
-    try:
-        engine_id_bytes = bytes.fromhex(raw_engine_id)
-    except ValueError as e:
-        logger.error(f"Invalid Hex Engine ID string: {raw_engine_id} - Error: {e}")
-        return 0
-
-    snmp_engine = SnmpEngine()
-
-    try:
-        # Resolve protocols dynamically based on DB settings
-        auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
-        priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
-
-        transport = UdpTransportTarget(
-            (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
-            timeout=5,
-            retries=3
-        )
-
-        user_data = UsmUserData(
-            userName=cfg.get("snmp_username", "Luv2laf."),
-            authKey=cfg.get("snmp_auth_password", "Luv2laf."),
-            authProtocol=auth_proto,
-            privKey=cfg.get("snmp_priv_password", "Luv2laf."),
-            privProtocol=priv_proto,
-            securityEngineId=OctetString(engine_id_bytes)
-        )
-
-        total_bytes = 0
-        successful_polls = 0
-
-        # Query ifInOctets and ifOutOctets
-        for idx in range(1, 5):
-            errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
-                snmp_engine,
-                user_data,
-                transport,
-                ContextData(),
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))
-            )
-
-            if not errorIndication and not errorStatus:
-                in_octets = int(varBinds[0][1])
-                out_octets = int(varBinds[1][1])
-                if in_octets > 0 or out_octets > 0:
-                    total_bytes += (in_octets + out_octets)
-                    successful_polls += 1
-            elif errorIndication:
-                logger.error(f"SNMP Interface {idx} Error: {errorIndication}")
-
-        if successful_polls > 0:
-            logger.info(f"SNMP Poll Successful: {total_bytes} bytes collected.")
-            return total_bytes
-
-        return 0
-
-    except Exception as e:
-        logger.error(f"SNMP Exception: {str(e)}")
-        return 0
-    finally:
-        if hasattr(snmp_engine, 'close'):
-            snmp_engine.close()
-
-
-def snmp_data_poller():
-    """Background polling thread that updates MongoDB with live bandwidth data."""
-    logger.info("SNMP background polling thread started successfully.")
-    while True:
-        try:
-            now = datetime.now(timezone.utc)
-            active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
-
-            if active_sessions:
-                # Use asyncio.run to execute the async function properly inside the thread
-                total_bytes = asyncio.run(_fetch_snmp_async())
-
-                if total_bytes > 0:
-                    for s in active_sessions:
-                        mac = s["_id"]
-                        voucher_code = s.get("code")
-
-                        # Update active session usage
-                        sessions_col.update_one(
-                            {"_id": mac},
-                            {"$set": {"bytes_used": total_bytes}}
-                        )
-
-                        # Update voucher log usage
-                        if voucher_code:
-                            vouchers_col.update_one(
-                                {"code": voucher_code},
-                                {"$set": {"data_consumed_bytes": total_bytes}}
-                            )
-
-                        logger.info(f"SNMP Poller: MAC {mac} updated to {total_bytes} bytes.")
-        except Exception as e:
-            logger.error(f"Error in SNMP poller loop: {str(e)}")
-
-        time.sleep(30)
-
-
-
-# --- START BACKGROUND THREAD AT SERVER LAUNCH ---
-poller_thread = threading.Thread(target=snmp_data_poller, daemon=True)
-poller_thread.start()
+                        
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
