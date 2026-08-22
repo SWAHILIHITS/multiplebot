@@ -922,7 +922,8 @@ def snmp_data_poller():
             active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
 
             if active_sessions:
-                total_bytes = fetch_snmp_bytes()
+                # Use asyncio.run to execute the async function properly inside the thread
+                total_bytes = asyncio.run(_fetch_snmp_async())
 
                 if total_bytes > 0:
                     for s in active_sessions:
@@ -947,6 +948,7 @@ def snmp_data_poller():
             logger.error(f"Error in SNMP poller loop: {str(e)}")
 
         time.sleep(30)
+
 
 
 # --- START BACKGROUND THREAD AT SERVER LAUNCH ---
