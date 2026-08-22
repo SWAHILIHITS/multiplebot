@@ -583,9 +583,6 @@ def admin_dashboard():
     ]))
     monthly_revenue = month_rev_agg[0]['total'] if month_rev_agg else 0.0
 
-    # Fetch live gateway & SNMP settings from MongoDB
-    settings = get_snmp_settings()
-
     return render_template(
         'admin.html',
         packages=packages,
