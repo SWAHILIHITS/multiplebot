@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response
 # Import MongoDB collection objects
-from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
+from templates.database import vouchers_col, sessions_col, tokens_col, packages_col,setting_col
 
 app = Flask(__name__)
 
@@ -773,54 +773,84 @@ from pysnmp.hlapi import (
     usmHMACSHAAuthProtocol, usmAesCfb128Protocol
 )
 
-# --- SNMP CONFIGURATION ---
-SNMP_HOST = os.getenv("SNMP_HOST", DEFAULT_GW_ADDRESS)
-SNMP_PORT = int(os.getenv("SNMP_PORT", 161))
-SNMP_USER = os.getenv("SNMP_USER", "ruijie_admin")
-SNMP_AUTH_KEY = os.getenv("SNMP_AUTH_KEY", "AuthPassword123")
-SNMP_PRIV_KEY = os.getenv("SNMP_PRIV_KEY", "PrivPassword123")
+def get_snmp_settings():
+    """Fetches SNMP configuration from MongoDB or falls back to defaults."""
+    default_settings = {
+        "_id": "snmp_config",
+        "gw_address": os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46"),
+        "gw_port": "2060",
+        "gw_id": "G1UQ6C8027360",
+        "snmp_port": 161,
+        "snmp_username": "Luv2laf.",
+        "snmp_auth_protocol": "SHA",
+        "snmp_auth_password": "",
+        "snmp_priv_protocol": "AES",
+        "snmp_priv_password": ""
+    }
+    config = settings_col.find_one({"_id": "snmp_config"})
+    if not config:
+        settings_col.insert_one(default_settings)
+        return default_settings
+    return config
 
-# Standard IF-MIB OIDs for Interface Traffic (In/Out Bytes)
-OID_IF_IN_OCTETS = '1.3.6.1.2.1.2.2.1.10.1'   # Bytes Received on Interface 1
-OID_IF_OUT_OCTETS = '1.3.6.1.2.1.2.2.1.16.1'  # Bytes Transmitted on Interface 1
-
-
+# --- UPDATED SNMP FETCH & POLLER ---
 def fetch_snmp_bytes():
-    """
-    Polls total byte counts from the Ruijie AP using SNMP v3.
-    Returns total bytes (rx + tx) or 0 on failure.
-    """
+    """Polls total byte counts from the Ruijie AP using live MongoDB SNMP settings."""
+    cfg = get_snmp_settings()
+    
+    # Map text protocols to PySNMP objects
+    auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
+    priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDesCbcProtocol
+
     try:
         errorIndication, errorStatus, errorIndex, varBinds = next(
             getCmd(
                 SnmpEngine(),
                 UsmUserData(
-                    userName=SNMP_USER,
-                    authKey=SNMP_AUTH_KEY,
-                    authProtocol=usmHMACSHAAuthProtocol,
-                    privKey=SNMP_PRIV_KEY,
-                    privProtocol=usmAesCfb128Protocol
+                    userName=cfg.get("snmp_username", ""),
+                    authKey=cfg.get("snmp_auth_password", ""),
+                    authProtocol=auth_proto,
+                    privKey=cfg.get("snmp_priv_password", ""),
+                    privProtocol=priv_proto
                 ),
-                UdpTransportTarget((SNMP_HOST, SNMP_PORT), timeout=2, retries=1),
+                UdpTransportTarget((cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))), timeout=2, retries=1),
                 ContextData(),
-                ObjectType(ObjectIdentity(OID_IF_IN_OCTETS)),
-                ObjectType(ObjectIdentity(OID_IF_OUT_OCTETS))
+                ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # In Octets
+                ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # Out Octets
             )
         )
 
         if errorIndication or errorStatus:
-            logger.error(f"SNMP Error: {errorIndication or errorStatus.prettyPrint()}")
+            logger.error(f"SNMP Poll Error: {errorIndication or errorStatus.prettyPrint()}")
             return 0
 
-        rx_bytes = int(varBinds[0][1])
-        tx_bytes = int(varBinds[1][1])
-        return rx_bytes + tx_bytes
+        return int(varBinds[0][1]) + int(varBinds[1][1])
 
     except Exception as e:
-        logger.error(f"Exception during SNMP fetch: {str(e)}")
-        return 0
+        logger.error(f"Exception during SNMP query: {str(e)}")
+        return 0 0
 
+# --- ADMIN SETTINGS UPDATE ROUTE ---
+@app.route('/admin/settings/update', methods=['POST'])
+def update_settings():
+    if not session.get('admin'):
+        return redirect('/admin/login')
 
+    updated_config = {
+        "gw_address": request.form.get("gw_address", "").strip(),
+        "gw_port": request.form.get("gw_port", "2060").strip(),
+        "gw_id": request.form.get("gw_id", "").strip(),
+        "snmp_port": int(request.form.get("snmp_port", 161)),
+        "snmp_username": request.form.get("snmp_username", "").strip(),
+        "snmp_auth_protocol": request.form.get("snmp_auth_protocol", "SHA"),
+        "snmp_auth_password": request.form.get("snmp_auth_password", "").strip(),
+        "snmp_priv_protocol": request.form.get("snmp_priv_protocol", "AES"),
+        "snmp_priv_password": request.form.get("snmp_priv_password", "").strip()
+    }
+
+    settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
+    logger.info("Admin updated Gateway & SNMP settings.")
+    return redirect('/admin#settings')
 def snmp_data_poller():
     """
     Background worker loop that periodically fetches byte counts via SNMP 
