@@ -1,31 +1,57 @@
 import socket
+import logging
 
-def check_udp_port(ip_address: str, port: int, timeout: int = 3):
+# Set up simple logging for accurate diagnostic reporting
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+appLogger = logging.getLogger("SNMPTester")
+
+def test_local_snmp_udp_port(target_ip: str, port: int = 161, timeout: int = 3):
     """
-    Sends a test packet to a UDP port to check if it is reachable.
-    """
-    print(f"Testing connection to {ip_address} on UDP port {port}...")
+    Tests UDP port 161 by sending a minimally valid SNMPv3 Header 
+    to trigger a valid response from the router.
     
-    # Create a UDP socket (SOCK_DGRAM indicates UDP)
+    Parameters:
+        target_ip (str): The local IP address of the router (e.g., '192.168.0.46').
+        port (int): The destination UDP port (default is 161 for SNMP).
+        timeout (int): Seconds to wait for a packet before timing out.
+    """
+    appLogger.info(f"Initiating local socket test to {target_ip}:{port}...")
+
+    # A minimal binary SNMPv3 GetRequest header to provoke a response
+    # Real SNMP engines discard raw null bytes (b'\x00')
+    snmpv3_discovery_packet = bytes.fromhex(
+        "303a0201030410300e0201010201000400040002010004000400301d0400020100020100040004000400020100020100020100"
+    )
+
+    # Create an IPv4 (AF_INET) UDP (SOCK_DGRAM) socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
-    
+
     try:
-        # Send a dummy byte to the target
-        sock.sendto(b'\x00', (ip_address, port))
+        # Send the SNMPv3 test packet to the local target router
+        sock.sendto(snmpv3_discovery_packet, (target_ip, port))
         
-        # Try to receive data back
+        # Buffer up to 1024 bytes of incoming data
         data, addr = sock.recvfrom(1024)
-        print("Success! Port is open and responsive.")
+        
+        appLogger.info(f"SUCCESS: Received {len(data)} bytes back from {addr[0]}:{addr[1]}. Port 161 is reachable!")
+        return True
+
     except socket.timeout:
-        print("Timeout: The port might be blocked by a firewall, or the device ignored the empty packet.")
-    except Exception as e:
-        print(f"Network error occurred: {e}")
+        appLogger.error("FAILURE (Timeout): No response received. Possible causes:")
+        appLogger.error(" 1. The script is running outside the local 192.168.0.x network.")
+        appLogger.error(" 2. A local host firewall is blocking outbound UDP on Port 161.")
+        return False
+
+    except Exception as ex:
+        appLogger.error(f"FAILURE (Socket Error): {ex}")
+        return False
+
     finally:
-        # Always clean up and close the socket
+        # Guarantee socket closure to free system network resources
         sock.close()
 
 if __name__ == "__main__":
-    # Test your Ruijie device IP and the standard SNMP port
-    check_udp_port("192.168.0.46", 161)
-abc=2
+    # IMPORTANT: Run this script on a machine connected to the local network (192.168.0.x)
+    ROUTER_LOCAL_IP = "192.168.0.46"
+    test_local_snmp_udp_port(ROUTER_LOCAL_IP)
