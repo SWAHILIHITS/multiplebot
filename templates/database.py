@@ -18,7 +18,6 @@ try:
     vouchers_col = db["vouchers"]
     sessions_col = db["sessions"]
     tokens_col = db["wifidog_tokens"]
-    settings_col = db["settings"]
     packages_col = db["packages"]  # Added Package Collection
     
     # Initialize indexes for performance and security
