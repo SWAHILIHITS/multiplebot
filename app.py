@@ -35,16 +35,6 @@ def get_param(key, default=""):
     """Extract parameter from POST form or GET query string."""
     return request.form.get(key) or request.args.get(key) or default
 
-
-def get_client_mac():
-    """Detect client MAC address across ReyeeOS parameter keys."""
-    for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
-        val = get_param(key)
-        if val:
-            return val.strip().upper()
-    return f"UNKNOWN:{secrets.token_hex(4).upper()}"
-
-
 def get_gateway_address():
     """Extract Access Point LAN IP. Falls back strictly to DEFAULT_GW_ADDRESS for cloud hosts."""
     for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
@@ -171,12 +161,36 @@ def favicon():
     """Silence browser favicon requests with 204 No Content."""
     return Response(status=204)
 
+# --- HELPER FUNCTIONS ---
+
+def clean_mac(mac_str):
+    """
+    Standardizes MAC addresses by removing colons/hyphens and converting to uppercase.
+    Example: '80:79:5d:05:0a:5d' -> '80795D050A5D'
+    """
+    if not mac_str or mac_str.startswith("UNKNOWN"):
+        return mac_str
+    return mac_str.replace(":", "").replace("-", "").strip().upper()
+
+
+def get_client_mac():
+    """Detect client MAC address across ReyeeOS parameter keys and clean it."""
+    for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
+        val = get_param(key)
+        if val:
+            return clean_mac(val)
+    return f"UNKNOWN:{secrets.token_hex(4).upper()}"
+
+
+# ==========================================
+# LOGIN PROCESSOR UPDATE
+# ==========================================
 
 @app.route('/login', methods=['POST'])
 def process_login():
     """Validates voucher and redirects client to local AP auth endpoint."""
     code = request.form.get('voucher', '').strip()
-    mac = get_client_mac()
+    mac = clean_mac(get_client_mac())
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
     gw_id = get_param('gw_id', 'G1UQ6C8027360')
@@ -197,7 +211,6 @@ def process_login():
         if voucher and voucher.get("status") == "REVOKED":
             error_msg = "Vocha hii imesitishwa au kufutwa."
         
-        logger.warning(f"Failed login attempt: Invalid/Used voucher '{code}' from MAC: {mac}")
         return render_template(
             'portal.html',
             mac=mac,
@@ -208,22 +221,12 @@ def process_login():
             error=error_msg
         )
 
-    if voucher.get("expire_at"):
-        exp_at = voucher.get("expire_at")
-        if exp_at.tzinfo is None:
-            exp_at = exp_at.replace(tzinfo=timezone.utc)
-        if exp_at <= now:
-            logger.warning(f"Expired voucher code entry '{code}' from MAC: {mac}")
-            return render_template(
-                'portal.html',
-                mac=mac, gw_address=gw_address, gw_port=gw_port,
-                gw_id=gw_id, userurl=userurl, error="Vocha hii imepitiliza muda wake wa matumizi (Expired)."
-            )
-
     duration_minutes = voucher['duration_minutes']
     expire_date = now + timedelta(minutes=duration_minutes)
 
     token = secrets.token_hex(16)
+    
+    # Insert token mapping with cleaned MAC
     tokens_col.insert_one({
         "token": token,
         "mac": mac,
@@ -232,6 +235,7 @@ def process_login():
         "created_at": now
     })
 
+    # Upsert active session with cleaned MAC
     sessions_col.replace_one(
         {"_id": mac},
         {
@@ -240,6 +244,7 @@ def process_login():
             "used_time": now,
             "expire_date": expire_date,
             "duration_minutes": duration_minutes,
+            "bytes_used": 0,
             "status": "ACTIVE"
         },
         upsert=True
@@ -250,42 +255,11 @@ def process_login():
         {"$set": {"status": "USED", "used_by_mac": mac, "used_at": now}}
     )
 
-    logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}' for {duration_minutes} minutes.")
+    logger.info(f"Successful login: MAC {mac} redeemed voucher '{code}'")
 
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
-    return f"""
-    <!DOCTYPE html>
-    <html lang="sw">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="refresh" content="0;url={auth_action_url}">
-        <title>Inaunganisha...</title>
-        <style>
-            body {{ font-family: -apple-system, sans-serif; text-align: center; padding: 50px 20px; background: #f4f6f8; color: #172b4d; }}
-            .card {{ background: white; padding: 30px 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); max-width: 320px; margin: 0 auto; }}
-            .loader {{ border: 4px solid #dfe1e6; border-top: 4px solid #0052cc; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 0 auto 20px auto; }}
-            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
-            .btn {{ display: block; width: 100%; padding: 12px; background: #0052cc; color: white; text-decoration: none; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; margin-top: 15px; font-size: 14px; box-sizing: border-box; }}
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="loader"></div>
-            <h3 style="margin: 0 0 8px 0; color: #0052cc;">Vocha Imekubaliwa!</h3>
-            <p style="font-size: 14px; color: #5e6c84; margin-bottom: 10px;">Inaunganisha intaneti...</p>
-            <a href="{auth_action_url}" class="btn">Bonyeza Hapa Kama Haujaunganishwa</a>
-        </div>
-
-        <script>
-            setTimeout(function() {{
-                window.location.replace("{auth_action_url}");
-            }}, 100);
-        </script>
-    </body>
-    </html>
-    """
-
+    return redirect(auth_action_url)
 
 # ==========================================
 # REYEE / REYEEOS WIFIDOG PROTOCOL HELPERS
@@ -296,14 +270,6 @@ def process_login():
 # HELPER FUNCTIONS
 # ==========================================
 
-def clean_mac(mac_str):
-    """
-    Standardizes MAC addresses by removing colons/hyphens and converting to uppercase.
-    Example: '80:79:5d:05:0a:5d' -> '80795D050A5D'
-    """
-    if not mac_str or mac_str.startswith("UNKNOWN"):
-        return mac_str
-    return mac_str.replace(":", "").replace("-", "").strip().upper()
 
 
 def extract_byte_count(args_dict):
