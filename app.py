@@ -821,13 +821,15 @@ def get_snmp_settings():
         "snmp_auth_password": "Luv2laf.",
         "snmp_priv_protocol": "AES",
         "snmp_priv_password": "Luv2laf.",
-        "snmp_engine_id": "80001f88044731555136433830323733333630"  # From Ruijie Screenshot
+        # CORRECT 34-HEX CHAR ENGINE ID FROM RUIJIE DASHBOARD
+        "snmp_engine_id": "80001f880447315551364338303237333630" 
     }
     config = settings_col.find_one({"_id": "snmp_config"})
     if not config:
         settings_col.insert_one(default_settings)
         return default_settings
     return config
+
 
 
 @app.route('/admin/settings/update', methods=['POST'])
@@ -853,15 +855,8 @@ def update_settings():
     return redirect('/admin#settings')
 
 async def _fetch_snmp_async():
-    """
-    Asynchronously fetches interface byte counters from Ruijie AP (192.168.0.46)
-    using SNMPv3 SHA/AES authenticated with exact securityEngineId.
-    """
     cfg = get_snmp_settings()
-
-    # Exact Hex Engine ID from Ruijie Device Identifier List
-    # 80001f88044731555136433803237333630
-    raw_engine_id = cfg.get("snmp_engine_id", "80001f88044731555136433803237333630").strip()
+    raw_engine_id = cfg.get("snmp_engine_id", "80001f880447315551364338303237333630").strip()
     
     try:
         engine_id_bytes = bytes.fromhex(raw_engine_id)
@@ -872,35 +867,37 @@ async def _fetch_snmp_async():
     snmp_engine = SnmpEngine()
 
     try:
-        # UDP Transport target configured for AP IP 192.168.0.46
+        # Resolve protocols dynamically based on DB settings
+        auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
+        priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
+
         transport = UdpTransportTarget(
             (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
-            timeout=4,
-            retries=2
+            timeout=5,
+            retries=3
         )
 
-        # USM credentials bound to Ruijie's securityEngineId
         user_data = UsmUserData(
             userName=cfg.get("snmp_username", "Luv2laf."),
             authKey=cfg.get("snmp_auth_password", "Luv2laf."),
-            authProtocol=usmHMACSHAAuthProtocol,
+            authProtocol=auth_proto,
             privKey=cfg.get("snmp_priv_password", "Luv2laf."),
-            privProtocol=usmAesCfb128Protocol,
-            securityEngineId=OctetString(engine_id_bytes)  # Binds authoritative Ruijie Engine ID
+            privProtocol=priv_proto,
+            securityEngineId=OctetString(engine_id_bytes)
         )
 
         total_bytes = 0
         successful_polls = 0
 
-        # Scan interface indices 1 through 4 (Ethernet & Radio interfaces)
+        # Query ifInOctets and ifOutOctets
         for idx in range(1, 5):
             errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
                 snmp_engine,
                 user_data,
                 transport,
                 ContextData(),
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),  # ifInOctets
-                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))   # ifOutOctets
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))
             )
 
             if not errorIndication and not errorStatus:
@@ -909,15 +906,12 @@ async def _fetch_snmp_async():
                 if in_octets > 0 or out_octets > 0:
                     total_bytes += (in_octets + out_octets)
                     successful_polls += 1
+            elif errorIndication:
+                logger.error(f"SNMP Interface {idx} Error: {errorIndication}")
 
         if successful_polls > 0:
-            logger.info(f"SNMP Poll Successful: {total_bytes} bytes collected across {successful_polls} interfaces.")
+            logger.info(f"SNMP Poll Successful: {total_bytes} bytes collected.")
             return total_bytes
-
-        if errorIndication:
-            logger.error(f"SNMP Error Indication: {errorIndication}")
-        elif errorStatus:
-            logger.error(f"SNMP Error Status: {errorStatus.prettyPrint()}")
 
         return 0
 
@@ -927,15 +921,6 @@ async def _fetch_snmp_async():
     finally:
         if hasattr(snmp_engine, 'close'):
             snmp_engine.close()
-
-
-def fetch_snmp_bytes():
-    """Synchronous wrapper function executed by the background thread worker."""
-    try:
-        return asyncio.run(_fetch_snmp_async())
-    except Exception as e:
-        logger.error(f"Async loop execution error: {str(e)}")
-        return 0
 
 
 def snmp_data_poller():
