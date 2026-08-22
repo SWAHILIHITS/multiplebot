@@ -788,28 +788,47 @@ def update_settings():
     settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
     logger.info("Admin updated Gateway & SNMP settings.")
     return redirect('/admin#settings')
+
 import asyncio
 import threading
 import time
 from datetime import datetime, timezone
 
-# Modern PySNMP (v5 / v6) async imports
-from pysnmp.hlapi.v3arch.asyncio import (
-    get_cmd,
-    SnmpEngine,
-    UsmUserData,
-    UdpTransportTarget,
-    ContextData,
-    ObjectType,
-    ObjectIdentity,
-    usmHMACSHAAuthProtocol,
-    usmHMACMD5AuthProtocol,
-    usmAesCfb128Protocol,
-    usmDESPrivProtocol
-)
+# --- UNIVERSAL PYSNMP IMPORTS ---
+try:
+    # Modern PySNMP (v5+ / pysnmp-lextudio)
+    from pysnmp.hlapi.asyncio import (
+        getCmd as async_getCmd,
+        SnmpEngine,
+        UsmUserData,
+        UdpTransportTarget,
+        ContextData,
+        ObjectType,
+        ObjectIdentity,
+        usmHMACSHAAuthProtocol,
+        usmHMACMD5AuthProtocol,
+        usmAesCfb128Protocol,
+        usmDESPrivProtocol
+    )
+except ImportError:
+    # Fallback for alternative package layouts
+    from pysnmp.hlapi import (
+        getCmd as async_getCmd,
+        SnmpEngine,
+        UsmUserData,
+        UdpTransportTarget,
+        ContextData,
+        ObjectType,
+        ObjectIdentity,
+        usmHMACSHAAuthProtocol,
+        usmHMACMD5AuthProtocol,
+        usmAesCfb128Protocol,
+        usmDESPrivProtocol
+    )
+
 
 def get_snmp_settings():
-    """Fetches SNMP configuration from MongoDB or falls back to defaults."""
+    """Fetches SNMP configuration from MongoDB or falls back to default values."""
     default_settings = {
         "_id": "snmp_config",
         "gw_address": os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46"),
@@ -830,19 +849,20 @@ def get_snmp_settings():
 
 
 async def _fetch_snmp_async():
-    """Internal coroutine performing SNMP v3 GET via asyncio."""
+    """Asynchronously polls byte counts from the Ruijie AP via SNMP v3."""
     cfg = get_snmp_settings()
 
-    # Map authentication protocols
+    # Map Auth Protocol
     auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
     
-    # Map privacy/encryption protocols
+    # Map Privacy / Encryption Protocol
     priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
 
     snmp_engine = SnmpEngine()
-    
+
     try:
-        errorIndication, errorStatus, errorIndex, varBinds = await get_cmd(
+        # Perform SNMP GET query for incoming & outgoing octets
+        errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
             snmp_engine,
             UsmUserData(
                 userName=cfg.get("snmp_username", ""),
@@ -851,14 +871,10 @@ async def _fetch_snmp_async():
                 privKey=cfg.get("snmp_priv_password", ""),
                 privProtocol=priv_proto
             ),
-            await UdpTransportTarget.create(
-                (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
-                timeout=2,
-                retries=1
-            ),
+            UdpTransportTarget((cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))), timeout=2, retries=1),
             ContextData(),
-            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # IF-MIB: ifInOctets.1
-            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # IF-MIB: ifOutOctets.1
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # ifInOctets.1
+            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # ifOutOctets.1
         )
 
         if errorIndication:
@@ -873,20 +889,53 @@ async def _fetch_snmp_async():
         return in_bytes + out_bytes
 
     except Exception as e:
-        logger.error(f"SNMP Query Exception: {str(e)}")
+        logger.error(f"SNMP Execution Exception: {str(e)}")
         return 0
-    finally:
-        snmp_engine.close_dispatcher()
 
 
 def fetch_snmp_bytes():
-    """Synchronous wrapper for background thread execution."""
+    """Synchronous wrapper function executed by the background thread worker."""
     try:
         return asyncio.run(_fetch_snmp_async())
     except Exception as e:
-        logger.error(f"Error running SNMP async loop: {str(e)}")
+        logger.error(f"Async loop execution error: {str(e)}")
         return 0
 
+
+def snmp_data_poller():
+    """Background polling thread that updates MongoDB with live bandwidth data."""
+    logger.info("SNMP background polling thread started successfully.")
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            active_sessions = list(sessions_col.find({"expire_date": {"$gt": now}}))
+
+            if active_sessions:
+                total_bytes = fetch_snmp_bytes()
+
+                if total_bytes > 0:
+                    for s in active_sessions:
+                        mac = s["_id"]
+                        voucher_code = s.get("code")
+
+                        # Update active session usage
+                        sessions_col.update_one(
+                            {"_id": mac},
+                            {"$set": {"bytes_used": total_bytes}}
+                        )
+
+                        # Update voucher log usage
+                        if voucher_code:
+                            vouchers_col.update_one(
+                                {"code": voucher_code},
+                                {"$set": {"data_consumed_bytes": total_bytes}}
+                            )
+
+                        logger.info(f"SNMP Poller: MAC {mac} updated to {total_bytes} bytes.")
+        except Exception as e:
+            logger.error(f"Error in SNMP poller loop: {str(e)}")
+
+        time.sleep(30)
 
 def snmp_data_poller():
     """Background thread function that updates database session traffic counters."""
