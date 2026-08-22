@@ -760,16 +760,6 @@ def unrevoke_voucher(code):
     logger.info(f"Admin unrevoked voucher code: {code}")
     return redirect('/admin#vouchers')
 
-
-# ==========================================
-# SERVER STARTUP
-# ==========================================
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    logger.info(f"Starting HANS WIFI Portal server on port {port}")
-    app.run(host='0.0.0.0', port=port)
-
 import asyncio
 import threading
 import time
@@ -962,3 +952,7 @@ def snmp_data_poller():
 # --- START BACKGROUND THREAD AT SERVER LAUNCH ---
 poller_thread = threading.Thread(target=snmp_data_poller, daemon=True)
 poller_thread.start()
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080))
+    logger.info(f"Starting HANS WIFI Portal server on port {port}")
+    app.run(host='0.0.0.0', port=port)
