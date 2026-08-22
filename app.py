@@ -853,7 +853,7 @@ def update_settings():
     return redirect('/admin#settings')
 
 async def _fetch_snmp_async():
-    """Asynchronously polls byte counts using authoritative Engine ID."""
+    """Asynchronously polls byte counts using authoritative Engine ID and fixed transport setup."""
     cfg = get_snmp_settings()
 
     # Protocol mappings
@@ -870,7 +870,8 @@ async def _fetch_snmp_async():
     snmp_engine = SnmpEngine()
 
     try:
-        transport = await UdpTransportTarget.create(
+        # Standard UdpTransportTarget instantiation (no .create method needed)
+        transport = UdpTransportTarget(
             (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
             timeout=3,
             retries=2
@@ -911,7 +912,9 @@ async def _fetch_snmp_async():
         logger.error(f"SNMP Exception: {str(e)}")
         return 0
     finally:
-        snmp_engine.close_dispatcher()
+        # Safely close engine resources without triggering AttributeError
+        if hasattr(snmp_engine, 'close'):
+            snmp_engine.close()
 
 
 def fetch_snmp_bytes():
