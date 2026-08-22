@@ -54,6 +54,8 @@
         table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
         th, td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
         th { background: #f8fafc; color: var(--text-sub); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        th.sortable { cursor: pointer; }
+        th.sortable:hover { background: #f1f5f9; color: var(--accent-color); }
         tr:hover td { background: #f8fafc; }
 
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; }
@@ -67,6 +69,7 @@
         .btn-sm { padding: 6px 14px; font-size: 12px; }
 
         .badge { padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 11px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-custom { background: #0f172a; color: #ffffff; }
         .st-active, .st-used, .st-online { color: #065f46; background: #d1fae5; }
         .st-expired, .st-revoked, .st-offline { color: #991b1b; background: #fee2e2; }
         .st-unused { color: #1e40af; background: #dbeafe; }
@@ -75,7 +78,7 @@
         .form-group { display: flex; flex-direction: column; gap: 8px; }
         .form-group label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
         .form-group input, .form-group select, .form-group textarea { padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #f8fafc; outline: none; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--accent-color); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-color); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
         .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-top: 20px; }
         .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; position: relative; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow); transition: transform 0.2s; }
@@ -85,6 +88,8 @@
         .package-price { font-size: 28px; font-weight: 800; color: var(--accent-color); }
         .package-duration { font-size: 13px; color: var(--text-sub); font-weight: 600; margin-bottom: 20px;}
 
+        .modal-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 8px 4px 8px; font-size: 13px; color: var(--text-sub); font-weight: 500; }
         .hidden { display: none !important; }
 
         @media (max-width: 768px) {
@@ -177,7 +182,16 @@
                                     <option value="minutes">Minutes</option>
                                     <option value="hours" selected>Hours</option>
                                     <option value="days">Days</option>
+                                    <option value="months">Months</option>
                                 </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Custom Badge (Optional)</label>
+                                <input type="text" name="badge" placeholder="e.g. Pendwa">
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label>Description</label>
+                                <textarea name="description" rows="2" placeholder="Wateja wanaotaka intaneti..."></textarea>
                             </div>
                         </div>
                         <div style="margin-top: 24px; display: flex; gap: 12px;">
@@ -191,14 +205,18 @@
                     {% for p in packages %}
                     <div class="package-card">
                         <div>
+                            {% if p.badge %}
+                            <div style="margin-bottom: 10px;"><span class="badge badge-custom">{{ p.badge }}</span></div>
+                            {% endif %}
                             <div class="package-title">{{ p.name }}</div>
                             <div class="package-desc">{{ p.description or 'Standard Internet Access' }}</div>
                         </div>
                         <div>
                             <div class="package-price">TZS {{ "{:,.0f}".format(p.price) }}</div>
-                            <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }}</div>
+                            <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }} of access</div>
                             <div style="display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="color: var(--danger-color); width: 100%; text-align: center; justify-content: center;" onclick="return confirm('Delete this package?');">Delete</a>
+                                <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="openEditModal('{{ p._id }}', '{{ p.name | escape }}', '{{ p.price }}', '{{ p.duration_value }}', '{{ p.duration_unit }}', '{{ (p.badge or '') | escape }}', '{{ (p.description or '') | escape }}')">Edit</button>
+                                <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="flex: 1; color: var(--danger-color); justify-content: center;" onclick="return confirm('Delete this package?');">Delete</a>
                             </div>
                         </div>
                     </div>
@@ -206,6 +224,48 @@
                     <p style="color: var(--text-sub);">No packages created yet.</p>
                     {% endfor %}
                 </div>
+            </div>
+        </div>
+
+        <!-- EDIT PACKAGE MODAL -->
+        <div id="edit-package-modal" class="modal-bg hidden">
+            <div class="box" style="width: 100%; max-width: 520px; background: #fff; margin-bottom: 0;">
+                <div class="box-title" style="margin-bottom: 16px;">Edit Package</div>
+                <form id="edit-package-form" method="POST">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Package Title / Name</label>
+                        <input type="text" id="edit-name" name="name" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Price (TZS)</label>
+                        <input type="number" id="edit-price" name="price" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Duration Value</label>
+                        <input type="number" id="edit-duration" name="duration" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Duration Unit</label>
+                        <select id="edit-unit" name="unit">
+                            <option value="minutes">Minutes</option>
+                            <option value="hours">Hours</option>
+                            <option value="days">Days</option>
+                            <option value="months">Months</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Custom Badge (Optional)</label>
+                        <input type="text" id="edit-badge" name="badge">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Description</label>
+                        <textarea id="edit-description" name="description" rows="2"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Package</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -230,6 +290,8 @@
                                 </select>
                             </div>
                             <div class="form-group"><label>Quantity</label><input type="number" name="quantity" value="1" min="1" max="200"></div>
+                            <div class="form-group"><label>Custom Code (Optional)</label><input type="text" name="custom_code" placeholder="e.g. VIP2026"></div>
+                            <div class="form-group"><label>Expiration Date (Optional)</label><input type="datetime-local" name="expire_at"></div>
                             <div class="form-group"><label>Note (Optional)</label><input type="text" name="note" placeholder="e.g. Counter 1"></div>
                         </div>
                         <div style="margin-top: 24px; display: flex; gap: 12px;">
@@ -239,8 +301,19 @@
                     </form>
                 </div>
 
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+                    <label style="font-size: 13px; font-weight: 700; color: var(--text-sub);">FILTER STATUS:</label>
+                    <select id="voucher-status-filter" class="form-group" style="padding: 8px 12px; font-size: 13px;" onchange="filterVouchers()">
+                        <option value="all">All Statuses</option>
+                        <option value="unused">Unused</option>
+                        <option value="used">Used</option>
+                        <option value="revoked">Revoked</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+
                 <div class="table-responsive">
-                    <table>
+                    <table id="vouchers-table" class="paginated-table" data-page-size="25">
                         <thead>
                             <tr>
                                 <th>Code</th>
@@ -248,22 +321,28 @@
                                 <th>Status</th>
                                 <th>MAC Address</th>
                                 <th>Used At</th>
+                                <th>Expire Date</th>
+                                <th>Note</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for v in vouchers %}
-                            <tr>
+                            <tr data-status="{{ v.computed_status | lower }}">
                                 <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
-                                <td>{{ v.package_name }}</td>
+                                <td>{{ v.package_name or 'Custom' }}</td>
                                 <td><span class="badge st-{{ v.computed_status | lower }}">{{ v.computed_status }}</span></td>
                                 <td><span style="font-family: monospace;">{{ v.used_by_mac or '-' }}</span></td>
                                 <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
+                                <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
+                                <td>{{ v.note or '-' }}</td>
                                 <td>
                                     {% if v.computed_status in ['UNUSED', 'ACTIVE'] %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
+                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this unused voucher?');">Revoke</a>
                                     {% elif v.computed_status == 'USED' %}
                                         <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Block User</a>
+                                    {% elif v.computed_status == 'REVOKED' %}
+                                        <a href="/admin/voucher/unrevoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
                                     {% else %}
                                         -
                                     {% endif %}
@@ -273,6 +352,7 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="pagination"></div>
             </div>
         </div>
 
@@ -281,32 +361,78 @@
             <div class="box">
                 <div class="box-header">
                     <div class="box-title">Connected Users Insights</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-fewer" class="btn btn-primary btn-sm" onclick="toggleUserView('fewer')">Fewer Details</button>
+                        <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details</button>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>MAC Address</th>
-                                <th>Voucher Code</th>
-                                <th>Status</th>
-                                <th>Data Consumed</th>
-                                <th>Total Spent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in detailed_report %}
-                            <tr>
-                                <td><b style="font-family: monospace;">{{ item.mac }}</b></td>
-                                <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
-                                <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
-                                <td style="font-weight: 700; color: var(--accent-color);">{{ item.data_consumed }}</td>
-                                <td>TZS {{ "{:,.0f}".format(item.total_spend if item.total_spend else 0) }}</td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-sub); padding: 30px;">No active usage reports available.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+
+                <!-- FEWER DETAILS -->
+                <div id="user-view-fewer">
+                    <div class="table-responsive">
+                        <table id="users-fewer-table" class="paginated-table" data-page-size="25">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" onclick="sortTable('users-fewer-table', 0)">MAC Address ↕</th>
+                                    <th class="sortable" onclick="sortTable('users-fewer-table', 1)">Status ↕</th>
+                                    <th class="sortable" onclick="sortTable('users-fewer-table', 2, true)">Vouchers Bought ↕</th>
+                                    <th class="sortable" onclick="sortTable('users-fewer-table', 3, true)">Total Spend ↕</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in user_summary %}
+                                <tr>
+                                    <td style="font-family: monospace;"><b>{{ u.mac }}</b></td>
+                                    <td><span class="badge st-{{ u.status | lower }}">{{ u.status | upper }}</span></td>
+                                    <td>{{ u.vouchers_count }}</td>
+                                    <td>TZS {{ "{:,.0f}".format(u.total_spend) }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="4" style="text-align: center; color: var(--text-sub); padding: 30px;">No user records available.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination"></div>
+                </div>
+
+                <!-- MORE DETAILS -->
+                <div id="user-view-more" class="hidden">
+                    <div style="margin-bottom: 20px; display: flex; gap: 8px;">
+                        <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
+                        <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
+                        <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="paginated-table" id="userAnalyticsTable" data-page-size="25">
+                            <thead>
+                                <tr>
+                                    <th>MAC Address</th>
+                                    <th>Voucher Code</th>
+                                    <th>Connection</th>
+                                    <th>Time Window</th>
+                                    <th>Duration</th>
+                                    <th>Data Consumed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in detailed_report %}
+                                <tr class="user-row" data-status="{{ item.connection_status }}">
+                                    <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
+                                    <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
+                                    <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
+                                    <td>{{ item.time_label }}</td>
+                                    <td>{{ item.duration_formatted }}</td>
+                                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.data_consumed }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination"></div>
                 </div>
             </div>
         </div>
@@ -314,7 +440,7 @@
         <!-- SETTINGS TAB (SNMP REMOVED) -->
         <div id="tab-settings" class="tab-panel">
             <div class="box">
-                <div class="box-title" style="margin-bottom: 24px;">⚙️ Access Point & Gateway Configuration</div>
+                <div class="box-title" style="margin-bottom: 24px;">⚙️ Gateway Configuration</div>
                 <form action="/admin/settings/update" method="POST">
                     <div class="form-grid">
                         <div class="form-group">
@@ -339,6 +465,7 @@
 
     </div>
 
+    <!-- JAVASCRIPT FOR UI INTERACTION & PAGINATION -->
     <script>
         function toggleSidebar() { 
             document.getElementById('sidebar').classList.toggle('open'); 
@@ -360,9 +487,175 @@
             document.getElementById(id).classList.toggle('hidden'); 
         }
 
+        function openEditModal(id, name, price, duration, unit, badge, desc) {
+            document.getElementById('edit-package-form').action = '/admin/packages/edit/' + id;
+            document.getElementById('edit-name').value = name;
+            document.getElementById('edit-price').value = price;
+            document.getElementById('edit-duration').value = duration;
+            document.getElementById('edit-unit').value = unit;
+            document.getElementById('edit-badge').value = badge;
+            document.getElementById('edit-description').value = desc;
+            document.getElementById('edit-package-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-package-modal').classList.add('hidden');
+        }
+
+        function toggleUserView(type) {
+            const fewer = document.getElementById('user-view-fewer');
+            const more = document.getElementById('user-view-more');
+            const btnFewer = document.getElementById('btn-fewer');
+            const btnMore = document.getElementById('btn-more');
+
+            if(type === 'fewer') {
+                fewer.classList.remove('hidden');
+                more.classList.add('hidden');
+                btnFewer.className = 'btn btn-primary btn-sm';
+                btnMore.className = 'btn btn-secondary btn-sm';
+                paginateTable(document.getElementById('users-fewer-table'));
+            } else {
+                fewer.classList.add('hidden');
+                more.classList.remove('hidden');
+                btnFewer.className = 'btn btn-secondary btn-sm';
+                btnMore.className = 'btn btn-primary btn-sm';
+                paginateTable(document.getElementById('userAnalyticsTable'));
+            }
+        }
+
+        function filterUsers(status, btnElement) {
+            if (btnElement) {
+                document.querySelectorAll('.user-filter-btn').forEach(btn => {
+                    btn.className = 'btn btn-secondary btn-sm user-filter-btn';
+                });
+                btnElement.className = 'btn btn-primary btn-sm user-filter-btn';
+            }
+
+            const rows = document.querySelectorAll('.user-row');
+            rows.forEach(row => {
+                const rowStatus = row.getAttribute('data-status');
+                if (status === 'all' || rowStatus === status) {
+                    row.classList.remove('filtered-out');
+                } else {
+                    row.classList.add('filtered-out');
+                }
+            });
+
+            const table = document.getElementById('userAnalyticsTable');
+            if (table) {
+                table.setAttribute('data-current-page', 1);
+                paginateTable(table);
+            }
+        }
+
+        function sortTable(tableId, colIndex, isNumeric = false) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            let dir = table.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
+
+            rows.sort((a, b) => {
+                let valA = a.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
+                let valB = b.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
+
+                if (!isNumeric) {
+                    valA = a.children[colIndex].innerText.toLowerCase();
+                    valB = b.children[colIndex].innerText.toLowerCase();
+                    return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+
+                return dir === 'asc' ? (parseFloat(valA) - parseFloat(valB)) : (parseFloat(valB) - parseFloat(valA));
+            });
+
+            table.setAttribute('data-sort-dir', dir);
+            rows.forEach(row => tbody.appendChild(row));
+            table.setAttribute('data-current-page', 1);
+            paginateTable(table);
+        }
+
+        function filterVouchers() {
+            const filter = document.getElementById('voucher-status-filter').value.toLowerCase();
+            const rows = document.querySelectorAll('#vouchers-table tbody tr');
+            
+            rows.forEach(r => {
+                const st = r.getAttribute('data-status');
+                if (filter === 'all' || st === filter) {
+                    r.classList.remove('filtered-out');
+                } else {
+                    r.classList.add('filtered-out');
+                }
+            });
+
+            const table = document.getElementById('vouchers-table');
+            table.setAttribute('data-current-page', 1);
+            paginateTable(table);
+        }
+
+        function paginateTable(table) {
+            if (!table) return;
+
+            const pageSize = parseInt(table.getAttribute('data-page-size')) || 25;
+            const allRows = Array.from(table.querySelectorAll('tbody tr'));
+            const validRows = allRows.filter(r => !r.classList.contains('filtered-out'));
+            
+            const totalRows = validRows.length;
+            const totalPages = Math.ceil(totalRows / pageSize) || 1;
+            const container = table.closest('.box, #user-view-fewer, #user-view-more').querySelector('.pagination');
+
+            let currentPage = parseInt(table.getAttribute('data-current-page')) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            allRows.forEach(r => r.style.display = 'none');
+            validRows.forEach((r, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    r.style.display = '';
+                }
+            });
+
+            if (!container) return;
+
+            if (totalRows <= pageSize) {
+                container.innerHTML = `<span>Kuonyesha record ${totalRows}</span>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <span>Kuonyesha ${startIdx + 1}-${Math.min(endIdx, totalRows)} kati ya ${totalRows}</span>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" 
+                            ${currentPage === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
+                            onclick="changePage('${table.id}',${currentPage - 1})">
+                        Previous
+                    </button>
+                    <button class="btn btn-primary btn-sm" 
+                            ${currentPage === totalPages ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
+                            onclick="changePage('${table.id}',${currentPage + 1})">
+                        Next (${currentPage}/${totalPages})
+                    </button>
+                </div>
+            `;
+        }
+
+        function changePage(tableId, targetPage) {
+            const table = document.getElementById(tableId);
+            if (table) {
+                table.setAttribute('data-current-page', targetPage);
+                paginateTable(table);
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             const hash = window.location.hash.replace('#', '') || 'dashboard';
             switchTab(hash);
+            
+            document.querySelectorAll('table.paginated-table').forEach(t => {
+                t.setAttribute('data-current-page', 1);
+                paginateTable(t);
+            });
         });
     </script>
 </body>
