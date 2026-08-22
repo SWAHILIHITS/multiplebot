@@ -478,6 +478,14 @@
                     <label>Router Gateway ID</label>
                     <input type="text" name="gw_id" value="{{ settings.gw_id }}" required>
                 </div>
+                <div class="form-group" style="grid-column: span 2;">
+                   <label>SNMP v3 Engine ID (Hex)</label>
+                   <input type="text" 
+                        name="snmp_engine_id" 
+                        value="{{ settings.snmp_engine_id }}" 
+                        placeholder="80001f88044731555136433830323733333630" 
+                        required>
+                </div>
                 <div class="form-group">
                     <label>SNMP Port</label>
                     <input type="number" name="snmp_port" value="{{ settings.snmp_port }}" required>
