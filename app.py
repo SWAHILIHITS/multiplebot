@@ -292,16 +292,75 @@ def process_login():
 # ==========================================
 
 
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
+
+def clean_mac(mac_str):
+    """
+    Standardizes MAC addresses by removing colons/hyphens and converting to uppercase.
+    Example: '80:79:5d:05:0a:5d' -> '80795D050A5D'
+    """
+    if not mac_str or mac_str.startswith("UNKNOWN"):
+        return mac_str
+    return mac_str.replace(":", "").replace("-", "").strip().upper()
+
+
+def extract_byte_count(args_dict):
+    """
+    Extracts incoming and outgoing bytes across standard WifiDog & ReyeeOS query keys.
+    Returns the total bytes reported in the request.
+    """
+    incoming = 0
+    outgoing = 0
+
+    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'down']
+    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'up']
+
+    for key in download_keys:
+        val = args_dict.get(key)
+        if val is not None:
+            try:
+                incoming = int(str(val).strip())
+                if incoming > 0:
+                    break
+            except ValueError:
+                continue
+
+    for key in upload_keys:
+        val = args_dict.get(key)
+        if val is not None:
+            try:
+                outgoing = int(str(val).strip())
+                if outgoing > 0:
+                    break
+            except ValueError:
+                continue
+
+    return incoming + outgoing
+
+
+# ==========================================
+# WIFIDOG AUTH CHECK
+# ==========================================
+
 @app.route('/auth', methods=['GET'])
+@app.route('/auth/', methods=['GET'])
 @app.route('/wifidog/auth', methods=['GET'])
+@app.route('/wifidog/auth/', methods=['GET'])
+@app.route('/api/wifidog/auth', methods=['GET'])
+@app.route('/api/wifidog/auth/', methods=['GET'])
 def wifidog_auth_check():
-    # LOG ALL INCOMING QUERY PARAMETERS FROM ROUTER
-    logger.info(f"DEBUG /auth received query params: {dict(request.args)}")
-    
+    """
+    ReyeeOS Background Auth Verification.
+    Validates active sessions and updates data consumption counters.
+    """
+    token = request.args.get('token', '').strip()
     stage = request.args.get('stage', '').strip()
-    mac = request.args.get('mac', '').strip().upper()
+    mac = clean_mac(request.args.get('mac', ''))
     now = datetime.now(timezone.utc)
 
+    # Handle client logout stage
     if stage == 'logout':
         if mac:
             sessions_col.delete_one({"_id": mac})
@@ -309,44 +368,70 @@ def wifidog_auth_check():
             logger.info(f"Client logged out: MAC {mac}")
         return Response("Auth: 0\n", mimetype='text/plain')
 
-    total_bytes = extract_byte_count(request.args)
-    session_doc = sessions_col.find_one({"_id": mac}) if mac else None
+    # Resolve MAC address from Token if direct MAC parameter was missing
+    if not mac and token:
+        token_doc = tokens_col.find_one({"token": token})
+        if token_doc:
+            mac = clean_mac(token_doc.get("mac", ""))
+
+    if not mac:
+        logger.warning("WifiDog Auth denied: No valid MAC address or Token provided.")
+        return Response("Auth: 0\n", mimetype='text/plain')
+
+    # Locate active user session
+    session_doc = sessions_col.find_one({"_id": mac})
 
     if session_doc:
         exp = session_doc.get('expire_date')
-        if exp and (exp.tzinfo is None or exp.tzinfo != timezone.utc):
+        if exp and exp.tzinfo is None:
             exp = exp.replace(tzinfo=timezone.utc)
 
+        # Confirm session is still valid
         if exp and exp > now:
+            total_bytes = extract_byte_count(request.args)
+
+            # Update database usage counters if router sent byte counts
             if total_bytes > 0:
                 sessions_col.update_one(
                     {"_id": mac},
                     {"$set": {"bytes_used": total_bytes}}
                 )
+
                 voucher_code = session_doc.get("code")
                 if voucher_code:
                     vouchers_col.update_one(
                         {"code": voucher_code},
                         {"$set": {"data_consumed_bytes": total_bytes}}
                     )
+                logger.info(f"Auth updated data usage for MAC {mac}: {total_bytes} bytes")
 
+            # Grant internet access
             return Response("Auth: 1\n", mimetype='text/plain')
 
-    if mac:
-        tokens_col.delete_many({"mac": mac})
-        sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
+    # Clean up expired session or unauthorized token
+    tokens_col.delete_many({"mac": mac})
+    sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
 
+    logger.warning(f"WifiDog Auth denied or expired for MAC: '{mac}'. Returning Auth: 0")
     return Response("Auth: 0\n", mimetype='text/plain')
 
+# ==========================================
+# REYEE / WIFIDOG PING & HEARTBEAT
+# ==========================================
 
 @app.route('/ping', methods=['GET'])
+@app.route('/ping/', methods=['GET'])
 @app.route('/wifidog/ping', methods=['GET'])
+@app.route('/wifidog/ping/', methods=['GET'])
+@app.route('/api/wifidog/ping', methods=['GET'])
+@app.route('/api/wifidog/ping/', methods=['GET'])
 def wifidog_ping():
-    # LOG ALL INCOMING QUERY PARAMETERS FROM ROUTER
-    logger.info(f"DEBUG /ping received query params: {dict(request.args)}")
-
+    """
+    Handles periodic Access Point Heartbeats.
+    Extracts telemetry data and updates active session consumption.
+    """
     gw_id = request.args.get('gw_id', 'Unknown')
-    mac = request.args.get('mac', '').strip().upper()
+    mac = clean_mac(request.args.get('mac', ''))
 
     total_bytes = extract_byte_count(request.args)
 
@@ -363,10 +448,10 @@ def wifidog_ping():
                     {"code": voucher_code},
                     {"$set": {"data_consumed_bytes": total_bytes}}
                 )
+            logger.info(f"Ping updated data usage for MAC {mac}: {total_bytes} bytes")
 
+    logger.debug(f"Ping received from Access Point Gateway ID: {gw_id}")
     return Response("Pong\n", mimetype='text/plain')
-
-
 
 # ==========================================
 # ERROR HANDLERS
