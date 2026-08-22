@@ -28,3 +28,4 @@ def check_udp_port(ip_address: str, port: int, timeout: int = 3):
 if __name__ == "__main__":
     # Test your Ruijie device IP and the standard SNMP port
     check_udp_port("192.168.0.46", 161)
+abc=2
