@@ -4,115 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --sidebar-width: 260px;
-            --primary-color: #0f172a;
-            --accent-color: #2563eb;
-            --accent-hover: #1d4ed8;
-            --bg-color: #f8fafc;
+            --primary-bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --main-bg: #f1f5f9;
             --card-bg: #ffffff;
-            --text-main: #1e293b;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #0f172a;
             --text-sub: #64748b;
+            --text-light: #f8fafc;
             --border-color: #e2e8f0;
             --danger-color: #ef4444;
             --success-color: #10b981;
-            --warning-color: #f59e0b;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; min-height: 100vh; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--main-bg); color: var(--text-main); display: flex; min-height: 100vh; }
 
-        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; align-items: center; justify-content: space-between; z-index: 1000; }
-        .toggle-btn { font-size: 22px; background: none; border: none; cursor: pointer; color: var(--primary-color); }
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 70px; background: var(--sidebar-bg); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0 20px; align-items: center; justify-content: space-between; z-index: 1000; }
+        .toggle-btn { font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-light); }
 
-        .sidebar { width: var(--sidebar-width); background: var(--card-bg); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 999; transition: transform 0.3s ease; }
-        .sidebar-brand { padding: 24px 20px; font-size: 20px; font-weight: 800; color: var(--accent-color); border-bottom: 1px solid var(--border-color); letter-spacing: -0.5px; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: var(--text-light); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 999; transition: transform 0.3s ease; }
+        .sidebar-brand { padding: 30px 24px; font-size: 22px; font-weight: 800; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-brand span { color: var(--accent-color); }
         .sidebar-menu { list-style: none; padding: 20px 0; flex: 1; }
-        .sidebar-menu li a { display: flex; align-items: center; padding: 12px 24px; color: var(--text-sub); text-decoration: none; font-weight: 600; font-size: 14px; transition: all 0.2s ease; }
-        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: #eff6ff; color: var(--accent-color); border-left: 4px solid var(--accent-color); }
+        .sidebar-menu li a { display: flex; align-items: center; padding: 14px 24px; color: #94a3b8; text-decoration: none; font-weight: 500; font-size: 15px; transition: all 0.2s ease; border-left: 3px solid transparent; }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(255,255,255,0.05); color: #fff; border-left: 3px solid var(--accent-color); }
 
-        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 32px; width: calc(100% - var(--sidebar-width)); }
-        .tab-panel { display: none; }
+        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; width: calc(100% - var(--sidebar-width)); }
+        .tab-panel { display: none; animation: fadeIn 0.3s ease; }
         .tab-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .box { background: var(--card-bg); padding: 24px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 24px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
-        .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .box-title { font-size: 18px; font-weight: 700; color: var(--primary-color); }
+        .box { background: var(--card-bg); padding: 30px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 30px; box-shadow: var(--shadow); }
+        .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .box-title { font-size: 20px; font-weight: 700; color: var(--text-main); }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 28px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
-        .stat-card h3 { font-size: 13px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; font-weight: 600; }
-        .stat-card .value { font-size: 24px; font-weight: 800; color: var(--primary-color); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 32px; }
+        .stat-card { background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; border-top: 4px solid var(--accent-color); }
+        .stat-card h3 { font-size: 13px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600; }
+        .stat-card .value { font-size: 28px; font-weight: 800; color: var(--text-main); }
 
-        .table-responsive { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-        th, td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-        th { background: #f8fafc; color: var(--text-sub); font-weight: 700; user-select: none; }
-        th.sortable { cursor: pointer; }
-        th.sortable:hover { background: #f1f5f9; color: var(--accent-color); }
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-color); }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+        th, td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background: #f8fafc; color: var(--text-sub); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        tr:hover td { background: #f8fafc; }
 
-        .btn { padding: 9px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
-        .btn-primary { background: var(--accent-color); color: white; }
-        .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary { background: #f1f5f9; color: var(--text-main); }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; }
+        .btn-primary { background: var(--accent-color); color: white; box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-secondary { background: #e2e8f0; color: var(--text-main); }
+        .btn-secondary:hover { background: #cbd5e1; }
         .btn-danger { background: var(--danger-color); color: white; }
-        .btn-danger:hover { background: #dc2626; }
         .btn-success { background: var(--success-color); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-outline:hover { background: #f8fafc; }
-        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
 
-        .badge { padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 11px; display: inline-block; text-transform: uppercase; }
-        .badge-custom { background: #0f172a; color: #ffffff; }
-        .badge-status { background: #d1fae5; color: #065f46; }
+        .badge { padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 11px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; }
         .st-active, .st-used, .st-online { color: #065f46; background: #d1fae5; }
         .st-expired, .st-revoked, .st-offline { color: #991b1b; background: #fee2e2; }
-        .st-unused { color: #3730a3; background: #e0e7ff; }
+        .st-unused { color: #1e40af; background: #dbeafe; }
 
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px; }
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        .form-group label { font-size: 12px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; }
-        .form-group input, .form-group select, .form-group textarea { padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #fff; outline: none; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-color); }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+        .form-group input, .form-group select, .form-group textarea { padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #f8fafc; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent-color); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
-        .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-top: 16px; }
-        .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; position: relative; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); }
-        .package-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
-        .package-title { font-size: 17px; font-weight: 800; color: var(--primary-color); margin-bottom: 8px; line-height: 1.3; }
-        .package-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 16px; line-height: 1.5; flex-grow: 1; }
-        .package-price { font-size: 24px; font-weight: 800; color: var(--primary-color); }
-        .package-duration { font-size: 12px; color: var(--text-sub); margin-top: 2px; font-weight: 600; }
-        .package-actions { display: flex; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+        .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-top: 20px; }
+        .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; position: relative; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow); transition: transform 0.2s; }
+        .package-card:hover { transform: translateY(-3px); }
+        .package-title { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 10px; }
+        .package-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; flex-grow: 1; }
+        .package-price { font-size: 28px; font-weight: 800; color: var(--accent-color); }
+        .package-duration { font-size: 13px; color: var(--text-sub); font-weight: 600; margin-bottom: 20px;}
 
-        .modal-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
-        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 8px 4px 8px; font-size: 13px; color: var(--text-sub); font-weight: 500; }
         .hidden { display: none !important; }
 
         @media (max-width: 768px) {
             .mobile-header { display: flex; }
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; padding: 80px 16px 24px 16px; }
+            .main-content { margin-left: 0; width: 100%; padding: 100px 20px 30px 20px; }
         }
     </style>
 </head>
 <body>
 
     <div class="mobile-header">
-        <div style="font-weight: 800; color: var(--accent-color); font-size: 18px;">HANS WIFI</div>
+        <div style="font-weight: 800; color: #fff; font-size: 20px;">HANS<span>WIFI</span></div>
         <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
     </div>
 
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-brand">HANS WIFI Admin</div>
+        <div class="sidebar-brand">HANS<span>WIFI</span></div>
         <ul class="sidebar-menu">
             <li><a href="#dashboard" class="active" onclick="switchTab('dashboard', event)">📊 Dashboard</a></li>
             <li><a href="#packages" onclick="switchTab('packages', event)">📦 Packages</a></li>
             <li><a href="#vouchers" onclick="switchTab('vouchers', event)">🎟️ Vouchers</a></li>
-            <li><a href="#users" onclick="switchTab('users', event)">👥 Users</a></li>
-            <li><a href="#settings" onclick="switchTab('settings', event)">⚙️ Settings</a></li>
+            <li><a href="#users" onclick="switchTab('users', event)">👥 Connected Users</a></li>
+            <li><a href="#settings" onclick="switchTab('settings', event)">⚙️ Gateway Settings</a></li>
         </ul>
     </div>
 
@@ -122,7 +119,7 @@
         <div id="tab-dashboard" class="tab-panel active">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>Today Revenue</h3>
+                    <h3>Today's Revenue</h3>
                     <div class="value">TZS {{ today_revenue }}</div>
                 </div>
                 <div class="stat-card">
@@ -134,20 +131,16 @@
                     <div class="value">{{ total_data_consumed }}</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Online Users</h3>
-                    <div class="value">{{ online_users_count }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Available Vouchers</h3>
-                    <div class="value">{{ active_vouchers_count }}</div>
+                    <h3>Active Users Online</h3>
+                    <div class="value" style="color: var(--success-color);">{{ online_users_count }}</div>
                 </div>
             </div>
 
             <div class="box">
-                <div class="box-title" style="margin-bottom: 16px;">🚀 Quick Actions</div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="box-title" style="margin-bottom: 20px;">🚀 Quick Actions</div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="switchTab('vouchers'); toggleForm('new-voucher-box');">+ Generate Voucher</button>
-                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');">+ Add Package</button>
+                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');">+ Add New Package</button>
                 </div>
             </div>
         </div>
@@ -157,18 +150,18 @@
             <div class="box">
                 <div class="box-header">
                     <div>
-                        <div class="box-title">Packages</div>
-                        <p style="font-size: 13px; color: var(--text-sub); margin-top: 4px;">Internet packages shown to customers on the captive portal.</p>
+                        <div class="box-title">Internet Packages</div>
+                        <p style="font-size: 14px; color: var(--text-sub); margin-top: 6px;">Manage the plans visible on your captive portal.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-package-box')">+ New Package</button>
+                    <button class="btn btn-primary" onclick="toggleForm('new-package-box')">+ Create Package</button>
                 </div>
 
-                <div id="new-package-box" class="box hidden" style="background: #f8fafc; border-style: dashed;">
+                <div id="new-package-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
                     <form action="/admin/packages/create" method="POST">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Package Title / Name</label>
-                                <input type="text" name="name" placeholder="e.g. KWA MASAA 6 PERUZ BILA KIKOMO" required>
+                                <label>Package Title</label>
+                                <input type="text" name="name" placeholder="e.g. 6 Hours Unlimited" required>
                             </div>
                             <div class="form-group">
                                 <label>Price (TZS)</label>
@@ -184,19 +177,10 @@
                                     <option value="minutes">Minutes</option>
                                     <option value="hours" selected>Hours</option>
                                     <option value="days">Days</option>
-                                    <option value="months">Months</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Custom Badge (Optional)</label>
-                                <input type="text" name="badge" placeholder="e.g. Pendwa kwa watu wote">
-                            </div>
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <label>Description</label>
-                                <textarea name="description" rows="2" placeholder="Wateja wanaotaka intaneti ya haraka..."></textarea>
-                            </div>
                         </div>
-                        <div style="margin-top: 16px; display: flex; gap: 10px;">
+                        <div style="margin-top: 24px; display: flex; gap: 12px;">
                             <button type="submit" class="btn btn-primary">Save Package</button>
                             <button type="button" class="btn btn-secondary" onclick="toggleForm('new-package-box')">Cancel</button>
                         </div>
@@ -207,24 +191,14 @@
                     {% for p in packages %}
                     <div class="package-card">
                         <div>
-                            <div class="package-card-header">
-                                <div>
-                                    {% if p.badge %}
-                                    <span class="badge badge-custom">{{ p.badge }}</span>
-                                    {% endif %}
-                                </div>
-                                <span class="badge badge-status">ACTIVE</span>
-                            </div>
                             <div class="package-title">{{ p.name }}</div>
-                            <div class="package-desc">{{ p.description or 'Hakuna maelezo ya ziada.' }}</div>
+                            <div class="package-desc">{{ p.description or 'Standard Internet Access' }}</div>
                         </div>
                         <div>
                             <div class="package-price">TZS {{ "{:,.0f}".format(p.price) }}</div>
-                            <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }} of access</div>
-
-                            <div class="package-actions">
-                                <button class="btn btn-outline btn-sm" onclick="openEditModal('{{ p._id }}', '{{ p.name | escape }}', '{{ p.price }}', '{{ p.duration_value }}', '{{ p.duration_unit }}', '{{ (p.badge or '') | escape }}', '{{ (p.description or '') | escape }}')">✏️ Edit</button>
-                                <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="color: var(--danger-color);" onclick="return confirm('Delete this package?');">🗑️ Delete</a>
+                            <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }}</div>
+                            <div style="display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="color: var(--danger-color); width: 100%; text-align: center; justify-content: center;" onclick="return confirm('Delete this package?');">Delete</a>
                             </div>
                         </div>
                     </div>
@@ -235,57 +209,15 @@
             </div>
         </div>
 
-        <!-- EDIT PACKAGE MODAL -->
-        <div id="edit-package-modal" class="modal-bg hidden">
-            <div class="box" style="width: 100%; max-width: 520px; background: #fff;">
-                <div class="box-title" style="margin-bottom: 16px;">Edit Package</div>
-                <form id="edit-package-form" method="POST">
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Package Title / Name</label>
-                        <input type="text" id="edit-name" name="name" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Price (TZS)</label>
-                        <input type="number" id="edit-price" name="price" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Duration Value</label>
-                        <input type="number" id="edit-duration" name="duration" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Duration Unit</label>
-                        <select id="edit-unit" name="unit">
-                            <option value="minutes">Minutes</option>
-                            <option value="hours">Hours</option>
-                            <option value="days">Days</option>
-                            <option value="months">Months</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Custom Badge (Optional)</label>
-                        <input type="text" id="edit-badge" name="badge">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label>Description</label>
-                        <textarea id="edit-description" name="description" rows="2"></textarea>
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Package</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
         <!-- VOUCHERS TAB -->
         <div id="tab-vouchers" class="tab-panel">
             <div class="box">
                 <div class="box-header">
-                    <div class="box-title">🎟️ Vouchers Management</div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')">+ New Voucher</button>
+                    <div class="box-title">Vouchers Management</div>
+                    <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')">+ Generate Vouchers</button>
                 </div>
 
-                <div id="new-voucher-box" class="box hidden" style="background: #f8fafc; border-style: dashed;">
+                <div id="new-voucher-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
                     <form action="/admin/generate" method="POST">
                         <div class="form-grid">
                             <div class="form-group">
@@ -293,68 +225,45 @@
                                 <select name="package_id" required>
                                     <option value="" disabled selected>-- Choose Package --</option>
                                     {% for p in packages %}
-                                    <option value="{{ p._id }}">{{ p.name }} - TZS {{ p.price }} ({{ p.duration_value }} {{ p.duration_unit }})</option>
+                                    <option value="{{ p._id }}">{{ p.name }} - TZS {{ p.price }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="form-group"><label>Quantity</label><input type="number" name="quantity" value="1" min="1" max="100"></div>
-                            <div class="form-group"><label>Custom Code (Optional)</label><input type="text" name="custom_code" placeholder="e.g. VIP2026"></div>
-                            <div class="form-group"><label>Expiration Date (Optional)</label><input type="datetime-local" name="expire_at"></div>
-                            <div class="form-group"><label>Note (Optional)</label><input type="text" name="note" placeholder="e.g. Front Desk Sale"></div>
+                            <div class="form-group"><label>Quantity</label><input type="number" name="quantity" value="1" min="1" max="200"></div>
+                            <div class="form-group"><label>Note (Optional)</label><input type="text" name="note" placeholder="e.g. Counter 1"></div>
                         </div>
-                        <div style="margin-top: 16px; display: flex; gap: 10px;">
-                            <button type="submit" class="btn btn-primary">🖨️ Generate & Print</button>
+                        <div style="margin-top: 24px; display: flex; gap: 12px;">
+                            <button type="submit" class="btn btn-primary">Generate & Print</button>
                             <button type="button" class="btn btn-secondary" onclick="toggleForm('new-voucher-box')">Cancel</button>
                         </div>
                     </form>
                 </div>
 
-                <div style="margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
-                    <label style="font-size: 12px; font-weight: 700; color: var(--text-sub);">FILTER BY STATUS:</label>
-                    <select id="voucher-status-filter" class="form-group" style="padding: 6px 12px; font-size: 13px;" onchange="filterVouchers()">
-                        <option value="all">All Statuses</option>
-                        <option value="unused">Unused</option>
-                        <option value="used">Used</option>
-                        <option value="revoked">Revoked</option>
-                        <option value="expired">Expired</option>
-                    </select>
-                </div>
-
                 <div class="table-responsive">
-                    <table id="vouchers-table" class="paginated-table" data-page-size="25">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Code</th>
                                 <th>Package</th>
-                                <th>Price</th>
-                                <th>Duration</th>
                                 <th>Status</th>
-                                <th>Device MAC</th>
+                                <th>MAC Address</th>
                                 <th>Used At</th>
-                                <th>Expire Date</th>
-                                <th>Note</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for v in vouchers %}
-                            <tr data-status="{{ v.computed_status | lower }}">
-                                <td><span class="badge st-unused">{{ v.code }}</span></td>
-                                <td>{{ v.package_name or 'Custom' }}</td>
-                                <td>TZS {{ "{:,.0f}".format(v.price) }}</td>
-                                <td>{{ v.duration_minutes }} Mins</td>
+                            <tr>
+                                <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
+                                <td>{{ v.package_name }}</td>
                                 <td><span class="badge st-{{ v.computed_status | lower }}">{{ v.computed_status }}</span></td>
-                                <td>{{ v.used_by_mac or '-' }}</td>
+                                <td><span style="font-family: monospace;">{{ v.used_by_mac or '-' }}</span></td>
                                 <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
-                                <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
-                                <td>{{ v.note or '-' }}</td>
                                 <td>
                                     {% if v.computed_status in ['UNUSED', 'ACTIVE'] %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this unused voucher?');">Revoke (Delete)</a>
+                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
                                     {% elif v.computed_status == 'USED' %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke Access</a>
-                                    {% elif v.computed_status == 'REVOKED' %}
-                                        <a href="/admin/voucher/unrevoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke Access</a>
+                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Block User</a>
                                     {% else %}
                                         -
                                     {% endif %}
@@ -364,7 +273,6 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="pagination"></div>
             </div>
         </div>
 
@@ -372,160 +280,62 @@
         <div id="tab-users" class="tab-panel">
             <div class="box">
                 <div class="box-header">
-                    <div class="box-title">👥 Connected Users Insights</div>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="btn-fewer" class="btn btn-primary btn-sm" onclick="toggleUserView('fewer')">Fewer Details</button>
-                        <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details</button>
-                    </div>
+                    <div class="box-title">Connected Users Insights</div>
                 </div>
-
-                <!-- FEWER DETAILS: AGGREGATED MAC VIEW -->
-                <div id="user-view-fewer">
-                    <div class="table-responsive">
-                        <table id="users-fewer-table" class="paginated-table" data-page-size="25">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 0)">MAC Address ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 1)">Status ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 2, true)">Vouchers Bought ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 3, true)">Total Spend ↕</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in user_summary %}
-                                <tr>
-                                    <td><b>{{ u.mac }}</b></td>
-                                    <td><span class="badge st-{{ u.status | lower }}">{{ u.status | upper }}</span></td>
-                                    <td>{{ u.vouchers_count }}</td>
-                                    <td>TZS {{ "{:,.0f}".format(u.total_spend) }}</td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="4" style="text-align: center; color: var(--text-sub);">No aggregated user summary records available.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination"></div>
-                </div>
-
-                <!-- MORE DETAILS: ITEMIZED FILTERABLE ANALYTICS VIEW -->
-                <div id="user-view-more" class="hidden">
-                    <div style="margin-bottom: 16px; display: flex; gap: 8px;">
-                        <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
-                        <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
-                        <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="paginated-table" id="userAnalyticsTable" data-page-size="25">
-                            <thead>
-                                <tr>
-                                    <th>MAC Address</th>
-                                    <th>Voucher Code</th>
-                                    <th>Voucher Status</th>
-                                    <th>Connection</th>
-                                    <th>Time Window</th>
-                                    <th>Duration</th>
-                                    <th>Data Consumed</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in detailed_report %}
-                                <tr class="user-row" data-status="{{ item.connection_status }}">
-                                    <td><b>{{ item.mac }}</b></td>
-                                    <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
-                                    <td>
-                                        <span class="badge {% if item.voucher_status == 'USED' %}st-used{% else %}st-revoked{% endif %}">
-                                            {{ item.voucher_status }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge st-{{ item.connection_status | lower }}">
-                                            {{ item.connection_status | upper }}
-                                        </span>
-                                    </td>
-                                    <td>{{ item.time_label }}</td>
-                                    <td>{{ item.duration_formatted }}</td>
-                                    <td><b>{{ item.data_consumed }}</b></td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="7" style="text-align: center; color: var(--text-sub);">No usage reports available.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination"></div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>MAC Address</th>
+                                <th>Voucher Code</th>
+                                <th>Status</th>
+                                <th>Data Consumed</th>
+                                <th>Total Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in detailed_report %}
+                            <tr>
+                                <td><b style="font-family: monospace;">{{ item.mac }}</b></td>
+                                <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
+                                <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
+                                <td style="font-weight: 700; color: var(--accent-color);">{{ item.data_consumed }}</td>
+                                <td>TZS {{ "{:,.0f}".format(item.total_spend if item.total_spend else 0) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" style="text-align: center; color: var(--text-sub); padding: 30px;">No active usage reports available.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- SETTINGS TAB -->
-<div id="tab-settings" class="tab-panel">
-    <div class="box">
-        <div class="box-title" style="margin-bottom: 16px;">⚙️ Gateway & SNMP v3 Configuration</div>
-        <form action="/admin/settings/update" method="POST">
-            <div class="form-grid">
-                <!-- Gateway Details -->
-                <div class="form-group">
-                    <label>Gateway IP Address</label>
-                    <input type="text" name="gw_address" value="{{ settings.gw_address }}" required>
-                </div>
-                <div class="form-group">
-                    <label>Gateway Port</label>
-                    <input type="text" name="gw_port" value="{{ settings.gw_port }}" required>
-                </div>
-                <div class="form-group">
-                    <label>Router Gateway ID</label>
-                    <input type="text" name="gw_id" value="{{ settings.gw_id }}" required>
-                </div>
-                <div class="form-group" style="grid-column: span 2;">
-                   <label>SNMP v3 Engine ID (Hex)</label>
-                   <input type="text" 
-                        name="snmp_engine_id" 
-                        value="{{ settings.snmp_engine_id }}" 
-                        placeholder="80001f88044731555136433830323733333630" 
-                        required>
-                </div>
-                <div class="form-group">
-                    <label>SNMP Port</label>
-                    <input type="number" name="snmp_port" value="{{ settings.snmp_port }}" required>
-                </div>
-
-                <!-- SNMP v3 Credentials -->
-                <div class="form-group">
-                    <label>SNMP v3 User Name</label>
-                    <input type="text" name="snmp_username" value="{{ settings.snmp_username }}" placeholder="Luv2laf." required>
-                </div>
-                <div class="form-group">
-                    <label>Auth Protocol</label>
-                    <select name="snmp_auth_protocol">
-                        <option value="SHA" {% if settings.snmp_auth_protocol == 'SHA' %}selected{% endif %}>SHA</option>
-                        <option value="MD5" {% if settings.snmp_auth_protocol == 'MD5' %}selected{% endif %}>MD5</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Auth Password</label>
-                    <input type="password" name="snmp_auth_password" value="{{ settings.snmp_auth_password }}" placeholder="••••••••" required>
-                </div>
-                <div class="form-group">
-                    <label>Encryption Protocol</label>
-                    <select name="snmp_priv_protocol">
-                        <option value="AES" {% if settings.snmp_priv_protocol == 'AES' %}selected{% endif %}>AES</option>
-                        <option value="DES" {% if settings.snmp_priv_protocol == 'DES' %}selected{% endif %}>DES</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Encrypted Password</label>
-                    <input type="password" name="snmp_priv_password" value="{{ settings.snmp_priv_password }}" placeholder="••••••••" required>
-                </div>
+        <!-- SETTINGS TAB (SNMP REMOVED) -->
+        <div id="tab-settings" class="tab-panel">
+            <div class="box">
+                <div class="box-title" style="margin-bottom: 24px;">⚙️ Access Point & Gateway Configuration</div>
+                <form action="/admin/settings/update" method="POST">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Gateway IP Address</label>
+                            <input type="text" name="gw_address" value="{{ settings.gw_address }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Gateway Port (Default: 2060)</label>
+                            <input type="text" name="gw_port" value="{{ settings.gw_port }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Router Gateway ID</label>
+                            <input type="text" name="gw_id" value="{{ settings.gw_id }}" required>
+                        </div>
+                    </div>
+                    <div style="margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </form>
             </div>
-            <div style="margin-top: 20px;">
-                <button type="submit" class="btn btn-primary">Save Settings</button>
-            </div>
-        </form>
-    </div>
-</div>
-
+        </div>
 
     </div>
 
@@ -550,175 +360,9 @@
             document.getElementById(id).classList.toggle('hidden'); 
         }
 
-        function openEditModal(id, name, price, duration, unit, badge, desc) {
-            document.getElementById('edit-package-form').action = '/admin/packages/edit/' + id;
-            document.getElementById('edit-name').value = name;
-            document.getElementById('edit-price').value = price;
-            document.getElementById('edit-duration').value = duration;
-            document.getElementById('edit-unit').value = unit;
-            document.getElementById('edit-badge').value = badge;
-            document.getElementById('edit-description').value = desc;
-            document.getElementById('edit-package-modal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-package-modal').classList.add('hidden');
-        }
-
-        function toggleUserView(type) {
-            const fewer = document.getElementById('user-view-fewer');
-            const more = document.getElementById('user-view-more');
-            const btnFewer = document.getElementById('btn-fewer');
-            const btnMore = document.getElementById('btn-more');
-
-            if(type === 'fewer') {
-                fewer.classList.remove('hidden');
-                more.classList.add('hidden');
-                btnFewer.className = 'btn btn-primary btn-sm';
-                btnMore.className = 'btn btn-secondary btn-sm';
-                paginateTable(document.getElementById('users-fewer-table'));
-            } else {
-                fewer.classList.add('hidden');
-                more.classList.remove('hidden');
-                btnFewer.className = 'btn btn-secondary btn-sm';
-                btnMore.className = 'btn btn-primary btn-sm';
-                paginateTable(document.getElementById('userAnalyticsTable'));
-            }
-        }
-
-        function filterUsers(status, btnElement) {
-            if (btnElement) {
-                document.querySelectorAll('.user-filter-btn').forEach(btn => {
-                    btn.className = 'btn btn-secondary btn-sm user-filter-btn';
-                });
-                btnElement.className = 'btn btn-primary btn-sm user-filter-btn';
-            }
-
-            const rows = document.querySelectorAll('.user-row');
-            rows.forEach(row => {
-                const rowStatus = row.getAttribute('data-status');
-                if (status === 'all' || rowStatus === status) {
-                    row.classList.remove('filtered-out');
-                } else {
-                    row.classList.add('filtered-out');
-                }
-            });
-
-            const table = document.getElementById('userAnalyticsTable');
-            if (table) {
-                table.setAttribute('data-current-page', 1);
-                paginateTable(table);
-            }
-        }
-
-        function sortTable(tableId, colIndex, isNumeric = false) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            let dir = table.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
-
-            rows.sort((a, b) => {
-                let valA = a.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
-                let valB = b.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
-
-                if (!isNumeric) {
-                    valA = a.children[colIndex].innerText.toLowerCase();
-                    valB = b.children[colIndex].innerText.toLowerCase();
-                    return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-
-                return dir === 'asc' ? (parseFloat(valA) - parseFloat(valB)) : (parseFloat(valB) - parseFloat(valA));
-            });
-
-            table.setAttribute('data-sort-dir', dir);
-            rows.forEach(row => tbody.appendChild(row));
-            table.setAttribute('data-current-page', 1);
-            paginateTable(table);
-        }
-
-        function filterVouchers() {
-            const filter = document.getElementById('voucher-status-filter').value.toLowerCase();
-            const rows = document.querySelectorAll('#vouchers-table tbody tr');
-            
-            rows.forEach(r => {
-                const st = r.getAttribute('data-status');
-                if (filter === 'all' || st === filter) {
-                    r.classList.remove('filtered-out');
-                } else {
-                    r.classList.add('filtered-out');
-                }
-            });
-
-            const table = document.getElementById('vouchers-table');
-            table.setAttribute('data-current-page', 1);
-            paginateTable(table);
-        }
-
-        function paginateTable(table) {
-            if (!table) return;
-
-            const pageSize = parseInt(table.getAttribute('data-page-size')) || 25;
-            const allRows = Array.from(table.querySelectorAll('tbody tr'));
-            const validRows = allRows.filter(r => !r.classList.contains('filtered-out'));
-            
-            const totalRows = validRows.length;
-            const totalPages = Math.ceil(totalRows / pageSize) || 1;
-            const container = table.closest('.box, #user-view-fewer, #user-view-more').querySelector('.pagination');
-
-            let currentPage = parseInt(table.getAttribute('data-current-page')) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIdx = (currentPage - 1) * pageSize;
-            const endIdx = startIdx + pageSize;
-
-            allRows.forEach(r => r.style.display = 'none');
-            validRows.forEach((r, idx) => {
-                if (idx >= startIdx && idx < endIdx) {
-                    r.style.display = '';
-                }
-            });
-
-            if (!container) return;
-
-            if (totalRows <= pageSize) {
-                container.innerHTML = `<span>Kuonyesha record ${totalRows}</span>`;
-                return;
-            }
-
-            container.innerHTML = `
-                <span>Kuonyesha ${startIdx + 1}-${Math.min(endIdx, totalRows)} kati ya ${totalRows}</span>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary btn-sm" 
-                            ${currentPage === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
-                            onclick="changePage('${table.id}',${currentPage - 1})">
-                        Previous
-                    </button>
-                    <button class="btn btn-primary btn-sm" 
-                            ${currentPage === totalPages ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
-                            onclick="changePage('${table.id}',${currentPage + 1})">
-                        Next (${currentPage}/${totalPages})
-                    </button>
-                </div>
-            `;
-        }
-
-        function changePage(tableId, targetPage) {
-            const table = document.getElementById(tableId);
-            if (table) {
-                table.setAttribute('data-current-page', targetPage);
-                paginateTable(table);
-            }
-        }
-
         document.addEventListener("DOMContentLoaded", function() {
             const hash = window.location.hash.replace('#', '') || 'dashboard';
             switchTab(hash);
-            
-            document.querySelectorAll('table.paginated-table').forEach(t => {
-                t.setAttribute('data-current-page', 1);
-                paginateTable(t);
-            });
         });
     </script>
 </body>
