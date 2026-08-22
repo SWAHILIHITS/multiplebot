@@ -828,7 +828,7 @@ def fetch_snmp_bytes():
 
     except Exception as e:
         logger.error(f"Exception during SNMP query: {str(e)}")
-        return 0 0
+        return 0
 
 # --- ADMIN SETTINGS UPDATE ROUTE ---
 @app.route('/admin/settings/update', methods=['POST'])
