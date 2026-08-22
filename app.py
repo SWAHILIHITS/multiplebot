@@ -770,29 +770,6 @@ if __name__ == '__main__':
     logger.info(f"Starting HANS WIFI Portal server on port {port}")
     app.run(host='0.0.0.0', port=port)
 
-
-# --- ADMIN SETTINGS UPDATE ROUTE ---
-@app.route('/admin/settings/update', methods=['POST'])
-def update_settings():
-    if not session.get('admin'):
-        return redirect('/admin/login')
-
-    updated_config = {
-        "gw_address": request.form.get("gw_address", "").strip(),
-        "gw_port": request.form.get("gw_port", "2060").strip(),
-        "gw_id": request.form.get("gw_id", "").strip(),
-        "snmp_port": int(request.form.get("snmp_port", 161)),
-        "snmp_username": request.form.get("snmp_username", "").strip(),
-        "snmp_auth_protocol": request.form.get("snmp_auth_protocol", "SHA"),
-        "snmp_auth_password": request.form.get("snmp_auth_password", "").strip(),
-        "snmp_priv_protocol": request.form.get("snmp_priv_protocol", "AES"),
-        "snmp_priv_password": request.form.get("snmp_priv_password", "").strip()
-    }
-
-    settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
-    logger.info("Admin updated Gateway & SNMP settings.")
-    return redirect('/admin#settings')
-
 import asyncio
 import threading
 import time
@@ -832,18 +809,19 @@ except ImportError:
 
 
 def get_snmp_settings():
-    """Fetches SNMP configuration from MongoDB or falls back to default values."""
+    """Fetches SNMP configuration including Engine ID from MongoDB."""
     default_settings = {
         "_id": "snmp_config",
-        "gw_address": os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46"),
+        "gw_address": "192.168.0.46",
         "gw_port": "2060",
         "gw_id": "G1UQ6C8027360",
         "snmp_port": 161,
         "snmp_username": "Luv2laf.",
         "snmp_auth_protocol": "SHA",
-        "snmp_auth_password": "",
+        "snmp_auth_password": "Luv2laf.",
         "snmp_priv_protocol": "AES",
-        "snmp_priv_password": ""
+        "snmp_priv_password": "Luv2laf.",
+        "snmp_engine_id": "80001f88044731555136433830323733333630"  # From Ruijie Screenshot
     }
     config = settings_col.find_one({"_id": "snmp_config"})
     if not config:
@@ -852,49 +830,88 @@ def get_snmp_settings():
     return config
 
 
+@app.route('/admin/settings/update', methods=['POST'])
+def update_settings():
+    if not session.get('admin'):
+        return redirect('/admin/login')
+
+    updated_config = {
+        "gw_address": request.form.get("gw_address", "").strip(),
+        "gw_port": request.form.get("gw_port", "2060").strip(),
+        "gw_id": request.form.get("gw_id", "").strip(),
+        "snmp_port": int(request.form.get("snmp_port", 161)),
+        "snmp_username": request.form.get("snmp_username", "").strip(),
+        "snmp_auth_protocol": request.form.get("snmp_auth_protocol", "SHA"),
+        "snmp_auth_password": request.form.get("snmp_auth_password", "").strip(),
+        "snmp_priv_protocol": request.form.get("snmp_priv_protocol", "AES"),
+        "snmp_priv_password": request.form.get("snmp_priv_password", "").strip(),
+        "snmp_engine_id": request.form.get("snmp_engine_id", "").strip()
+    }
+
+    settings_col.update_one({"_id": "snmp_config"}, {"$set": updated_config}, upsert=True)
+    logger.info("Admin updated Gateway & SNMP settings with Engine ID.")
+    return redirect('/admin#settings')
+
 async def _fetch_snmp_async():
-    """Asynchronously polls byte counts from the Ruijie AP via SNMP v3."""
+    """Asynchronously polls byte counts using authoritative Engine ID."""
     cfg = get_snmp_settings()
 
-    # Map Auth Protocol
+    # Protocol mappings
     auth_proto = usmHMACSHAAuthProtocol if cfg.get("snmp_auth_protocol") == "SHA" else usmHMACMD5AuthProtocol
-    
-    # Map Privacy / Encryption Protocol
     priv_proto = usmAesCfb128Protocol if cfg.get("snmp_priv_protocol") == "AES" else usmDESPrivProtocol
+
+    # Convert Hex string Engine ID to bytes
+    raw_engine_id = cfg.get("snmp_engine_id", "").strip()
+    try:
+        engine_id_bytes = bytes.fromhex(raw_engine_id) if raw_engine_id else None
+    except ValueError:
+        engine_id_bytes = None
 
     snmp_engine = SnmpEngine()
 
     try:
-        # Perform SNMP GET query for incoming & outgoing octets
-        errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
-            snmp_engine,
-            UsmUserData(
-                userName=cfg.get("snmp_username", ""),
-                authKey=cfg.get("snmp_auth_password", ""),
-                authProtocol=auth_proto,
-                privKey=cfg.get("snmp_priv_password", ""),
-                privProtocol=priv_proto
-            ),
-            UdpTransportTarget((cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))), timeout=2, retries=1),
-            ContextData(),
-            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.10.1')), # ifInOctets.1
-            ObjectType(ObjectIdentity('1.3.6.1.2.1.2.2.1.16.1'))  # ifOutOctets.1
+        transport = await UdpTransportTarget.create(
+            (cfg.get("gw_address", "192.168.0.46"), int(cfg.get("snmp_port", 161))),
+            timeout=3,
+            retries=2
         )
+
+        user_data = UsmUserData(
+            userName=cfg.get("snmp_username", "Luv2laf."),
+            authKey=cfg.get("snmp_auth_password", "Luv2laf."),
+            authProtocol=auth_proto,
+            privKey=cfg.get("snmp_priv_password", "Luv2laf."),
+            privProtocol=priv_proto,
+            securityEngineId=engine_id_bytes  # Binds exact Ruijie Engine ID
+        )
+
+        # Poll Interface 1 & 2
+        for idx in ['1', '2']:
+            errorIndication, errorStatus, errorIndex, varBinds = await async_getCmd(
+                snmp_engine,
+                user_data,
+                transport,
+                ContextData(),
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.10.{idx}')),
+                ObjectType(ObjectIdentity(f'1.3.6.1.2.1.2.2.1.16.{idx}'))
+            )
+
+            if not errorIndication and not errorStatus:
+                in_bytes = int(varBinds[0][1])
+                out_bytes = int(varBinds[1][1])
+                total = in_bytes + out_bytes
+                if total > 0:
+                    return total
 
         if errorIndication:
             logger.error(f"SNMP Error Indication: {errorIndication}")
-            return 0
-        elif errorStatus:
-            logger.error(f"SNMP Error Status: {errorStatus.prettyPrint()}")
-            return 0
-
-        in_bytes = int(varBinds[0][1])
-        out_bytes = int(varBinds[1][1])
-        return in_bytes + out_bytes
+        return 0
 
     except Exception as e:
-        logger.error(f"SNMP Execution Exception: {str(e)}")
+        logger.error(f"SNMP Exception: {str(e)}")
         return 0
+    finally:
+        snmp_engine.close_dispatcher()
 
 
 def fetch_snmp_bytes():
