@@ -187,8 +187,13 @@ def process_login():
     )
     
     vouchers_col.update_one(
-        {"code": code}, 
-        {"$set": {"status": "USED", "used_by_mac": mac, "used_at": now}}
+    {"code": code},
+    {"$set": {
+        "status": "USED",
+        "used_by_mac": mac,
+        "used_at": now,
+        "expire_date": None  # Converts EXPIRE DATE column to No Expire for used vouchers
+    }}
     )
 
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
@@ -398,11 +403,17 @@ def admin_logout():
     session.pop('admin', None)
     return redirect('/admin/login')
 
+def cleanup_expired_vouchers():
+    now = datetime.now(timezone.utc)
+    vouchers_col.delete_many({
+        "status": {"$ne": "USED"},
+        "expire_date": {"$ne": None, "$lte": now}
+    })
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin/login')
-
+    cleanup_expired_vouchers()
     now = datetime.now(timezone.utc)
     start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
@@ -580,19 +591,18 @@ def generate_vouchers():
 
     return render_template('print.html', vouchers=new_vouchers)
 
-@app.route('/admin/voucher/delete/<code>')
+@app.route('/admin/vouchers/delete/<code>')
 def delete_voucher(code):
-    # Permanently delete unused vouchers
-    db.vouchers.delete_one({"code": code, "status": "UNUSED"})
+    # Completely removes unused or revoked voucher from database
+    vouchers_col.delete_one({"code": code})
     return redirect('/admin#vouchers')
 
-@app.route('/admin/voucher/revoke/<code>')
-def revoke_voucher(code):
-    voucher = db.vouchers.find_one({"code": code})
-    if voucher and voucher.get("status") == "USED":
-        # Block internet usage and update status
-        db.vouchers.update_one({"code": code}, {"$set": {"status": "REVOKED"}})
-        disconnect_router_user(voucher.get("used_by_mac"))
+@app.route('/admin/vouchers/revoke/<code>')
+def toggle_revoke_voucher(code):
+    voucher = vouchers_col.find_one({"code": code})
+    if voucher and voucher.get("status") != "USED":
+        new_status = "UNUSED" if voucher.get("status") == "REVOKED" else "REVOKED"
+        vouchers_col.update_one({"code": code}, {"$set": {"status": new_status}})
     return redirect('/admin#vouchers')
 
 @app.route('/admin/voucher/unrevoke/<code>')
