@@ -616,7 +616,7 @@ def toggle_revoke_voucher(code):
     if voucher and voucher.get("status") in ["USED", "REVOKED"]:
         new_status = "USED" if voucher.get("status") == "REVOKED" else "REVOKED"
         vouchers_col.update_one({"code": code}, {"$set": {"status": new_status}})
-    return redirect('/admin#vouchers'
+    return redirect('/admin#vouchers')
 
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
