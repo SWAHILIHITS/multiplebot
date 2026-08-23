@@ -321,47 +321,74 @@
                         <option value="expired">Expired</option>
                     </select>
                 </div>
+                <!-- FILTER SELECTOR -->
+<div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+    <label style="font-size: 13px; font-weight: 700; color: var(--text-sub);">FILTER STATUS:</label>
+    <select id="voucher-status-filter" class="form-group" style="padding: 8px 12px; font-size: 13px;" onchange="filterVouchers()">
+        <option value="all">All Statuses</option>
+        <option value="unused">Unused</option>
+        <option value="active">Active</option>
+        <option value="revoked">Revoked</option>
+        <option value="expired">Expired</option>
+    </select>
+</div>
 
-                <div class="table-responsive">
-                    <table id="vouchers-table" class="paginated-table" data-page-size="25">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Package</th>
-                                <th>Status</th>
-                                <th>MAC Address</th>
-                                <th>Used At</th>
-                                <th>Expire Date</th>
-                                <th>Note</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for v in vouchers %}
-                            <tr data-status="{{ v.computed_status | lower }}">
-                                <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
-                                <td>{{ v.package_name or 'Custom' }}</td>
-                                <td><span class="badge st-{{ v.computed_status | lower }}">{{ v.computed_status }}</span></td>
-                                <td><span style="font-family: monospace;">{{ v.used_by_mac or '-' }}</span></td>
-                                <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
-                                <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
-                                <td>{{ v.note or '-' }}</td>
-                                <td>
-  {% if v.status == 'UNUSED' %}
-    <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
-    <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-outline btn-sm" style="color: var(--danger-color);" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
-  {% elif v.status == 'REVOKED' %}
-    <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
-    <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-outline btn-sm" style="color: var(--danger-color);" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
-  {% else %}
-    <span class="badge st-used">USED</span>
-  {% endif %}
-</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+<!-- VOUCHERS TABLE -->
+<div class="table-responsive">
+    <table id="vouchers-table" class="paginated-table" data-page-size="25">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Package</th>
+                <th>Status</th>
+                <th>MAC Address</th>
+                <th>Used At</th>
+                <th>Expire Date</th>
+                <th>Note</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in vouchers %}
+            <tr data-status="{{ v.computed_status | lower }}">
+                <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
+                <td>{{ v.package_name or 'Custom' }}</td>
+                <td>
+                    <span class="badge st-{{ 'active' if v.computed_status == 'ACTIVE' else (v.computed_status | lower) }}">
+                        {{ v.computed_status }}
+                    </span>
+                </td>
+                <td><span style="font-family: monospace;">{{ v.used_by_mac or '-' }}</span></td>
+                <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
+                
+                <!-- Expire Date Column Rule -->
+                <td>
+                    {% if v.computed_status == 'UNUSED' and v.expire_at %}
+                        {{ v.expire_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                        No Expire
+                    {% endif %}
+                </td>
+
+                <td>{{ v.note or '-' }}</td>
+
+                <!-- Action Button Rule -->
+                <td>
+                    {% if v.computed_status == 'UNUSED' %}
+                        <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
+                    {% elif v.computed_status == 'ACTIVE' %}
+                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
+                    {% elif v.computed_status == 'REVOKED' %}
+                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
+                    {% elif v.computed_status == 'EXPIRED' %}
+                        <span style="color: var(--text-sub); font-size: 13px;">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
                 <div class="pagination"></div>
             </div>
         </div>
