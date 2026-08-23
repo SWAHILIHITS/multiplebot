@@ -347,20 +347,16 @@
                                 <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
                                 <td>{{ v.note or '-' }}</td>
                                 <td>
-                                    {% if v.computed_status == 'UNUSED' %}
-                                        <!-- Unused: Permanently Delete -->
-                                        <a href="/admin/voucher/delete/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Permanently delete this unused voucher?');">Delete</a>
-                                    {% elif v.computed_status == 'USED' %}
-                                        <!-- Used: Revoke and Disconnect -->
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Revoke voucher and cut off internet access?');">Revoke</a>
-                                    {% elif v.computed_status == 'REVOKED' %}
-                                        <!-- Revoked: Admin can restore access -->
-                                        <a href="/admin/voucher/unrevoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
-                                    {% elif v.computed_status == 'EXPIRED' %}
-                                        <!-- Expired: Cannot be revoked -->
-                                        <span style="color: var(--text-sub);">-</span>
-                                    {% endif %}
-                                </td>
+  {% if v.status == 'UNUSED' %}
+    <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
+    <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-outline btn-sm" style="color: var(--danger-color);" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
+  {% elif v.status == 'REVOKED' %}
+    <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
+    <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-outline btn-sm" style="color: var(--danger-color);" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
+  {% else %}
+    <span class="badge st-used">USED</span>
+  {% endif %}
+</td>
                             </tr>
                             {% endfor %}
                         </tbody>
