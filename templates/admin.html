@@ -132,10 +132,6 @@
                     <div class="value">TZS {{ monthly_revenue }}</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Data Consumed</h3>
-                    <div class="value">{{ total_data_consumed }}</div>
-                </div>
-                <div class="stat-card">
                     <h3>Active Users Online</h3>
                     <div class="value" style="color: var(--success-color);">{{ online_users_count }}</div>
                 </div>
@@ -183,6 +179,13 @@
                                     <option value="hours" selected>Hours</option>
                                     <option value="days">Days</option>
                                     <option value="months">Months</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Offline Time Policy</label>
+                                <select name="pause_on_user_offline" required>
+                                    <option value="true" selected>Pause timer when user is offline</option>
+                                    <option value="false">Continue timer even when user is offline</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -251,6 +254,13 @@
                             <option value="hours">Hours</option>
                             <option value="days">Days</option>
                             <option value="months">Months</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label>Offline Time Policy</label>
+                        <select id="edit-pause-offline" name="pause_on_user_offline">
+                            <option value="true">Pause timer when user is offline</option>
+                            <option value="false">Continue timer even when user is offline</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 12px;">
@@ -337,14 +347,18 @@
                                 <td>{{ v.expire_at.strftime('%Y-%m-%d %H:%M') if v.expire_at else 'No Expire' }}</td>
                                 <td>{{ v.note or '-' }}</td>
                                 <td>
-                                    {% if v.computed_status in ['UNUSED', 'ACTIVE'] %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this unused voucher?');">Revoke</a>
+                                    {% if v.computed_status == 'UNUSED' %}
+                                        <!-- Unused: Permanently Delete -->
+                                        <a href="/admin/voucher/delete/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Permanently delete this unused voucher?');">Delete</a>
                                     {% elif v.computed_status == 'USED' %}
-                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Block User</a>
+                                        <!-- Used: Revoke and Disconnect -->
+                                        <a href="/admin/voucher/revoke/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Revoke voucher and cut off internet access?');">Revoke</a>
                                     {% elif v.computed_status == 'REVOKED' %}
+                                        <!-- Revoked: Admin can restore access -->
                                         <a href="/admin/voucher/unrevoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
-                                    {% else %}
-                                        -
+                                    {% elif v.computed_status == 'EXPIRED' %}
+                                        <!-- Expired: Cannot be revoked -->
+                                        <span style="color: var(--text-sub);">-</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -413,7 +427,7 @@
                                     <th>Connection</th>
                                     <th>Time Window</th>
                                     <th>Duration</th>
-                                    <th>Data Consumed</th>
+                                    <th>Uesd time/total time</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -424,7 +438,7 @@
                                     <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
                                     <td>{{ item.time_label }}</td>
                                     <td>{{ item.duration_formatted }}</td>
-                                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.data_consumed }}</td>
+                                    td style="font-weight: 700; color: var(--accent-color);">{{ item.used_time_formatted }} / {{ item.total_time_formatted }}</td>
                                 </tr>
                                 {% else %}
                                 <tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
