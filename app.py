@@ -580,22 +580,28 @@ def generate_vouchers():
 
     return render_template('print.html', vouchers=new_vouchers)
 
+@app.route('/admin/voucher/delete/<code')
+def delete_voucher(code):
+    # Permanently delete unused vouchers
+    db.vouchers.delete_one({"code": code, "status": "UNUSED"})
+    return redirect('/admin#vouchers')
+
 @app.route('/admin/voucher/revoke/<code>')
 def revoke_voucher(code):
-    if not session.get('admin'): return redirect('/admin/login')
-    voucher = vouchers_col.find_one({"code": code})
-    if voucher:
-        if voucher.get("used_by_mac"):
-            mac = voucher["used_by_mac"]
-            sessions_col.delete_one({"_id": mac})
-            tokens_col.delete_many({"mac": mac})
-        vouchers_col.update_one({"code": code}, {"$set": {"status": "REVOKED"}})
+    voucher = db.vouchers.find_one({"code": code})
+    if voucher and voucher.get("status") == "USED":
+        # Block internet usage and update status
+        db.vouchers.update_one({"code": code}, {"$set": {"status": "REVOKED"}})
+        disconnect_router_user(voucher.get("used_by_mac"))
     return redirect('/admin#vouchers')
 
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
-    if not session.get('admin'): return redirect('/admin/login')
-    vouchers_col.update_one({"code": code}, {"$set": {"status": "ACTIVE"}})
+    voucher = db.vouchers.find_one({"code": code})
+    if voucher and voucher.get("status") == "REVOKED":
+        # Restore usage and allow internet access
+        db.vouchers.update_one({"code": code}, {"$set": {"status": "USED"}})
+        reauthorize_router_user(voucher.get("used_by_mac"))
     return redirect('/admin#vouchers')
                         
 if __name__ == '__main__':
