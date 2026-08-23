@@ -580,7 +580,7 @@ def generate_vouchers():
 
     return render_template('print.html', vouchers=new_vouchers)
 
-@app.route('/admin/voucher/delete/<code')
+@app.route('/admin/voucher/delete/<code>')
 def delete_voucher(code):
     # Permanently delete unused vouchers
     db.vouchers.delete_one({"code": code, "status": "UNUSED"})
