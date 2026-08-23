@@ -434,7 +434,7 @@
                                     <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
                                     <td>{{ item.time_label }}</td>
                                     <td>{{ item.duration_formatted }}</td>
-                                    td style="font-weight: 700; color: var(--accent-color);">{{ item.used_time_formatted }} / {{ item.total_time_formatted }}</td>
+                                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.used_time_formatted }} / {{ item.total_time_formatted }}</td>
                                 </tr>
                                 {% else %}
                                 <tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
