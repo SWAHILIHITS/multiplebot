@@ -163,37 +163,39 @@ def process_login():
         logger.error(f"Database error while checking voucher {code}: {str(e)}")
         voucher = None
 
-    if not voucher or voucher.get("status") in ["USED", "REVOKED"]:
+    # Only UNUSED vouchers can be redeemed
+    if not voucher or voucher.get("status") != "UNUSED":
         error_msg = "Vocha hii siyo sahihi au ishatumika."
         if voucher and voucher.get("status") == "REVOKED":
             error_msg = "Vocha hii imesitishwa au kufutwa."
-        
         return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl, error=error_msg)
 
     duration_minutes = voucher['duration_minutes']
-    expire_date = now + timedelta(minutes=duration_minutes)
+    session_expire_date = now + timedelta(minutes=duration_minutes)
 
     token = secrets.token_hex(16)
     
     tokens_col.insert_one({
         "token": token, "mac": mac, "code": code,
-        "expire_date": expire_date, "created_at": now
+        "expire_date": session_expire_date, "created_at": now
     })
 
     sessions_col.replace_one(
         {"_id": mac},
-        {"_id": mac, "code": code, "used_time": now, "expire_date": expire_date, "duration_minutes": duration_minutes, "bytes_used": 0, "status": "ACTIVE"},
+        {"_id": mac, "code": code, "used_time": now, "expire_date": session_expire_date, "duration_minutes": duration_minutes, "bytes_used": 0, "status": "ACTIVE"},
         upsert=True
     )
     
+    # Mark voucher as USED and set active session expiration date
     vouchers_col.update_one(
-    {"code": code},
-    {"$set": {
-        "status": "USED",
-        "used_by_mac": mac,
-        "used_at": now,
-        "expire_date": None  # Converts EXPIRE DATE column to No Expire for used vouchers
-    }}
+        {"code": code},
+        {"$set": {
+            "status": "USED",
+            "used_by_mac": mac,
+            "used_at": now,
+            "session_expire_date": session_expire_date,
+            "expire_at": None
+        }}
     )
 
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
@@ -404,10 +406,11 @@ def admin_logout():
     return redirect('/admin/login')
 
 def cleanup_expired_vouchers():
+    """Deletes UNUSED vouchers from the database once their expire_at date has passed."""
     now = datetime.now(timezone.utc)
     vouchers_col.delete_many({
-        "status": {"$ne": "USED"},
-        "expire_date": {"$ne": None, "$lte": now}
+        "status": "UNUSED",
+        "expire_at": {"$ne": None, "$lte": now}
     })
 @app.route('/admin')
 def admin_dashboard():
@@ -428,21 +431,25 @@ def admin_dashboard():
     used_vouchers_count = 0
 
     for v in vouchers:
-        status = v.get("status", "ACTIVE")
-        exp_at = v.get("expire_at")
+        status = v.get("status", "UNUSED")
+        used_by_mac = v.get("used_by_mac")
+        session_exp = v.get("session_expire_date")
         
-        if status == "REVOKED":
-            v["computed_status"] = "REVOKED"
-        elif status == "USED":
-            v["computed_status"] = "USED"
-            used_vouchers_count += 1
-        elif exp_at and exp_at.replace(tzinfo=timezone.utc if exp_at.tzinfo is None else exp_at.tzinfo) <= now:
-            v["computed_status"] = "EXPIRED"
-        elif status == "ACTIVE":
+        if not used_by_mac or status == "UNUSED":
             v["computed_status"] = "UNUSED"
-            active_vouchers_count += 1
         else:
-            v["computed_status"] = status
+            if session_exp and session_exp.tzinfo is None:
+                session_exp = session_exp.replace(tzinfo=timezone.utc)
+
+            # EXPIRED: Session duration time has passed
+            if session_exp and now >= session_exp:
+                v["computed_status"] = "EXPIRED"
+            else:
+                # ACTIVE: Session active (Revoked or Giving Access)
+                if status == "REVOKED":
+                    v["computed_status"] = "REVOKED"
+                else:
+                    v["computed_status"] = "ACTIVE"
 
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
 
@@ -571,20 +578,26 @@ def generate_vouchers():
     existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
     new_vouchers = []
 
+    def make_voucher_doc(code_val):
+        return {
+            "code": code_val,
+            "package_name": package_name,
+            "duration_minutes": duration_minutes,
+            "price": price,
+            "status": "UNUSED",
+            "note": note,
+            "expire_at": expire_at,
+            "created_at": datetime.now(timezone.utc)
+        }
+
     if custom_code and custom_code not in existing_codes:
-        new_vouchers.append({
-            "code": custom_code, "package_name": package_name, "duration_minutes": duration_minutes,
-            "price": price, "status": "ACTIVE", "note": note, "expire_at": expire_at, "created_at": datetime.now(timezone.utc)
-        })
+        new_vouchers.append(make_voucher_doc(custom_code))
     else:
         while len(new_vouchers) < qty and len(existing_codes) < 90000:
             code = f"{random.randint(0, 99999):05d}"
             if code not in existing_codes:
                 existing_codes.add(code)
-                new_vouchers.append({
-                    "code": code, "package_name": package_name, "duration_minutes": duration_minutes,
-                    "price": price, "status": "ACTIVE", "note": note, "expire_at": expire_at, "created_at": datetime.now(timezone.utc)
-                })
+                new_vouchers.append(make_voucher_doc(code))
 
     if new_vouchers:
         vouchers_col.insert_many(new_vouchers)
@@ -593,17 +606,17 @@ def generate_vouchers():
 
 @app.route('/admin/vouchers/delete/<code>')
 def delete_voucher(code):
-    # Completely removes unused or revoked voucher from database
-    vouchers_col.delete_one({"code": code})
+    """Permanently deletes UNUSED vouchers from database."""
+    vouchers_col.delete_one({"code": code, "status": "UNUSED"})
     return redirect('/admin#vouchers')
 
 @app.route('/admin/vouchers/revoke/<code>')
 def toggle_revoke_voucher(code):
     voucher = vouchers_col.find_one({"code": code})
-    if voucher and voucher.get("status") != "USED":
-        new_status = "UNUSED" if voucher.get("status") == "REVOKED" else "REVOKED"
+    if voucher and voucher.get("status") in ["USED", "REVOKED"]:
+        new_status = "USED" if voucher.get("status") == "REVOKED" else "REVOKED"
         vouchers_col.update_one({"code": code}, {"$set": {"status": new_status}})
-    return redirect('/admin#vouchers')
+    return redirect('/admin#vouchers'
 
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
