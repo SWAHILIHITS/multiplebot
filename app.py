@@ -105,20 +105,27 @@ def get_client_mac():
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
 def calculate_used_minutes(used_at, expire_date, pause_offline=False, is_online=False, accumulated_online_mins=0):
-    """Calculates active used minutes accounting for offline pause policy."""
+    """Calculates active used minutes accounting for offline pause policy and timezone safety."""
     now = datetime.now(timezone.utc)
-    if used_at.tzinfo is None:
+    
+    # Standardize used_at to UTC
+    if used_at and used_at.tzinfo is None:
         used_at = used_at.replace(tzinfo=timezone.utc)
+        
+    # Standardize expire_date to UTC
+    if expire_date and expire_date.tzinfo is None:
+        expire_date = expire_date.replace(tzinfo=timezone.utc)
     
     if pause_offline:
         # If policy pauses timer when offline, return accumulated online minutes
         return accumulated_online_mins
     else:
         # Standard elapsed time from start to now (or expire date if passed)
+        if not used_at:
+            return 0
         end_time = min(now, expire_date) if expire_date else now
         elapsed = (end_time - used_at).total_seconds() / 60.0
         return max(0, int(elapsed))
-        
 # ==========================================
 # CAPTIVE PORTAL ROUTES
 # ==========================================
