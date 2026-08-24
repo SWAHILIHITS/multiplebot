@@ -441,42 +441,64 @@
 
                 <!-- MORE DETAILS -->
                 <div id="user-view-more" class="hidden">
-                    <div style="margin-bottom: 20px; display: flex; gap: 8px;">
-                        <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
-                        <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
-                        <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
-                    </div>
+    <!-- SEARCH & STATUS FILTERS -->
+    <div style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <input 
+            type="text" 
+            id="moreDetailsSearchInput" 
+            onkeyup="searchMoreDetailsTable()" 
+            placeholder="🔍 Search Voucher Code or MAC Address..." 
+            style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; width: 300px; font-size: 14px;"
+        >
 
-                    <div class="table-responsive">
-                        <table class="paginated-table" id="userAnalyticsTable" data-page-size="25">
-                            <thead>
-                                <tr>
-                                    <th>MAC Address</th>
-                                    <th>Voucher Code</th>
-                                    <th>Connection</th>
-                                    <th>Time Window</th>
-                                    <th>Duration</th>
-                                    <th>Uesd time/total time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in detailed_report %}
-                                <tr class="user-row" data-status="{{ item.connection_status }}">
-                                    <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
-                                    <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
-                                    <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
-                                    <td>{{ item.time_label }}</td>
-                                    <td>{{ item.duration_formatted }}</td>
-                                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.used_time_formatted }} / {{ item.total_time_formatted }}</td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="6" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination"></div>
-                </div>
+        <div style="display: flex; gap: 8px;">
+            <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
+            <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
+            <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
+        </div>
+    </div>
+
+    <!-- TABLE WITH DETAILED REPORT -->
+    <div class="table-responsive">
+        <table class="paginated-table" id="userAnalyticsTable" data-page-size="25">
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="sortTable('userAnalyticsTable', 0)">MAC Address ↕</th>
+                    <th>Phone Number</th>
+                    <th>Voucher Code</th>
+                    <th>Connection</th>
+                    <th class="sortable" onclick="sortTable('userAnalyticsTable', 4)">Time Window (Date) ↕</th>
+                    <th>Duration</th>
+                    <th>Used Time (mins) / Time Window</th>
+                    <th>Total Used Time (dd:hh:mm)</th>
+                    <th>Offline Policy</th>
+                    <th>Sites Visited Logs</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in detailed_report %}
+                <tr class="user-row" data-status="{{ item.connection_status }}">
+                    <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
+                    <td><b>{{ item.phone_number }}</b></td>
+                    <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
+                    <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
+                    <td data-sort="{{ item.time_raw }}">{{ item.time_label }}</td>
+                    <td>{{ item.duration_formatted }}</td>
+                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.used_mins_ratio }}</td>
+                    <td style="font-family: monospace; font-weight: 700; color: #10b981;">{{ item.total_used_ddhhmm }}</td>
+                    <td><span class="badge" style="background:#e2e8f0; color:#334155;">{{ item.offline_policy }}</span></td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.visited_sites }}">
+                        <code>{{ item.visited_sites }}</code>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="pagination"></div>
+</div>
             </div>
         </div>
 
@@ -682,7 +704,25 @@
                 </div>
             `;
         }
+        function searchMoreDetailsTable() {
+            const input = document.getElementById('moreDetailsSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#userAnalyticsTable tbody tr.user-row');
 
+            rows.forEach(row => {
+                const mac = row.children[0].innerText.toLowerCase();
+                const voucher = row.children[2].innerText.toLowerCase();
+            
+                if (mac.includes(input) || voucher.includes(input)) {
+                    row.classList.remove('filtered-out');
+                } else {
+                    row.classList.add('filtered-out');
+                }
+            });
+
+            const table = document.getElementById('userAnalyticsTable');
+            table.setAttribute('data-current-page', 1);
+            paginateTable(table);
+        }
         function changePage(tableId, targetPage) {
             const table = document.getElementById(tableId);
             if (table) {
@@ -700,6 +740,7 @@
                 paginateTable(t);
             });
         });
+        
     </script>
 </body>
 </html>
