@@ -468,7 +468,8 @@ def admin_dashboard():
 
     active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
-
+    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
     packages = list(packages_col.find().sort("created_at", -1))
     vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
