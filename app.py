@@ -418,6 +418,24 @@ def admin_dashboard():
         return redirect('/admin/login')
     cleanup_expired_vouchers()
     now = datetime.now(timezone.utc)
+
+    # 1. Capture search query
+    search_query = request.args.get('q', '').strip()
+
+    # 2. Build MongoDB search filter
+    voucher_filter = {}
+    if search_query:
+        voucher_filter = {
+            "$or": [
+                {"code": {"$regex": search_query, "$options": "i"}},
+                {"used_by_mac": {"$regex": search_query, "$options": "i"}},
+                {"note": {"$regex": search_query, "$options": "i"}},
+                {"package_name": {"$regex": search_query, "$options": "i"}}
+            ]
+        }
+
+    active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
+    active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
     start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
 
@@ -425,7 +443,7 @@ def admin_dashboard():
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
 
     packages = list(packages_col.find().sort("created_at", -1))
-    vouchers = list(vouchers_col.find().sort("_id", -1).limit(100))
+    vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
 
     active_vouchers_count = 0
     used_vouchers_count = 0
@@ -508,6 +526,7 @@ def admin_dashboard():
         'admin.html',
         packages=packages,
         vouchers=vouchers,
+        search_query=search_query,  # Pass search query back to view
         active_sessions=active_sessions_cursor,
         user_summary=user_summary,
         detailed_report=detailed_report,
