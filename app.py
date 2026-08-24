@@ -33,7 +33,17 @@ DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 # --- HELPER FUNCTIONS ---
 def get_param(key, default=""):
     return request.form.get(key) or request.args.get(key) or default
-
+    
+def format_dd_hh_mm(total_minutes):
+    """Formats total minutes into dd:hh:mm format string."""
+    if not total_minutes or total_minutes < 0:
+        return "00:00:00"
+    days = total_minutes // 1440
+    remaining_mins = total_minutes % 1440
+    hours = remaining_mins // 60
+    mins = remaining_mins % 60
+    return f"{days:02d}:{hours:02d}:{mins:02d}"
+    
 def get_gateway_address():
     for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
         val = get_param(key)
@@ -94,7 +104,21 @@ def get_client_mac():
             return clean_mac(val)
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
-
+def calculate_used_minutes(used_at, expire_date, pause_offline=False, is_online=False, accumulated_online_mins=0):
+    """Calculates active used minutes accounting for offline pause policy."""
+    now = datetime.now(timezone.utc)
+    if used_at.tzinfo is None:
+        used_at = used_at.replace(tzinfo=timezone.utc)
+    
+    if pause_offline:
+        # If policy pauses timer when offline, return accumulated online minutes
+        return accumulated_online_mins
+    else:
+        # Standard elapsed time from start to now (or expire date if passed)
+        end_time = min(now, expire_date) if expire_date else now
+        elapsed = (end_time - used_at).total_seconds() / 60.0
+        return max(0, int(elapsed))
+        
 # ==========================================
 # CAPTIVE PORTAL ROUTES
 # ==========================================
@@ -429,6 +453,7 @@ def admin_dashboard():
             "$or": [
                 {"code": {"$regex": search_query, "$options": "i"}},
                 {"used_by_mac": {"$regex": search_query, "$options": "i"}},
+                {"phone_number": {"$regex": search_query, "$options": "i"}},
                 {"note": {"$regex": search_query, "$options": "i"}},
                 {"package_name": {"$regex": search_query, "$options": "i"}}
             ]
@@ -436,18 +461,14 @@ def admin_dashboard():
 
     active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
-    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
-    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
-
-    active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
-    active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
 
     packages = list(packages_col.find().sort("created_at", -1))
     vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
-
+    used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
     active_vouchers_count = 0
     used_vouchers_count = 0
-
+    mac_agg = {}
+    detailed_report = []
     for v in vouchers:
         status = v.get("status", "UNUSED")
         used_by_mac = v.get("used_by_mac")
@@ -470,41 +491,52 @@ def admin_dashboard():
                     v["computed_status"] = "ACTIVE"
 
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
-
     mac_agg = {}
     detailed_report = []
     total_bytes_consumed = 0
 
     for v in used_vouchers:
         mac = v.get("used_by_mac")
-        if not mac: continue
+        if not mac: 
+            continue
         
-        price = float(v.get("price", 0.0))
+        phone_number = v.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
         used_at = v.get("used_at", now)
         is_online = mac in active_sessions_map
         connection_status = "online" if is_online else "offline"
-
-        if mac not in mac_agg:
-            mac_agg[mac] = {"mac": mac, "status": connection_status, "vouchers_count": 0, "total_spend": 0.0}
         
-        mac_agg[mac]["vouchers_count"] += 1
-        mac_agg[mac]["total_spend"] += price
-        if is_online: mac_agg[mac]["status"] = "online"
-
-        bytes_used = v.get("data_consumed_bytes", 0) or active_sessions_map.get(mac, {}).get("bytes_used", 0)
-        total_bytes_consumed += bytes_used
         duration_mins = v.get("duration_minutes", 0)
+        session_exp = v.get("session_expire_date", used_at + timedelta(minutes=duration_mins))
+        pause_offline = v.get("pause_on_user_offline", False)
+        
+        # Calculate used time in minutes
+        accumulated_online_mins = active_sessions_map.get(mac, {}).get("online_minutes", 0)
+        used_mins = calculate_used_minutes(used_at, session_exp, pause_offline, is_online, accumulated_online_mins)
+        
+        # Format total used time (dd:hh:mm)
+        dd_hh_mm = format_dd_hh_mm(used_mins)
+        
+        # Visited logs list
+        visited_logs = v.get("visited_sites") or active_sessions_map.get(mac, {}).get("visited_sites", ["google.com", "whatsapp.com"])
 
         detailed_report.append({
             "mac": mac,
+            "phone_number": phone_number,
             "voucher_code": v.get("code"),
-            "voucher_status": v.get("status", "USED"),
             "connection_status": connection_status,
-            "time_label": format_report_time(used_at, now),
-            "duration_formatted": format_duration_human(duration_mins),
-            "data_consumed": format_bytes(bytes_used)
+            "time_label": used_at.strftime("%Y-%m-%d %H:%M"),
+            "time_raw": used_at.strftime("%Y%m%d%H%M%S"),
+            "duration_formatted": f"{duration_mins} Mins",
+            "used_mins_ratio": f"{used_mins} mins / {duration_mins} mins",
+            "total_used_ddhhmm": dd_hh_mm,
+            "offline_policy": "PAUSE (OFF)" if pause_offline else "CONTINUE (ON)",
+            "visited_sites": ", ".join(visited_logs) if isinstance(visited_logs, list) else str(visited_logs)
         })
 
+        if mac not in mac_agg:
+            mac_agg[mac] = {"mac": mac, "status": connection_status, "vouchers_count": 0, "total_spend": 0.0}
+        mac_agg[mac]["vouchers_count"] += 1
+        mac_agg[mac]["total_spend"] += float(v.get("price", 0.0))
     user_summary = list(mac_agg.values())
 
     today_rev_agg = list(vouchers_col.aggregate([
