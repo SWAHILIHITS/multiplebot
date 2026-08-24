@@ -310,6 +310,23 @@
                         </div>
                     </form>
                 </div>
+                <form method="GET" action="/admin#vouchers" class="mb-4 flex gap-2">
+    <input 
+        type="text" 
+        name="q" 
+        value="{{ search_query or '' }}" 
+        placeholder="Search code, MAC, package..." 
+        class="px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-md w-72 focus:outline-none focus:border-blue-500"
+    >
+    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition">
+        Search
+    </button>
+    {% if search_query %}
+        <a href="/admin#vouchers" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md text-sm flex items-center">
+            Clear
+        </a>
+    {% endif %}
+</form>
                 <!-- FILTER SELECTOR -->
 <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
     <label style="font-size: 13px; font-weight: 700; color: var(--text-sub);">FILTER STATUS:</label>
