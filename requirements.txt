@@ -1,5 +1,6 @@
 flask
 gunicorn
+dnspython
 requests
 moviepy==1.0.3 
 tqdm
