@@ -169,6 +169,7 @@ def log_domain():
         return Response("Logged", status=200)
         
     return Response("Session not found", status=404)
+
 # ==========================================
 # CAPTIVE PORTAL ROUTES
 # ==========================================
@@ -759,12 +760,29 @@ def create_package():
 @app.route('/admin/packages/edit/<pkg_id>', methods=['POST'])
 def edit_package(pkg_id):
     if not session.get('admin'): return redirect('/admin/login')
-    pause_policy = request.form.get('pause_on_user_offline') == 'true'
     
+    pause_policy = request.form.get('pause_on_user_offline') == 'true'
+    new_name = request.form.get('name', '').strip()
+    
+    # 1. Fetch the old package to find associated vouchers
+    old_pkg = packages_col.find_one({"_id": ObjectId(pkg_id)})
+    
+    # 2. Update existing vouchers tied to this package
+    if old_pkg:
+        old_name = old_pkg.get("name")
+        vouchers_col.update_many(
+            {"package_name": old_name},
+            {"$set": {
+                "pause_on_user_offline": pause_policy,
+                "package_name": new_name  # Keep the name in sync
+            }}
+        )
+    
+    # 3. Update the package itself
     packages_col.update_one(
         {"_id": ObjectId(pkg_id)},
         {"$set": {
-            "name": request.form.get('name', '').strip(),
+            "name": new_name,
             "price": float(request.form.get('price', 0)),
             "duration_value": int(request.form.get('duration', 1)),
             "duration_unit": request.form.get('unit', 'hours'),
@@ -775,6 +793,7 @@ def edit_package(pkg_id):
         }}
     )
     return redirect('/admin#packages')
+
 
 @app.route('/admin/packages/delete/<pkg_id>')
 def delete_package(pkg_id):
