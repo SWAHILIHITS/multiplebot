@@ -431,7 +431,10 @@ def wifidog_auth_check():
                 if log_id:
                     log_doc = db.connection_logs.find_one({"_id": log_id})
                     if log_doc:
-                        start_time = log_doc.get("start_time", now)
+                        if now.tzinfo is not None and start_time.tzinfo is None:
+                            start_time = start_time.replace(tzinfo=now.tzinfo)
+                        elif now.tzinfo is None and start_time.tzinfo is not None:
+                            now = now.replace(tzinfo=start_time.tzinfo)
                         elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
                         db.connection_logs.update_one(
                             {"_id": log_id},
