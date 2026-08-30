@@ -7,7 +7,7 @@ logger = logging.getLogger("appLogger")
 # Database URI from environment variable
 MONGO_URI = os.getenv(
     "MONGO_URI", 
-    "mongodb+srv://swahilihit:swahilihit@cluster0.3nfk1.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    "mongodb+srv://swahili:uCdkkX6a6PO4gBrx@cluster0.501d4od.mongodb.net/?appName=Cluster0"
 )
 
 try:
