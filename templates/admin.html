@@ -466,7 +466,6 @@
                     <th class="sortable" onclick="sortTable('userAnalyticsTable', 0)">MAC Address ↕</th>
                     <th>Phone Number</th>
                     <th>Voucher Code</th>
-                    <th>Connection</th>
                     <th class="sortable" onclick="sortTable('userAnalyticsTable', 4)">Time Window (Date) ↕</th>
                     <th>Duration</th>
                     <th>Used Time (mins) / Time Window</th>
@@ -481,7 +480,6 @@
                     <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
                     <td><b>{{ item.phone_number }}</b></td>
                     <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
-                    <td><span class="badge st-{{ item.connection_status | lower }}">{{ item.connection_status | upper }}</span></td>
                     <td data-sort="{{ item.time_raw }}">{{ item.time_label }}</td>
                     <td>{{ item.duration_formatted }}</td>
                     <td style="font-weight: 700; color: var(--accent-color);">{{ item.used_mins_ratio }}</td>
