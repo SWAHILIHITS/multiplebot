@@ -146,7 +146,29 @@ def calculate_voucher_consumed_minutes(voucher, db, now):
             used_at = used_at.replace(tzinfo=timezone.utc)
         return int(max(0, (effective_now - used_at).total_seconds() / 60.0))
 
-
+@app.route('/api/log-domain', methods=['POST'])
+def log_domain():
+    mac = clean_mac(request.form.get('mac'))
+    domain = request.form.get('domain')
+    
+    if not mac or not domain:
+        return Response("Invalid data", status=400)
+    
+    db = vouchers_col.database
+    
+    # Find the user's active session or connection log and add the domain
+    active_session = sessions_col.find_one({"_id": mac})
+    if active_session and active_session.get("current_log_id"):
+        log_id = active_session.get("current_log_id")
+        
+        # Push domain to visited_sites array if it's not already logged recently
+        db.connection_logs.update_one(
+            {"_id": log_id},
+            {"$addToSet": {"visited_sites": domain}}
+        )
+        return Response("Logged", status=200)
+        
+    return Response("Session not found", status=404)
 # ==========================================
 # CAPTIVE PORTAL ROUTES
 # ==========================================
