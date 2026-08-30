@@ -1,17 +1,17 @@
 import os
 import logging
 from pymongo import MongoClient
-
+from pymongo.server_api import ServerApi
 logger = logging.getLogger("appLogger")
 
 # Database URI from environment variable
 MONGO_URI = os.getenv(
     "MONGO_URI", 
-    "mongodb+srv://swahiligroup97_db_user:YqpWxsG3cHDRKL13@cluster0.opf1rju.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+    "mongodb+srv://swahiligroup97_db_user:YqpWxsG3cHDRKL13@cluster0.opf1rju.mongodb.net?appName=Cluster0"
 )
 
 try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000,server_api=ServerApi('1'))
     db = client['swahilihit56']
     
     # Exported Collections
