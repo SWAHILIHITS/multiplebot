@@ -1,744 +1,759 @@
-<!DOCTYPE html>
-<html lang="sw">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --sidebar-width: 260px;
-            --primary-bg: #0f172a;
-            --sidebar-bg: #1e293b;
-            --main-bg: #f1f5f9;
-            --card-bg: #ffffff;
-            --accent-color: #3b82f6;
-            --accent-hover: #2563eb;
-            --text-main: #0f172a;
-            --text-sub: #64748b;
-            --text-light: #f8fafc;
-            --border-color: #e2e8f0;
-            --danger-color: #ef4444;
-            --success-color: #10b981;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
+import os
+import random
+import secrets
+import logging
+import logging.config
+from datetime import datetime, timedelta, timezone
+from bson import ObjectId
+from flask import Flask, render_template, request, redirect, session, Response, render_template_string
+# Import MongoDB collection objects
+from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        body { background-color: var(--main-bg); color: var(--text-main); display: flex; min-height: 100vh; }
+app = Flask(__name__)
 
-        .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: 70px; background: var(--sidebar-bg); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 0 20px; align-items: center; justify-content: space-between; z-index: 1000; }
-        .toggle-btn { font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-light); }
+# --- LOGGING INITIALIZATION ---
+LOG_CONFIG_FILE = "logging.conf"
 
-        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: var(--text-light); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 999; transition: transform 0.3s ease; }
-        .sidebar-brand { padding: 30px 24px; font-size: 22px; font-weight: 800; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-brand span { color: var(--accent-color); }
-        .sidebar-menu { list-style: none; padding: 20px 0; flex: 1; }
-        .sidebar-menu li a { display: flex; align-items: center; padding: 14px 24px; color: #94a3b8; text-decoration: none; font-weight: 500; font-size: 15px; transition: all 0.2s ease; border-left: 3px solid transparent; }
-        .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(255,255,255,0.05); color: #fff; border-left: 3px solid var(--accent-color); }
+if os.path.exists(LOG_CONFIG_FILE):
+    logging.config.fileConfig(LOG_CONFIG_FILE, disable_existing_loggers=False)
+    logger = logging.getLogger("appLogger")
+    logger.info("Successfully loaded logging configuration from logging.conf")
+else:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("appLogger")
+    logger.warning("logging.conf not found. Falling back to basic standard logging.")
 
-        .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; width: calc(100% - var(--sidebar-width)); }
-        .tab-panel { display: none; animation: fadeIn 0.3s ease; }
-        .tab-panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .box { background: var(--card-bg); padding: 30px; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 30px; box-shadow: var(--shadow); }
-        .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-        .box-title { font-size: 20px; font-weight: 700; color: var(--text-main); }
+# --- ENVIRONMENT CONFIGURATION ---
+app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
+ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
+DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-bottom: 32px; }
-        .stat-card { background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); position: relative; overflow: hidden; border-top: 4px solid var(--accent-color); }
-        .stat-card h3 { font-size: 13px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; font-weight: 600; }
-        .stat-card .value { font-size: 28px; font-weight: 800; color: var(--text-main); }
 
-        .table-responsive { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
-        th, td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
-        th { background: #f8fafc; color: var(--text-sub); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        th.sortable { cursor: pointer; }
-        th.sortable:hover { background: #f1f5f9; color: var(--accent-color); }
-        tr:hover td { background: #f8fafc; }
+# --- HELPER FUNCTIONS ---
+def get_param(key, default=""):
+    return request.form.get(key) or request.args.get(key) or default
+    
+def format_dd_hh_mm(total_minutes):
+    """Formats total minutes into dd:hh:mm format string."""
+    if not total_minutes or total_minutes < 0:
+        return "00:00:00"
+    days = total_minutes // 1440
+    remaining_mins = total_minutes % 1440
+    hours = remaining_mins // 60
+    mins = remaining_mins % 60
+    return f"{days:02d}:{hours:02d}:{mins:02d}"
+    
+def get_gateway_address():
+    for key in ['gw_address', 'gw_ip', 'gwaddress', 'router_ip']:
+        val = get_param(key)
+        if val and val.replace('.', '').isdigit():
+            return val.strip()
+    return DEFAULT_GW_ADDRESS
 
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease; }
-        .btn-primary { background: var(--accent-color); color: white; box-shadow: 0 2px 4px rgba(59,130,246,0.3); }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-secondary { background: #e2e8f0; color: var(--text-main); }
-        .btn-secondary:hover { background: #cbd5e1; }
-        .btn-danger { background: var(--danger-color); color: white; }
-        .btn-success { background: var(--success-color); color: white; }
-        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
-        .btn-sm { padding: 6px 14px; font-size: 12px; }
+def calculate_duration_minutes(val, unit):
+    val = int(val)
+    if unit == 'minutes':
+        return val
+    elif unit == 'hours':
+        return val * 60
+    elif unit == 'days':
+        return val * 60 * 24
+    elif unit == 'months':
+        return val * 60 * 24 * 30
+    return val
 
-        .badge { padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 11px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; }
-        .badge-custom { background: #0f172a; color: #ffffff; }
-        .st-active, .st-used, .st-online { color: #065f46; background: #d1fae5; }
-        .st-expired, .st-revoked, .st-offline { color: #991b1b; background: #fee2e2; }
-        .st-unused { color: #1e40af; background: #dbeafe; }
+def format_duration_human(duration_minutes):
+    if not duration_minutes or duration_minutes <= 0:
+        return "0 mins"
+    if duration_minutes < 60:
+        return f"{duration_minutes} mins"
+    hours = duration_minutes / 60
+    if hours < 24:
+        return f"{hours:.1f}".rstrip('0').rstrip('.') + " hrs"
+    days = hours / 24
+    return f"{days:.1f}".rstrip('0').rstrip('.') + " days"
 
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
-        .form-group input, .form-group select, .form-group textarea { padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #f8fafc; outline: none; transition: border-color 0.2s; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent-color); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-
-        .package-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin-top: 20px; }
-        .package-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; position: relative; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow); transition: transform 0.2s; }
-        .package-card:hover { transform: translateY(-3px); }
-        .package-title { font-size: 18px; font-weight: 800; color: var(--text-main); margin-bottom: 10px; }
-        .package-desc { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; flex-grow: 1; }
-        .package-price { font-size: 28px; font-weight: 800; color: var(--accent-color); }
-        .package-duration { font-size: 13px; color: var(--text-sub); font-weight: 600; margin-bottom: 20px;}
-
-        .modal-bg { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
-        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 16px 8px 4px 8px; font-size: 13px; color: var(--text-sub); font-weight: 500; }
-        .hidden { display: none !important; }
-
-        @media (max-width: 768px) {
-            .mobile-header { display: flex; }
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; width: 100%; padding: 100px 20px 30px 20px; }
-        }
-    </style>
-</head>
-<body>
-
-    <div class="mobile-header">
-        <div style="font-weight: 800; color: #fff; font-size: 20px;">HANS<span>WIFI</span></div>
-        <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
-    </div>
-
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-brand">HANS<span>WIFI</span></div>
-        <ul class="sidebar-menu">
-            <li><a href="#dashboard" class="active" onclick="switchTab('dashboard', event)">📊 Dashboard</a></li>
-            <li><a href="#packages" onclick="switchTab('packages', event)">📦 Packages</a></li>
-            <li><a href="#vouchers" onclick="switchTab('vouchers', event)">🎟️ Vouchers</a></li>
-            <li><a href="#users" onclick="switchTab('users', event)">👥 Connected Users</a></li>
-            <li><a href="#settings" onclick="switchTab('settings', event)">⚙️ Gateway Settings</a></li>
-        </ul>
-    </div>
-
-    <div class="main-content">
-
-        <!-- DASHBOARD TAB -->
-        <div id="tab-dashboard" class="tab-panel active">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>Today's Revenue</h3>
-                    <div class="value">TZS {{ today_revenue }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Monthly Revenue</h3>
-                    <div class="value">TZS {{ monthly_revenue }}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Active Users Online</h3>
-                    <div class="value" style="color: var(--success-color);">{{ online_users_count }}</div>
-                </div>
-            </div>
-
-            <div class="box">
-                <div class="box-title" style="margin-bottom: 20px;">🚀 Quick Actions</div>
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="switchTab('vouchers'); toggleForm('new-voucher-box');">+ Generate Voucher</button>
-                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');">+ Add New Package</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- PACKAGES TAB -->
-        <div id="tab-packages" class="tab-panel">
-            <div class="box">
-                <div class="box-header">
-                    <div>
-                        <div class="box-title">Internet Packages</div>
-                        <p style="font-size: 14px; color: var(--text-sub); margin-top: 6px;">Manage the plans visible on your captive portal.</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-package-box')">+ Create Package</button>
-                </div>
-
-                <div id="new-package-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
-                    <form action="/admin/packages/create" method="POST">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Package Title</label>
-                                <input type="text" name="name" placeholder="e.g. 6 Hours Unlimited" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Price (TZS)</label>
-                                <input type="number" name="price" placeholder="500" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Duration Value</label>
-                                <input type="number" name="duration" placeholder="6" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Duration Unit</label>
-                                <select name="unit">
-                                    <option value="minutes">Minutes</option>
-                                    <option value="hours" selected>Hours</option>
-                                    <option value="days">Days</option>
-                                    <option value="months">Months</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Offline Time Policy</label>
-                                <select name="pause_on_user_offline" required>
-                                    <option value="true" selected>Pause timer when user is offline</option>
-                                    <option value="false">Continue timer even when user is offline</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Custom Badge (Optional)</label>
-                                <input type="text" name="badge" placeholder="e.g. Pendwa">
-                            </div>
-                            <div class="form-group" style="grid-column: 1 / -1;">
-                                <label>Description</label>
-                                <textarea name="description" rows="2" placeholder="Wateja wanaotaka intaneti..."></textarea>
-                            </div>
-                        </div>
-                        <div style="margin-top: 24px; display: flex; gap: 12px;">
-                            <button type="submit" class="btn btn-primary">Save Package</button>
-                            <button type="button" class="btn btn-secondary" onclick="toggleForm('new-package-box')">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="package-grid">
-                    {% for p in packages %}
-                    <div class="package-card">
-                        <div>
-                            {% if p.badge %}
-                            <div style="margin-bottom: 10px;"><span class="badge badge-custom">{{ p.badge }}</span></div>
-                            {% endif %}
-                            <div class="package-title">{{ p.name }}</div>
-                            <div class="package-desc">{{ p.description or 'Standard Internet Access' }}</div>
-                        </div>
-                        <div>
-                            <div class="package-price">TZS {{ "{:,.0f}".format(p.price) }}</div>
-                            <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }} of access</div>
-                            <div style="display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="openEditModal('{{ p._id }}', '{{ p.name | escape }}', '{{ p.price }}', '{{ p.duration_value }}', '{{ p.duration_unit }}', '{{ (p.badge or '') | escape }}', '{{ (p.description or '') | escape }}')">Edit</button>
-                                <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="flex: 1; color: var(--danger-color); justify-content: center;" onclick="return confirm('Delete this package?');">Delete</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <p style="color: var(--text-sub);">No packages created yet.</p>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-
-        <!-- EDIT PACKAGE MODAL -->
-        <div id="edit-package-modal" class="modal-bg hidden">
-            <div class="box" style="width: 100%; max-width: 520px; background: #fff; margin-bottom: 0;">
-                <div class="box-title" style="margin-bottom: 16px;">Edit Package</div>
-                <form id="edit-package-form" method="POST">
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Package Title / Name</label>
-                        <input type="text" id="edit-name" name="name" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Price (TZS)</label>
-                        <input type="number" id="edit-price" name="price" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Duration Value</label>
-                        <input type="number" id="edit-duration" name="duration" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Duration Unit</label>
-                        <select id="edit-unit" name="unit">
-                            <option value="minutes">Minutes</option>
-                            <option value="hours">Hours</option>
-                            <option value="days">Days</option>
-                            <option value="months">Months</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Offline Time Policy</label>
-                        <select id="edit-pause-offline" name="pause_on_user_offline">
-                            <option value="true">Pause timer when user is offline</option>
-                            <option value="false">Continue timer even when user is offline</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label>Custom Badge (Optional)</label>
-                        <input type="text" id="edit-badge" name="badge">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label>Description</label>
-                        <textarea id="edit-description" name="description" rows="2"></textarea>
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Update Package</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- VOUCHERS TAB -->
-        <div id="tab-vouchers" class="tab-panel">
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">Vouchers Management</div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')">+ Generate Vouchers</button>
-                </div>
-
-                <div id="new-voucher-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
-                    <form action="/admin/generate" method="POST">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Select Package</label>
-                                <select name="package_id" required>
-                                    <option value="" disabled selected>-- Choose Package --</option>
-                                    {% for p in packages %}
-                                    <option value="{{ p._id }}">{{ p.name }} - TZS {{ p.price }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group"><label>Quantity</label><input type="number" name="quantity" value="1" min="1" max="200"></div>
-                            <div class="form-group"><label>Custom Code (Optional)</label><input type="text" name="custom_code" placeholder="e.g. VIP2026"></div>
-                            <div class="form-group"><label>Expiration Date (Optional)</label><input type="datetime-local" name="expire_at"></div>
-                            <div class="form-group"><label>Note (Optional)</label><input type="text" name="note" placeholder="e.g. Counter 1"></div>
-                        </div>
-                        <div style="margin-top: 24px; display: flex; gap: 12px;">
-                            <button type="submit" class="btn btn-primary">Generate & Print</button>
-                            <button type="button" class="btn btn-secondary" onclick="toggleForm('new-voucher-box')">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-                <form method="GET" action="/admin#vouchers" class="mb-4 flex gap-2">
-    <input 
-        type="text" 
-        name="q" 
-        value="{{ search_query or '' }}" 
-        placeholder="Search code, MAC, package..." 
-        class="px-3 py-2 bg-slate-900 border border-slate-700 text-white rounded-md w-72 focus:outline-none focus:border-blue-500"
-    >
-    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition">
-        Search
-    </button>
-    {% if search_query %}
-        <a href="/admin#vouchers" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md text-sm flex items-center">
-            Clear
-        </a>
-    {% endif %}
-</form>
-                <!-- FILTER SELECTOR -->
-<div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
-    <label style="font-size: 13px; font-weight: 700; color: var(--text-sub);">FILTER STATUS:</label>
-    <select id="voucher-status-filter" class="form-group" style="padding: 8px 12px; font-size: 13px;" onchange="filterVouchers()">
-        <option value="all">All Statuses</option>
-        <option value="unused">Unused</option>
-        <option value="active">Active</option>
-        <option value="revoked">Revoked</option>
-        <option value="expired">Expired</option>
-    </select>
-</div>
-
-<!-- VOUCHERS TABLE -->
-<div class="table-responsive">
-    <table id="vouchers-table" class="paginated-table" data-page-size="25">
-        <thead>
-            <tr>
-                <th>Code</th>
-                <th>Package</th>
-                <th>Status</th>
-                <th>MAC Address</th>
-                <th>Used At</th>
-                <th>Expire Date</th>
-                <th>Note</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for v in vouchers %}
-            <tr data-status="{{ v.computed_status | lower }}">
-                <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
-                <td>{{ v.package_name or 'Custom' }}</td>
-                <td>
-                    <span class="badge st-{{ 'active' if v.computed_status == 'ACTIVE' else (v.computed_status | lower) }}">
-                        {{ v.computed_status }}
-                    </span>
-                </td>
-                <td><span style="font-family: monospace;">{{ v.used_by_mac or '-' }}</span></td>
-                <td>{{ v.used_at.strftime('%Y-%m-%d %H:%M') if v.used_at else '-' }}</td>
-                
-                <!-- Expire Date Column Rule -->
-                <td>
-                    {% if v.computed_status == 'UNUSED' and v.expire_at %}
-                        {{ v.expire_at.strftime('%Y-%m-%d %H:%M') }}
-                    {% else %}
-                        No Expire
-                    {% endif %}
-                </td>
-
-                <td>{{ v.note or '-' }}</td>
-
-                <!-- Action Button Rule -->
-                <td>
-                    {% if v.computed_status == 'UNUSED' %}
-                        <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
-                    {% elif v.computed_status == 'ACTIVE' %}
-                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
-                    {% elif v.computed_status == 'REVOKED' %}
-                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
-                    {% elif v.computed_status == 'EXPIRED' %}
-                        <span style="color: var(--text-sub); font-size: 13px;">-</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-                <div class="pagination"></div>
-            </div>
-        </div>
-
-        <!-- USERS TAB -->
-        <div id="tab-users" class="tab-panel">
-            <div class="box">
-                <div class="box-header">
-                    <div class="box-title">Connected Users Insights</div>
-                    <div style="display: flex; gap: 8px;">
-                        <button id="btn-fewer" class="btn btn-primary btn-sm" onclick="toggleUserView('fewer')">Fewer Details</button>
-                        <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details</button>
-                    </div>
-                </div>
-
-                <!-- FEWER DETAILS -->
-                <div id="user-view-fewer">
-                    <div class="table-responsive">
-                        <table id="users-fewer-table" class="paginated-table" data-page-size="25">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 0)">MAC Address ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 1)">Status ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 2, true)">Vouchers Bought ↕</th>
-                                    <th class="sortable" onclick="sortTable('users-fewer-table', 3, true)">Total Spend ↕</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in user_summary %}
-                                <tr>
-                                    <td style="font-family: monospace;"><b>{{ u.mac }}</b></td>
-                                    <td><span class="badge st-{{ u.status | lower }}">{{ u.status | upper }}</span></td>
-                                    <td>{{ u.vouchers_count }}</td>
-                                    <td>TZS {{ "{:,.0f}".format(u.total_spend) }}</td>
-                                </tr>
-                                {% else %}
-                                <tr><td colspan="4" style="text-align: center; color: var(--text-sub); padding: 30px;">No user records available.</td></tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination"></div>
-                </div>
-
-                <!-- MORE DETAILS -->
-                <div id="user-view-more" class="hidden">
-    <!-- SEARCH & STATUS FILTERS -->
-    <div style="margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-        <input 
-            type="text" 
-            id="moreDetailsSearchInput" 
-            onkeyup="searchMoreDetailsTable()" 
-            placeholder="🔍 Search Voucher Code or MAC Address..." 
-            style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; width: 300px; font-size: 14px;"
-        >
-
-        <div style="display: flex; gap: 8px;">
-            <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
-            <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
-            <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
-        </div>
-    </div>
-
-    <!-- TABLE WITH DETAILED REPORT -->
-    <div class="table-responsive">
-        <table class="paginated-table" id="userAnalyticsTable" data-page-size="25">
-            <thead>
-                <tr>
-                    <th class="sortable" onclick="sortTable('userAnalyticsTable', 0)">MAC Address ↕</th>
-                    <th>Phone Number</th>
-                    <th>Voucher Code</th>
-                    <th class="sortable" onclick="sortTable('userAnalyticsTable', 4)">Time Window (Date) ↕</th>
-                    <th>Duration</th>
-                    <th>Used Time (mins) / Time Window</th>
-                    <th>Total Used Time (dd:hh:mm)</th>
-                    <th>Offline Policy</th>
-                    <th>Sites Visited Logs</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in detailed_report %}
-                <tr class="user-row" data-status="{{ item.connection_status }}">
-                    <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
-                    <td><b>{{ item.phone_number }}</b></td>
-                    <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
-                    <td data-sort="{{ item.time_raw }}">{{ item.time_label }}</td>
-                    <td>{{ item.duration_formatted }}</td>
-                    <td style="font-weight: 700; color: var(--accent-color);">{{ item.used_mins_ratio }}</td>
-                    <td style="font-family: monospace; font-weight: 700; color: #10b981;">{{ item.total_used_ddhhmm }}</td>
-                    <td><span class="badge" style="background:#e2e8f0; color:#334155;">{{ item.offline_policy }}</span></td>
-                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.visited_sites }}">
-                        <code>{{ item.visited_sites }}</code>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="10" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <div class="pagination"></div>
-</div>
-            </div>
-        </div>
-
-        <!-- SETTINGS TAB (SNMP REMOVED) -->
-        <div id="tab-settings" class="tab-panel">
-            <div class="box">
-                <div class="box-title" style="margin-bottom: 24px;">⚙️ Gateway Configuration</div>
-                <form action="/admin/settings/update" method="POST">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Gateway IP Address</label>
-                            <input type="text" name="gw_address" value="{{ settings.gw_address }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Gateway Port (Default: 2060)</label>
-                            <input type="text" name="gw_port" value="{{ settings.gw_port }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Router Gateway ID</label>
-                            <input type="text" name="gw_id" value="{{ settings.gw_id }}" required>
-                        </div>
-                    </div>
-                    <div style="margin-top: 30px;">
-                        <button type="submit" class="btn btn-primary">Save Settings</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- JAVASCRIPT FOR UI INTERACTION & PAGINATION -->
-    <script>
-        function toggleSidebar() { 
-            document.getElementById('sidebar').classList.toggle('open'); 
-        }
-
-        function switchTab(tabId, e) {
-            if(e) e.preventDefault();
-            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            
-            const targetTab = document.getElementById('tab-' + tabId);
-            if(targetTab) targetTab.classList.add('active');
-            
-            const activeLink = document.querySelector(`.sidebar-menu a[href="#${tabId}"]`);
-            if(activeLink) activeLink.classList.add('active');
-        }
-
-        function toggleForm(id) { 
-            document.getElementById(id).classList.toggle('hidden'); 
-        }
-
-        function openEditModal(id, name, price, duration, unit, badge, desc) {
-            document.getElementById('edit-package-form').action = '/admin/packages/edit/' + id;
-            document.getElementById('edit-name').value = name;
-            document.getElementById('edit-price').value = price;
-            document.getElementById('edit-duration').value = duration;
-            document.getElementById('edit-unit').value = unit;
-            document.getElementById('edit-badge').value = badge;
-            document.getElementById('edit-description').value = desc;
-            document.getElementById('edit-package-modal').classList.remove('hidden');
-        }
-
-        function closeEditModal() {
-            document.getElementById('edit-package-modal').classList.add('hidden');
-        }
-
-        function toggleUserView(type) {
-            const fewer = document.getElementById('user-view-fewer');
-            const more = document.getElementById('user-view-more');
-            const btnFewer = document.getElementById('btn-fewer');
-            const btnMore = document.getElementById('btn-more');
-
-            if(type === 'fewer') {
-                fewer.classList.remove('hidden');
-                more.classList.add('hidden');
-                btnFewer.className = 'btn btn-primary btn-sm';
-                btnMore.className = 'btn btn-secondary btn-sm';
-                paginateTable(document.getElementById('users-fewer-table'));
-            } else {
-                fewer.classList.add('hidden');
-                more.classList.remove('hidden');
-                btnFewer.className = 'btn btn-secondary btn-sm';
-                btnMore.className = 'btn btn-primary btn-sm';
-                paginateTable(document.getElementById('userAnalyticsTable'));
-            }
-        }
-
-        function filterUsers(status, btnElement) {
-            if (btnElement) {
-                document.querySelectorAll('.user-filter-btn').forEach(btn => {
-                    btn.className = 'btn btn-secondary btn-sm user-filter-btn';
-                });
-                btnElement.className = 'btn btn-primary btn-sm user-filter-btn';
-            }
-
-            const rows = document.querySelectorAll('.user-row');
-            rows.forEach(row => {
-                const rowStatus = row.getAttribute('data-status');
-                if (status === 'all' || rowStatus === status) {
-                    row.classList.remove('filtered-out');
-                } else {
-                    row.classList.add('filtered-out');
-                }
-            });
-
-            const table = document.getElementById('userAnalyticsTable');
-            if (table) {
-                table.setAttribute('data-current-page', 1);
-                paginateTable(table);
-            }
-        }
-
-        function sortTable(tableId, colIndex, isNumeric = false) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            let dir = table.getAttribute('data-sort-dir') === 'asc' ? 'desc' : 'asc';
-
-            rows.sort((a, b) => {
-                let valA = a.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
-                let valB = b.children[colIndex].innerText.replace(/[^0-9.-]+/g, "").trim();
-
-                if (!isNumeric) {
-                    valA = a.children[colIndex].innerText.toLowerCase();
-                    valB = b.children[colIndex].innerText.toLowerCase();
-                    return dir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                }
-
-                return dir === 'asc' ? (parseFloat(valA) - parseFloat(valB)) : (parseFloat(valB) - parseFloat(valA));
-            });
-
-            table.setAttribute('data-sort-dir', dir);
-            rows.forEach(row => tbody.appendChild(row));
-            table.setAttribute('data-current-page', 1);
-            paginateTable(table);
-        }
-
-        function filterVouchers() {
-            const filter = document.getElementById('voucher-status-filter').value.toLowerCase();
-            const rows = document.querySelectorAll('#vouchers-table tbody tr');
-            
-            rows.forEach(r => {
-                const st = r.getAttribute('data-status');
-                if (filter === 'all' || st === filter) {
-                    r.classList.remove('filtered-out');
-                } else {
-                    r.classList.add('filtered-out');
-                }
-            });
-
-            const table = document.getElementById('vouchers-table');
-            table.setAttribute('data-current-page', 1);
-            paginateTable(table);
-        }
-
-        function paginateTable(table) {
-            if (!table) return;
-
-            const pageSize = parseInt(table.getAttribute('data-page-size')) || 25;
-            const allRows = Array.from(table.querySelectorAll('tbody tr'));
-            const validRows = allRows.filter(r => !r.classList.contains('filtered-out'));
-            
-            const totalRows = validRows.length;
-            const totalPages = Math.ceil(totalRows / pageSize) || 1;
-            const container = table.closest('.box, #user-view-fewer, #user-view-more').querySelector('.pagination');
-
-            let currentPage = parseInt(table.getAttribute('data-current-page')) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIdx = (currentPage - 1) * pageSize;
-            const endIdx = startIdx + pageSize;
-
-            allRows.forEach(r => r.style.display = 'none');
-            validRows.forEach((r, idx) => {
-                if (idx >= startIdx && idx < endIdx) {
-                    r.style.display = '';
-                }
-            });
-
-            if (!container) return;
-
-            if (totalRows <= pageSize) {
-                container.innerHTML = `<span>Kuonyesha record ${totalRows}</span>`;
-                return;
-            }
-
-            container.innerHTML = `
-                <span>Kuonyesha ${startIdx + 1}-${Math.min(endIdx, totalRows)} kati ya ${totalRows}</span>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary btn-sm" 
-                            ${currentPage === 1 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
-                            onclick="changePage('${table.id}',${currentPage - 1})">
-                        Previous
-                    </button>
-                    <button class="btn btn-primary btn-sm" 
-                            ${currentPage === totalPages ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''} 
-                            onclick="changePage('${table.id}',${currentPage + 1})">
-                        Next (${currentPage}/${totalPages})
-                    </button>
-                </div>
-            `;
-        }
-        function searchMoreDetailsTable() {
-            const input = document.getElementById('moreDetailsSearchInput').value.toLowerCase();
-            const rows = document.querySelectorAll('#userAnalyticsTable tbody tr.user-row');
-
-            rows.forEach(row => {
-                const mac = row.children[0].innerText.toLowerCase();
-                const voucher = row.children[2].innerText.toLowerCase();
-            
-                if (mac.includes(input) || voucher.includes(input)) {
-                    row.classList.remove('filtered-out');
-                } else {
-                    row.classList.add('filtered-out');
-                }
-            });
-
-            const table = document.getElementById('userAnalyticsTable');
-            table.setAttribute('data-current-page', 1);
-            paginateTable(table);
-        }
-        function changePage(tableId, targetPage) {
-            const table = document.getElementById(tableId);
-            if (table) {
-                table.setAttribute('data-current-page', targetPage);
-                paginateTable(table);
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            const hash = window.location.hash.replace('#', '') || 'dashboard';
-            switchTab(hash);
-            
-            document.querySelectorAll('table.paginated-table').forEach(t => {
-                t.setAttribute('data-current-page', 1);
-                paginateTable(t);
-            });
-        });
+def format_time_window(start_time, current_time):
+    """
+    Formats the time window based on specific rules:
+    - If online this hour: 'Now'
+    - If previous hours today: 'HH:MM' (24-hour)
+    - If previous days: 'YYYY-MM-DD HH:MM'
+    """
+    if not start_time:
+        return "Unknown"
+    
+    if start_time.tzinfo is None:
+        start_time = start_time.replace(tzinfo=timezone.utc)
+    if current_time.tzinfo is None:
+        current_time = current_time.replace(tzinfo=timezone.utc)
         
-    </script>
-</body>
-</html>
+    # Standardize to East Africa Time (EAT, UTC+3) for sensible local day boundaries
+    local_start = start_time + timedelta(hours=3)
+    local_now = current_time + timedelta(hours=3)
+    
+    if local_start.date() == local_now.date():
+        if local_start.hour == local_now.hour:
+            return "Now"
+        else:
+            return local_start.strftime("%H:%M")
+    else:
+        return local_start.strftime("%Y-%m-%d %H:%M")
+
+def format_bytes(bytes_count):
+    if not bytes_count or bytes_count <= 0:
+        return "0 MB"
+    mb = bytes_count / (1024 * 1024)
+    if mb >= 1024:
+        return f"{mb / 1024:.2f} GB"
+    return f"{mb:.2f} MB"
+
+def clean_mac(mac_str):
+    if not mac_str or mac_str.startswith("UNKNOWN"):
+        return mac_str
+    return mac_str.replace(":", "").replace("-", "").strip().upper()
+
+def get_client_mac():
+    for key in ['mac', 'usermac', 'client_mac', 'client-mac']:
+        val = get_param(key)
+        if val:
+            return clean_mac(val)
+    return f"UNKNOWN:{secrets.token_hex(4).upper()}"
+
+
+# ==========================================
+# CAPTIVE PORTAL ROUTES
+# ==========================================
+
+@app.route('/')
+@app.route('/portal')
+@app.route('/portal/')
+@app.route('/index.html')
+@app.route('/login.html')
+@app.route('/wifidog/portal')
+@app.route('/wifidog/portal/')
+@app.route('/api/wifidog/portal')
+@app.route('/api/wifidog/portal/')
+def captive_login_page():
+    mac = get_client_mac()
+    gw_address = get_gateway_address()
+    gw_port = get_param('gw_port', '2060')
+    gw_id = get_param('gw_id', 'Gateway')
+    userurl = get_param('url') or get_param('userurl') or 'http://www.google.com'
+
+    logger.info(f"Portal page requested by MAC: {mac} via Gateway IP: {gw_address}")
+
+    now = datetime.now(timezone.utc)
+    if mac and not mac.startswith("UNKNOWN"):
+        try:
+            active_session = sessions_col.find_one({"_id": mac, "expire_date": {"$gt": now}})
+            if active_session:
+                logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
+                
+                # --- CREATE A NEW ROW (LOG) FOR AUTO RECONNECT ---
+                db = vouchers_col.database
+                connection_logs_col = db.connection_logs
+                session_log_id = ObjectId()
+                connection_logs_col.insert_one({
+                    "_id": session_log_id,
+                    "mac": mac,
+                    "code": active_session.get("code"),
+                    "start_time": now,
+                    "last_active": now,
+                    "session_used_minutes": 0,
+                    "visited_sites": ["google.com", "whatsapp.com"]
+                })
+                # Link log to active session
+                sessions_col.update_one({"_id": mac}, {"$set": {"current_log_id": session_log_id}})
+
+                token = secrets.token_hex(16)
+                tokens_col.insert_one({
+                    "token": token,
+                    "mac": mac,
+                    "code": active_session.get("code"),
+                    "expire_date": active_session.get("expire_date"),
+                    "created_at": now
+                })
+                
+                auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+                return redirect(auth_action_url)
+        except Exception as e:
+            logger.error(f"Error checking active session during portal load: {str(e)}")
+
+    return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl), 200
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return Response(status=204)
+
+
+@app.route('/login', methods=['POST'])
+def process_login():
+    code = request.form.get('voucher', '').strip()
+    mac = clean_mac(get_client_mac())
+    gw_address = get_gateway_address()
+    gw_port = get_param('gw_port', '2060')
+    gw_id = get_param('gw_id', 'Gateway')
+    userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
+
+    now = datetime.now(timezone.utc)
+
+    try:
+        voucher = vouchers_col.find_one({"code": code})
+    except Exception as e:
+        logger.error(f"Database error while checking voucher {code}: {str(e)}")
+        voucher = None
+
+    # Only UNUSED vouchers can be redeemed
+    if not voucher or voucher.get("status") != "UNUSED":
+        error_msg = "Vocha hii siyo sahihi au ishatumika."
+        if voucher and voucher.get("status") == "REVOKED":
+            error_msg = "Vocha hii imesitishwa au kufutwa."
+        return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl, error=error_msg)
+
+    duration_minutes = voucher['duration_minutes']
+    session_expire_date = now + timedelta(minutes=duration_minutes)
+
+    # --- CREATE A NEW ROW (LOG) ON FIRST LOGIN ---
+    db = vouchers_col.database
+    connection_logs_col = db.connection_logs
+    session_log_id = ObjectId()
+    connection_logs_col.insert_one({
+        "_id": session_log_id,
+        "mac": mac,
+        "code": code,
+        "start_time": now,
+        "last_active": now,
+        "session_used_minutes": 0,
+        "visited_sites": ["google.com", "whatsapp.com"]
+    })
+
+    token = secrets.token_hex(16)
+    
+    tokens_col.insert_one({
+        "token": token, "mac": mac, "code": code,
+        "expire_date": session_expire_date, "created_at": now
+    })
+
+    sessions_col.replace_one(
+        {"_id": mac},
+        {
+            "_id": mac, "code": code, "used_time": now, 
+            "expire_date": session_expire_date, "duration_minutes": duration_minutes, 
+            "bytes_used": 0, "status": "ACTIVE", "current_log_id": session_log_id
+        },
+        upsert=True
+    )
+    
+    # Mark voucher as USED and set active session expiration date
+    vouchers_col.update_one(
+        {"code": code},
+        {"$set": {
+            "status": "USED",
+            "used_by_mac": mac,
+            "used_at": now,
+            "session_expire_date": session_expire_date,
+            "expire_at": None
+        }}
+    )
+
+    auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
+
+    success_html = f"""
+    <!DOCTYPE html>
+    <html lang="sw">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Connecting...</title>
+        <style>
+            body {{ background: #0f172a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }}
+            .loader {{ border: 4px solid rgba(255,255,255,0.1); border-left-color: #10b981; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }}
+            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+            .card {{ background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-width: 90%; width: 400px; }}
+            h2 {{ margin-top: 0; color: #34d399; font-size: 24px; }}
+            p {{ color: #94a3b8; font-size: 15px; margin-bottom: 30px; line-height: 1.5; }}
+            .btn-manual {{ display: inline-block; padding: 10px 20px; background: rgba(255,255,255,0.05); color: #cbd5e1; border-radius: 8px; text-decoration: none; font-size: 14px; transition: background 0.2s; }}
+            .btn-manual:hover {{ background: rgba(255,255,255,0.1); }}
+        </style>
+        <script>
+            setTimeout(function() {{ window.location.href = "{auth_action_url}"; }}, 2500);
+        </script>
+    </head>
+    <body>
+        <div class="card">
+            <div class="loader"></div>
+            <h2>Imekubali! 🚀</h2>
+            <p>Vocha yako ni sahihi.<br>Tafadhali subiri kidogo tunakuunganisha na mtandao...</p>
+            <a href="{auth_action_url}" class="btn-manual">Bofya hapa kama inachelewa</a>
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(success_html)
+
+def extract_byte_count(req):
+    """
+    Extracts incoming and outgoing bytes directly from WifiDog telemetry payload.
+    Checks both GET (req.args) and POST (req.form) via req.values.
+    """
+    incoming = 0
+    outgoing = 0
+
+    download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'bytes-in', 'rx', 'down']
+    upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'bytes-out', 'tx', 'up']
+
+    payload = req.values.to_dict()
+    if payload.get('stage') == 'counters' or any(k in payload for k in download_keys):
+        logger.info(f"Telemetry Payload Received: {payload}")
+
+    for key in download_keys:
+        val = req.values.get(key)
+        if val is not None:
+            try:
+                incoming = int(str(val).strip())
+                if incoming > 0: break
+            except ValueError:
+                continue
+
+    for key in upload_keys:
+        val = req.values.get(key)
+        if val is not None:
+            try:
+                outgoing = int(str(val).strip())
+                if outgoing > 0: break
+            except ValueError:
+                continue
+
+    return incoming + outgoing
+
+def update_session_data_usage(mac, total_bytes, session_doc):
+    """
+    Safely increments data consumption. Prevents data from resetting to 0 
+    if the router restarts its counters upon user reconnect.
+    """
+    if total_bytes <= 0:
+        return
+
+    current_session_bytes = session_doc.get("current_session_bytes", 0)
+    accumulated_bytes = session_doc.get("accumulated_bytes", 0)
+    
+    if total_bytes < current_session_bytes:
+        accumulated_bytes += current_session_bytes
+        current_session_bytes = total_bytes
+    else:
+        current_session_bytes = total_bytes
+        
+    grand_total = accumulated_bytes + current_session_bytes
+    
+    sessions_col.update_one(
+        {"_id": mac}, 
+        {"$set": {
+            "current_session_bytes": current_session_bytes, 
+            "accumulated_bytes": accumulated_bytes,
+            "bytes_used": grand_total
+        }}
+    )
+    
+    voucher_code = session_doc.get("code")
+    if voucher_code:
+        vouchers_col.update_one(
+            {"code": voucher_code}, 
+            {"$set": {"data_consumed_bytes": grand_total}}
+        )
+
+# ==========================================
+# WIFIDOG AUTH CHECK (TELEMETRY)
+# ==========================================
+
+@app.route('/auth', methods=['GET', 'POST'])
+@app.route('/auth/', methods=['GET', 'POST'])
+@app.route('/wifidog/auth', methods=['GET', 'POST'])
+@app.route('/wifidog/auth/', methods=['GET', 'POST'])
+@app.route('/api/wifidog/auth', methods=['GET', 'POST'])
+@app.route('/api/wifidog/auth/', methods=['GET', 'POST'])
+def wifidog_auth_check():
+    token = request.values.get('token', '').strip()
+    stage = request.values.get('stage', '').strip()
+    mac = clean_mac(request.values.get('mac', ''))
+    now = datetime.now(timezone.utc)
+    db = vouchers_col.database
+
+    if stage == 'logout':
+        if mac:
+            sessions_col.delete_one({"_id": mac})
+            tokens_col.delete_many({"mac": mac})
+        return Response("Auth: 0\n", mimetype='text/plain')
+
+    if not mac and token:
+        token_doc = tokens_col.find_one({"token": token})
+        if token_doc:
+            mac = clean_mac(token_doc.get("mac", ""))
+
+    if not mac:
+        return Response("Auth: 0\n", mimetype='text/plain')
+
+    session_doc = sessions_col.find_one({"_id": mac})
+
+    if session_doc:
+        exp = session_doc.get('expire_date')
+        if exp and exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+
+        if exp and exp > now:
+            total_bytes = extract_byte_count(request)
+            update_session_data_usage(mac, total_bytes, session_doc)
+            
+            # --- Update Connection Log Session Timer ---
+            log_id = session_doc.get("current_log_id")
+            if log_id:
+                log_doc = db.connection_logs.find_one({"_id": log_id})
+                if log_doc:
+                    start_time = log_doc.get("start_time", now)
+                    elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
+                    db.connection_logs.update_one(
+                        {"_id": log_id},
+                        {"$set": {"last_active": now, "session_used_minutes": elapsed_mins}}
+                    )
+
+            return Response("Auth: 1\n", mimetype='text/plain')
+
+    tokens_col.delete_many({"mac": mac})
+    sessions_col.delete_one({"_id": mac, "expire_date": {"$lte": now}})
+    return Response("Auth: 0\n", mimetype='text/plain')
+
+
+@app.route('/ping', methods=['GET', 'POST'])
+@app.route('/ping/', methods=['GET', 'POST'])
+@app.route('/wifidog/ping', methods=['GET', 'POST'])
+@app.route('/wifidog/ping/', methods=['GET', 'POST'])
+@app.route('/api/wifidog/ping', methods=['GET', 'POST'])
+@app.route('/api/wifidog/ping/', methods=['GET', 'POST'])
+def wifidog_ping():
+    mac = clean_mac(request.values.get('mac', ''))
+    now = datetime.now(timezone.utc)
+    db = vouchers_col.database
+    
+    total_bytes = extract_byte_count(request)
+
+    if mac and total_bytes > 0:
+        session_doc = sessions_col.find_one({"_id": mac})
+        if session_doc:
+            update_session_data_usage(mac, total_bytes, session_doc)
+            
+            # --- Update Connection Log Session Timer via Ping ---
+            log_id = session_doc.get("current_log_id")
+            if log_id:
+                log_doc = db.connection_logs.find_one({"_id": log_id})
+                if log_doc:
+                    start_time = log_doc.get("start_time", now)
+                    elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
+                    db.connection_logs.update_one(
+                        {"_id": log_id},
+                        {"$set": {"last_active": now, "session_used_minutes": elapsed_mins}}
+                    )
+                
+    return Response("Pong\n", mimetype='text/plain')
+
+
+@app.errorhandler(404)
+def handle_404(e):
+    path = request.path.lower()
+    if 'favicon.ico' in path: return Response(status=204)
+    if 'ping' in path: return wifidog_ping()
+    if path.startswith('/wifidog') or path.startswith('/api/wifidog') or 'auth' in path:
+        return Response("Not Found\n", status=404, mimetype='text/plain')
+    return captive_login_page()
+
+
+# ==========================================
+# ADMIN DASHBOARD ROUTES
+# ==========================================
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        if request.form.get('password') == ADMIN_PW:
+            session['admin'] = True
+            return redirect('/admin')
+        return render_template('admin_login.html', error="Nenosiri sio sahihi!")
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin', None)
+    return redirect('/admin/login')
+
+def cleanup_expired_vouchers():
+    """Deletes UNUSED vouchers from the database once their expire_at date has passed."""
+    now = datetime.now(timezone.utc)
+    vouchers_col.delete_many({
+        "status": "UNUSED",
+        "expire_at": {"$ne": None, "$lte": now}
+    })
+
+@app.route('/admin')
+def admin_dashboard():
+    if not session.get('admin'):
+        return redirect('/admin/login')
+    cleanup_expired_vouchers()
+    now = datetime.now(timezone.utc)
+    db = vouchers_col.database
+    connection_logs_col = db.connection_logs
+
+    # 1. Capture search query
+    search_query = request.args.get('q', '').strip()
+
+    # 2. Build MongoDB search filter
+    voucher_filter = {}
+    if search_query:
+        voucher_filter = {
+            "$or": [
+                {"code": {"$regex": search_query, "$options": "i"}},
+                {"used_by_mac": {"$regex": search_query, "$options": "i"}},
+                {"phone_number": {"$regex": search_query, "$options": "i"}},
+                {"note": {"$regex": search_query, "$options": "i"}},
+                {"package_name": {"$regex": search_query, "$options": "i"}}
+            ]
+        }
+
+    active_sessions_cursor = list(sessions_col.find({"expire_date": {"$gt": now}}))
+    active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
+    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    packages = list(packages_col.find().sort("created_at", -1))
+    vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
+    used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
+    active_vouchers_count = 0
+    
+    for v in vouchers:
+        status = v.get("status", "UNUSED")
+        used_by_mac = v.get("used_by_mac")
+        session_exp = v.get("session_expire_date")
+        
+        if not used_by_mac or status == "UNUSED":
+            v["computed_status"] = "UNUSED"
+        else:
+            if session_exp and session_exp.tzinfo is None:
+                session_exp = session_exp.replace(tzinfo=timezone.utc)
+
+            if session_exp and now >= session_exp:
+                v["computed_status"] = "EXPIRED"
+            else:
+                if status == "REVOKED":
+                    v["computed_status"] = "REVOKED"
+                else:
+                    v["computed_status"] = "ACTIVE"
+                    active_vouchers_count += 1
+
+    # SUMMARY VIEW - FEWER DETAILS
+    mac_agg = {}
+    for v in used_vouchers:
+        mac = v.get("used_by_mac")
+        if not mac: continue
+        is_online = mac in active_sessions_map
+        connection_status = "online" if is_online else "offline"
+        if mac not in mac_agg:
+            mac_agg[mac] = {"mac": mac, "status": connection_status, "vouchers_count": 0, "total_spend": 0.0}
+        mac_agg[mac]["vouchers_count"] += 1
+        mac_agg[mac]["total_spend"] += float(v.get("price", 0.0))
+    user_summary = list(mac_agg.values())
+
+    # DETAILED REPORT VIEW - MORE DETAILS (Now relies on the Session Logs)
+    detailed_report = []
+    # Fetch logs, sorting newest sessions first
+    all_logs = list(connection_logs_col.find().sort("start_time", -1).limit(300))
+    
+    for log in all_logs:
+        mac = log.get("mac")
+        code = log.get("code")
+        start_time = log.get("start_time")
+        session_used_mins = log.get("session_used_minutes", 0)
+        
+        voucher = vouchers_col.find_one({"code": code})
+        if not voucher: 
+            continue
+            
+        phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
+        duration_mins = voucher.get("duration_minutes", 0)
+        pause_offline = voucher.get("pause_on_user_offline", False)
+        
+        # Calculate Total Used Time based on voucher rules
+        if pause_offline:
+            # If pause offline is ON, total time is the sum of ALL sessions for this voucher
+            voucher_logs = list(connection_logs_col.find({"code": code}))
+            total_used_mins = sum(l.get("session_used_minutes", 0) for l in voucher_logs)
+        else:
+            # If pause offline is OFF, total time is standard elapsed time from the very first usage
+            used_at = voucher.get("used_at")
+            if used_at:
+                if used_at.tzinfo is None: used_at = used_at.replace(tzinfo=timezone.utc)
+                session_exp = voucher.get("session_expire_date")
+                if session_exp and session_exp.tzinfo is None: session_exp = session_exp.replace(tzinfo=timezone.utc)
+                end_time = min(now, session_exp) if session_exp else now
+                total_used_mins = int(max(0, (end_time - used_at).total_seconds() / 60.0))
+            else:
+                total_used_mins = 0
+
+        detailed_report.append({
+            "mac": mac,
+            "phone_number": phone_number,
+            "voucher_code": code,
+            "time_label": format_time_window(start_time, now),
+            "time_raw": start_time.strftime("%Y%m%d%H%M%S") if start_time else "0",
+            "duration_formatted": f"{duration_mins} Mins",
+            "session_used_mins": f"{session_used_mins}",
+            "total_used_ddhhmm": format_dd_hh_mm(total_used_mins),
+            "offline_policy": "PAUSE (OFF)" if pause_offline else "CONTINUE (ON)",
+            "visited_sites": ", ".join(log.get("visited_sites", ["google.com"]))
+        })
+
+    today_rev_agg = list(vouchers_col.aggregate([
+        {"$match": {"status": "USED", "used_at": {"$gte": start_of_today}}},
+        {"$group": {"_id": None, "total": {"$sum": "$price"}}}
+    ]))
+    today_revenue = today_rev_agg[0]['total'] if today_rev_agg else 0.0
+
+    month_rev_agg = list(vouchers_col.aggregate([
+        {"$match": {"status": "USED", "used_at": {"$gte": start_of_month}}},
+        {"$group": {"_id": None, "total": {"$sum": "$price"}}}
+    ]))
+    monthly_revenue = month_rev_agg[0]['total'] if month_rev_agg else 0.0
+
+    settings = {"gw_address": DEFAULT_GW_ADDRESS, "gw_port": "2060", "gw_id": "Gateway"}
+
+    return render_template(
+        'admin.html',
+        packages=packages,
+        vouchers=vouchers,
+        search_query=search_query,
+        active_sessions=active_sessions_cursor,
+        user_summary=user_summary,
+        detailed_report=detailed_report,
+        today_revenue=f"{today_revenue:,.0f}",
+        monthly_revenue=f"{monthly_revenue:,.0f}",
+        total_data_consumed=format_bytes(0),  # Not actively aggregated across system here
+        online_users_count=len(active_sessions_map),
+        active_vouchers_count=active_vouchers_count,
+        settings=settings
+    )
+
+@app.route('/admin/packages/create', methods=['POST'])
+def create_package():
+    if not session.get('admin'): return redirect('/admin/login')
+    name = request.form.get('name', '').strip()
+    price = float(request.form.get('price', 0))
+    duration_value = int(request.form.get('duration', 1))
+    duration_unit = request.form.get('unit', 'hours')
+    badge = request.form.get('badge', '').strip()
+    description = request.form.get('description', '').strip()
+    pause_policy = request.form.get('pause_on_user_offline') == 'true'
+
+    package_doc = {
+        "name": name, "price": price, "duration_value": duration_value,
+        "duration_unit": duration_unit, "duration_minutes": calculate_duration_minutes(duration_value, duration_unit),
+        "badge": badge, "description": description, "pause_on_user_offline": pause_policy, 
+        "created_at": datetime.now(timezone.utc)
+    }
+    packages_col.insert_one(package_doc)
+    return redirect('/admin#packages')
+
+@app.route('/admin/packages/edit/<pkg_id>', methods=['POST'])
+def edit_package(pkg_id):
+    if not session.get('admin'): return redirect('/admin/login')
+    pause_policy = request.form.get('pause_on_user_offline') == 'true'
+    
+    packages_col.update_one(
+        {"_id": ObjectId(pkg_id)},
+        {"$set": {
+            "name": request.form.get('name', '').strip(),
+            "price": float(request.form.get('price', 0)),
+            "duration_value": int(request.form.get('duration', 1)),
+            "duration_unit": request.form.get('unit', 'hours'),
+            "duration_minutes": calculate_duration_minutes(request.form.get('duration', 1), request.form.get('unit', 'hours')),
+            "badge": request.form.get('badge', '').strip(),
+            "description": request.form.get('description', '').strip(),
+            "pause_on_user_offline": pause_policy
+        }}
+    )
+    return redirect('/admin#packages')
+
+@app.route('/admin/packages/delete/<pkg_id>')
+def delete_package(pkg_id):
+    if not session.get('admin'): return redirect('/admin/login')
+    packages_col.delete_one({"_id": ObjectId(pkg_id)})
+    return redirect('/admin#packages')
+
+@app.route('/admin/generate', methods=['POST'])
+def generate_vouchers():
+    if not session.get('admin'): return redirect('/admin/login')
+    pkg_id = request.form.get('package_id')
+    qty = int(request.form.get('quantity', 1))
+    custom_code = request.form.get('custom_code', '').strip()
+    expire_at_str = request.form.get('expire_at', '').strip()
+    note = request.form.get('note', '').strip()
+
+    pkg = packages_col.find_one({"_id": ObjectId(pkg_id)}) if pkg_id else None
+    duration_minutes = pkg['duration_minutes'] if pkg else 360
+    price = pkg['price'] if pkg else 500.0
+    package_name = pkg['name'] if pkg else "Custom"
+    pause_policy = pkg.get('pause_on_user_offline', False) if pkg else False
+    expire_at = datetime.fromisoformat(expire_at_str).replace(tzinfo=timezone.utc) if expire_at_str else None
+
+    existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
+    new_vouchers = []
+
+    def make_voucher_doc(code_val):
+        return {
+            "code": code_val,
+            "package_name": package_name,
+            "duration_minutes": duration_minutes,
+            "price": price,
+            "status": "UNUSED",
+            "note": note,
+            "pause_on_user_offline": pause_policy,
+            "expire_at": expire_at,
+            "created_at": datetime.now(timezone.utc)
+        }
+
+    if custom_code and custom_code not in existing_codes:
+        new_vouchers.append(make_voucher_doc(custom_code))
+    else:
+        while len(new_vouchers) < qty and len(existing_codes) < 90000:
+            code = f"{random.randint(0, 99999):05d}"
+            if code not in existing_codes:
+                existing_codes.add(code)
+                new_vouchers.append(make_voucher_doc(code))
+
+    if new_vouchers:
+        vouchers_col.insert_many(new_vouchers)
+
+    return render_template('print.html', vouchers=new_vouchers)
+
+@app.route('/admin/vouchers/delete/<code>')
+def delete_voucher(code):
+    """Permanently deletes UNUSED vouchers from database."""
+    vouchers_col.delete_one({"code": code, "status": "UNUSED"})
+    return redirect('/admin#vouchers')
+
+@app.route('/admin/vouchers/revoke/<code>')
+def toggle_revoke_voucher(code):
+    voucher = vouchers_col.find_one({"code": code})
+    if voucher and voucher.get("status") in ["USED", "REVOKED"]:
+        new_status = "USED" if voucher.get("status") == "REVOKED" else "REVOKED"
+        vouchers_col.update_one({"code": code}, {"$set": {"status": new_status}})
+    return redirect('/admin#vouchers')
+
+@app.route('/admin/voucher/unrevoke/<code>')
+def unrevoke_voucher(code):
+    voucher = vouchers_col.find_one({"code": code})
+    if voucher and voucher.get("status") == "REVOKED":
+        # Restore usage and allow internet access
+        vouchers_col.update_one({"code": code}, {"$set": {"status": "USED"}})
+    return redirect('/admin#vouchers')
+                        
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
