@@ -172,16 +172,32 @@ def captive_login_page():
     now = datetime.now(timezone.utc)
     if mac and not mac.startswith("UNKNOWN"):
         try:
+            db = vouchers_col.database
+            voucher_code = None
+            
+            # 1. Check if they have an active running session
             active_session = sessions_col.find_one({"_id": mac})
             if active_session:
                 voucher_code = active_session.get("code")
+            else:
+                # 2. If no active session (e.g. idle timeout), check for a valid USED voucher
+                recent_voucher = vouchers_col.find_one(
+                    {"used_by_mac": mac, "status": "USED"}, 
+                    sort=[("used_at", -1)]
+                )
+                if recent_voucher:
+                    consumed = calculate_voucher_consumed_minutes(recent_voucher, db, now)
+                    if consumed < recent_voucher.get("duration_minutes", 0):
+                        voucher_code = recent_voucher.get("code")
+                        
+            if voucher_code:
                 voucher = vouchers_col.find_one({"code": voucher_code})
-                db = vouchers_col.database
                 if voucher:
                     consumed = calculate_voucher_consumed_minutes(voucher, db, now)
                     duration = voucher.get("duration_minutes", 0)
+                    
                     if consumed < duration:
-                        logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
+                        logger.info(f"Valid time remaining for MAC: {mac}. Triggering auto-reconnect.")
                         
                         connection_logs_col = db.connection_logs
                         session_log_id = ObjectId()
@@ -194,19 +210,32 @@ def captive_login_page():
                             "session_used_minutes": 0,
                             "visited_sites": ["google.com", "whatsapp.com"]
                         })
-                        sessions_col.update_one({"_id": mac}, {"$set": {"current_log_id": session_log_id}})
+                        
+                        session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
+                        
+                        # Re-create or update the active session so the router grants access
+                        sessions_col.replace_one(
+                            {"_id": mac},
+                            {
+                                "_id": mac, "code": voucher_code, "used_time": now, 
+                                "expire_date": session_expire_date, "duration_minutes": duration, 
+                                "bytes_used": 0, "status": "ACTIVE", "current_log_id": session_log_id
+                            },
+                            upsert=True
+                        )
 
                         token = secrets.token_hex(16)
                         tokens_col.insert_one({
                             "token": token,
                             "mac": mac,
                             "code": voucher_code,
-                            "expire_date": active_session.get("expire_date"),
+                            "expire_date": session_expire_date,
                             "created_at": now
                         })
                         
                         auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
                         return redirect(auth_action_url)
+                        
         except Exception as e:
             logger.error(f"Error checking active session during portal load: {str(e)}")
 
@@ -228,6 +257,7 @@ def process_login():
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
     now = datetime.now(timezone.utc)
+    db = vouchers_col.database
 
     try:
         voucher = vouchers_col.find_one({"code": code})
@@ -235,16 +265,31 @@ def process_login():
         logger.error(f"Database error while checking voucher {code}: {str(e)}")
         voucher = None
 
-    if not voucher or voucher.get("status") != "UNUSED":
+    # Check if voucher is valid (Either brand new OR a returning valid user)
+    is_valid = False
+    if voucher:
+        if voucher.get("status") == "UNUSED":
+            is_valid = True
+        elif voucher.get("status") == "USED" and voucher.get("used_by_mac") == mac:
+            consumed = calculate_voucher_consumed_minutes(voucher, db, now)
+            if consumed < voucher.get("duration_minutes", 0):
+                is_valid = True
+
+    if not is_valid:
         error_msg = "Vocha hii siyo sahihi au ishatumika."
-        if voucher and voucher.get("status") == "REVOKED":
-            error_msg = "Vocha hii imesitishwa au kufutwa."
+        if voucher:
+            if voucher.get("status") == "REVOKED":
+                error_msg = "Vocha hii imesitishwa au kufutwa."
+            elif voucher.get("status") == "USED" and voucher.get("used_by_mac") != mac:
+                error_msg = "Vocha hii inatumiwa na kifaa kingine."
+            elif voucher.get("status") == "USED":
+                error_msg = "Muda wa vocha hii umekwisha."
+                
         return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl, error=error_msg)
 
     duration_minutes = voucher['duration_minutes']
-    session_expire_date = now + timedelta(days=365) # Extended buffer, actual validity managed dynamically
+    session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
 
-    db = vouchers_col.database
     connection_logs_col = db.connection_logs
     session_log_id = ObjectId()
     connection_logs_col.insert_one({
@@ -274,16 +319,19 @@ def process_login():
         upsert=True
     )
     
-    vouchers_col.update_one(
-        {"code": code},
-        {"$set": {
-            "status": "USED",
-            "used_by_mac": mac,
-            "used_at": now,
-            "session_expire_date": session_expire_date,
-            "expire_at": None
-        }}
-    )
+    # Only update the database if the voucher was brand new (UNUSED)
+    # If it was USED, we don't want to overwrite the original used_at time!
+    if voucher.get("status") == "UNUSED":
+        vouchers_col.update_one(
+            {"code": code},
+            {"$set": {
+                "status": "USED",
+                "used_by_mac": mac,
+                "used_at": now,
+                "session_expire_date": session_expire_date,
+                "expire_at": None
+            }}
+        )
 
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
@@ -431,7 +479,7 @@ def wifidog_auth_check():
                 if log_id:
                     log_doc = db.connection_logs.find_one({"_id": log_id})
                     if log_doc:
-                        start_time = log_doc.get("start_time", now)  # <-- Fixed missing start_time initialization
+                        start_time = log_doc.get("start_time", now)
                         if now.tzinfo is not None and start_time.tzinfo is None:
                             start_time = start_time.replace(tzinfo=now.tzinfo)
                         elif now.tzinfo is None and start_time.tzinfo is not None:
@@ -588,8 +636,16 @@ def admin_dashboard():
     detailed_report = []
     all_logs = list(connection_logs_col.find().sort("start_time", -1).limit(300))
     
+    seen_macs = set() # Track MAC addresses to prevent duplicate rows
+
     for log in all_logs:
         mac = log.get("mac")
+        
+        # Deduplicate: Skip if we have already added this MAC address
+        if mac in seen_macs:
+            continue
+        seen_macs.add(mac)
+        
         code = log.get("code")
         start_time = log.get("start_time")
         session_used_mins = log.get("session_used_minutes", 0)
