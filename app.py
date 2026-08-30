@@ -74,15 +74,32 @@ def format_duration_human(duration_minutes):
     days = hours / 24
     return f"{days:.1f}".rstrip('0').rstrip('.') + " days"
 
-def format_report_time(dt_obj, current_time):
-    if dt_obj.tzinfo is None:
-        dt_obj = dt_obj.replace(tzinfo=timezone.utc)
-    if dt_obj.date() == current_time.date() and dt_obj.hour == current_time.hour:
-        return "Now"
-    elif dt_obj.date() == current_time.date():
-        return dt_obj.strftime("%H:00")
+def format_time_window(start_time, current_time):
+    """
+    Formats the time window based on specific rules:
+    - If online this hour: 'Now'
+    - If previous hours today: 'HH:MM' (24-hour)
+    - If previous days: 'YYYY-MM-DD HH:MM'
+    """
+    if not start_time:
+        return "Unknown"
+    
+    if start_time.tzinfo is None:
+        start_time = start_time.replace(tzinfo=timezone.utc)
+    if current_time.tzinfo is None:
+        current_time = current_time.replace(tzinfo=timezone.utc)
+        
+    # Standardize to East Africa Time (EAT, UTC+3) for sensible local day boundaries
+    local_start = start_time + timedelta(hours=3)
+    local_now = current_time + timedelta(hours=3)
+    
+    if local_start.date() == local_now.date():
+        if local_start.hour == local_now.hour:
+            return "Now"
+        else:
+            return local_start.strftime("%H:%M")
     else:
-        return dt_obj.strftime("%Y-%m-%d %H:00")
+        return local_start.strftime("%Y-%m-%d %H:%M")
 
 def format_bytes(bytes_count):
     if not bytes_count or bytes_count <= 0:
@@ -104,28 +121,7 @@ def get_client_mac():
             return clean_mac(val)
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
-def calculate_used_minutes(used_at, expire_date, pause_offline=False, is_online=False, accumulated_online_mins=0):
-    """Calculates active used minutes accounting for offline pause policy and timezone safety."""
-    now = datetime.now(timezone.utc)
-    
-    # Standardize used_at to UTC
-    if used_at and used_at.tzinfo is None:
-        used_at = used_at.replace(tzinfo=timezone.utc)
-        
-    # Standardize expire_date to UTC
-    if expire_date and expire_date.tzinfo is None:
-        expire_date = expire_date.replace(tzinfo=timezone.utc)
-    
-    if pause_offline:
-        # If policy pauses timer when offline, return accumulated online minutes
-        return accumulated_online_mins
-    else:
-        # Standard elapsed time from start to now (or expire date if passed)
-        if not used_at:
-            return 0
-        end_time = min(now, expire_date) if expire_date else now
-        elapsed = (end_time - used_at).total_seconds() / 60.0
-        return max(0, int(elapsed))
+
 # ==========================================
 # CAPTIVE PORTAL ROUTES
 # ==========================================
@@ -155,6 +151,22 @@ def captive_login_page():
             if active_session:
                 logger.info(f"Active session found for MAC: {mac}. Triggering auto-reconnect.")
                 
+                # --- CREATE A NEW ROW (LOG) FOR AUTO RECONNECT ---
+                db = vouchers_col.database
+                connection_logs_col = db.connection_logs
+                session_log_id = ObjectId()
+                connection_logs_col.insert_one({
+                    "_id": session_log_id,
+                    "mac": mac,
+                    "code": active_session.get("code"),
+                    "start_time": now,
+                    "last_active": now,
+                    "session_used_minutes": 0,
+                    "visited_sites": ["google.com", "whatsapp.com"]
+                })
+                # Link log to active session
+                sessions_col.update_one({"_id": mac}, {"$set": {"current_log_id": session_log_id}})
+
                 token = secrets.token_hex(16)
                 tokens_col.insert_one({
                     "token": token,
@@ -204,6 +216,20 @@ def process_login():
     duration_minutes = voucher['duration_minutes']
     session_expire_date = now + timedelta(minutes=duration_minutes)
 
+    # --- CREATE A NEW ROW (LOG) ON FIRST LOGIN ---
+    db = vouchers_col.database
+    connection_logs_col = db.connection_logs
+    session_log_id = ObjectId()
+    connection_logs_col.insert_one({
+        "_id": session_log_id,
+        "mac": mac,
+        "code": code,
+        "start_time": now,
+        "last_active": now,
+        "session_used_minutes": 0,
+        "visited_sites": ["google.com", "whatsapp.com"]
+    })
+
     token = secrets.token_hex(16)
     
     tokens_col.insert_one({
@@ -213,7 +239,11 @@ def process_login():
 
     sessions_col.replace_one(
         {"_id": mac},
-        {"_id": mac, "code": code, "used_time": now, "expire_date": session_expire_date, "duration_minutes": duration_minutes, "bytes_used": 0, "status": "ACTIVE"},
+        {
+            "_id": mac, "code": code, "used_time": now, 
+            "expire_date": session_expire_date, "duration_minutes": duration_minutes, 
+            "bytes_used": 0, "status": "ACTIVE", "current_log_id": session_log_id
+        },
         upsert=True
     )
     
@@ -272,11 +302,9 @@ def extract_byte_count(req):
     incoming = 0
     outgoing = 0
 
-    # Extended list of keys used by different router brands (Reyee, Mikrotik, OpenWrt, etc.)
     download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'bytes-in', 'rx', 'down']
     upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'bytes-out', 'tx', 'up']
 
-    # Log the payload to see exactly what the router is sending
     payload = req.values.to_dict()
     if payload.get('stage') == 'counters' or any(k in payload for k in download_keys):
         logger.info(f"Telemetry Payload Received: {payload}")
@@ -312,7 +340,6 @@ def update_session_data_usage(mac, total_bytes, session_doc):
     current_session_bytes = session_doc.get("current_session_bytes", 0)
     accumulated_bytes = session_doc.get("accumulated_bytes", 0)
     
-    # If the router's counter is lower than last time, it means the router restarted
     if total_bytes < current_session_bytes:
         accumulated_bytes += current_session_bytes
         current_session_bytes = total_bytes
@@ -321,7 +348,6 @@ def update_session_data_usage(mac, total_bytes, session_doc):
         
     grand_total = accumulated_bytes + current_session_bytes
     
-    # Update Session Database
     sessions_col.update_one(
         {"_id": mac}, 
         {"$set": {
@@ -331,7 +357,6 @@ def update_session_data_usage(mac, total_bytes, session_doc):
         }}
     )
     
-    # Update Voucher Database
     voucher_code = session_doc.get("code")
     if voucher_code:
         vouchers_col.update_one(
@@ -354,6 +379,7 @@ def wifidog_auth_check():
     stage = request.values.get('stage', '').strip()
     mac = clean_mac(request.values.get('mac', ''))
     now = datetime.now(timezone.utc)
+    db = vouchers_col.database
 
     if stage == 'logout':
         if mac:
@@ -377,10 +403,21 @@ def wifidog_auth_check():
             exp = exp.replace(tzinfo=timezone.utc)
 
         if exp and exp > now:
-            # Extract data and run the safety update function
             total_bytes = extract_byte_count(request)
             update_session_data_usage(mac, total_bytes, session_doc)
             
+            # --- Update Connection Log Session Timer ---
+            log_id = session_doc.get("current_log_id")
+            if log_id:
+                log_doc = db.connection_logs.find_one({"_id": log_id})
+                if log_doc:
+                    start_time = log_doc.get("start_time", now)
+                    elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
+                    db.connection_logs.update_one(
+                        {"_id": log_id},
+                        {"$set": {"last_active": now, "session_used_minutes": elapsed_mins}}
+                    )
+
             return Response("Auth: 1\n", mimetype='text/plain')
 
     tokens_col.delete_many({"mac": mac})
@@ -396,14 +433,27 @@ def wifidog_auth_check():
 @app.route('/api/wifidog/ping/', methods=['GET', 'POST'])
 def wifidog_ping():
     mac = clean_mac(request.values.get('mac', ''))
+    now = datetime.now(timezone.utc)
+    db = vouchers_col.database
     
-    # Check if this router sends user telemetry on the /ping route
     total_bytes = extract_byte_count(request)
 
     if mac and total_bytes > 0:
         session_doc = sessions_col.find_one({"_id": mac})
         if session_doc:
             update_session_data_usage(mac, total_bytes, session_doc)
+            
+            # --- Update Connection Log Session Timer via Ping ---
+            log_id = session_doc.get("current_log_id")
+            if log_id:
+                log_doc = db.connection_logs.find_one({"_id": log_id})
+                if log_doc:
+                    start_time = log_doc.get("start_time", now)
+                    elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
+                    db.connection_logs.update_one(
+                        {"_id": log_id},
+                        {"$set": {"last_active": now, "session_used_minutes": elapsed_mins}}
+                    )
                 
     return Response("Pong\n", mimetype='text/plain')
 
@@ -443,12 +493,15 @@ def cleanup_expired_vouchers():
         "status": "UNUSED",
         "expire_at": {"$ne": None, "$lte": now}
     })
+
 @app.route('/admin')
 def admin_dashboard():
     if not session.get('admin'):
         return redirect('/admin/login')
     cleanup_expired_vouchers()
     now = datetime.now(timezone.utc)
+    db = vouchers_col.database
+    connection_logs_col = db.connection_logs
 
     # 1. Capture search query
     search_query = request.args.get('q', '').strip()
@@ -474,9 +527,7 @@ def admin_dashboard():
     vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
     active_vouchers_count = 0
-    used_vouchers_count = 0
-    mac_agg = {}
-    detailed_report = []
+    
     for v in vouchers:
         status = v.get("status", "UNUSED")
         used_by_mac = v.get("used_by_mac")
@@ -488,64 +539,76 @@ def admin_dashboard():
             if session_exp and session_exp.tzinfo is None:
                 session_exp = session_exp.replace(tzinfo=timezone.utc)
 
-            # EXPIRED: Session duration time has passed
             if session_exp and now >= session_exp:
                 v["computed_status"] = "EXPIRED"
             else:
-                # ACTIVE: Session active (Revoked or Giving Access)
                 if status == "REVOKED":
                     v["computed_status"] = "REVOKED"
                 else:
                     v["computed_status"] = "ACTIVE"
+                    active_vouchers_count += 1
 
-    used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
+    # SUMMARY VIEW - FEWER DETAILS
     mac_agg = {}
-    detailed_report = []
-    total_bytes_consumed = 0
-
     for v in used_vouchers:
         mac = v.get("used_by_mac")
-        if not mac: 
-            continue
-        
-        phone_number = v.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
-        used_at = v.get("used_at", now)
+        if not mac: continue
         is_online = mac in active_sessions_map
         connection_status = "online" if is_online else "offline"
-        
-        duration_mins = v.get("duration_minutes", 0)
-        session_exp = v.get("session_expire_date", used_at + timedelta(minutes=duration_mins))
-        pause_offline = v.get("pause_on_user_offline", False)
-        
-        # Calculate used time in minutes
-        accumulated_online_mins = active_sessions_map.get(mac, {}).get("online_minutes", 0)
-        used_mins = calculate_used_minutes(used_at, session_exp, pause_offline, is_online, accumulated_online_mins)
-        
-        # Format total used time (dd:hh:mm)
-        dd_hh_mm = format_dd_hh_mm(used_mins)
-        
-        # Visited logs list
-        visited_logs = v.get("visited_sites") or active_sessions_map.get(mac, {}).get("visited_sites", ["google.com", "whatsapp.com"])
-
-        detailed_report.append({
-            "mac": mac,
-            "phone_number": phone_number,
-            "voucher_code": v.get("code"),
-            "connection_status": connection_status,
-            "time_label": used_at.strftime("%Y-%m-%d %H:%M"),
-            "time_raw": used_at.strftime("%Y%m%d%H%M%S"),
-            "duration_formatted": f"{duration_mins} Mins",
-            "used_mins_ratio": f"{used_mins} mins / {duration_mins} mins",
-            "total_used_ddhhmm": dd_hh_mm,
-            "offline_policy": "PAUSE (OFF)" if pause_offline else "CONTINUE (ON)",
-            "visited_sites": ", ".join(visited_logs) if isinstance(visited_logs, list) else str(visited_logs)
-        })
-
         if mac not in mac_agg:
             mac_agg[mac] = {"mac": mac, "status": connection_status, "vouchers_count": 0, "total_spend": 0.0}
         mac_agg[mac]["vouchers_count"] += 1
         mac_agg[mac]["total_spend"] += float(v.get("price", 0.0))
     user_summary = list(mac_agg.values())
+
+    # DETAILED REPORT VIEW - MORE DETAILS (Now relies on the Session Logs)
+    detailed_report = []
+    # Fetch logs, sorting newest sessions first
+    all_logs = list(connection_logs_col.find().sort("start_time", -1).limit(300))
+    
+    for log in all_logs:
+        mac = log.get("mac")
+        code = log.get("code")
+        start_time = log.get("start_time")
+        session_used_mins = log.get("session_used_minutes", 0)
+        
+        voucher = vouchers_col.find_one({"code": code})
+        if not voucher: 
+            continue
+            
+        phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
+        duration_mins = voucher.get("duration_minutes", 0)
+        pause_offline = voucher.get("pause_on_user_offline", False)
+        
+        # Calculate Total Used Time based on voucher rules
+        if pause_offline:
+            # If pause offline is ON, total time is the sum of ALL sessions for this voucher
+            voucher_logs = list(connection_logs_col.find({"code": code}))
+            total_used_mins = sum(l.get("session_used_minutes", 0) for l in voucher_logs)
+        else:
+            # If pause offline is OFF, total time is standard elapsed time from the very first usage
+            used_at = voucher.get("used_at")
+            if used_at:
+                if used_at.tzinfo is None: used_at = used_at.replace(tzinfo=timezone.utc)
+                session_exp = voucher.get("session_expire_date")
+                if session_exp and session_exp.tzinfo is None: session_exp = session_exp.replace(tzinfo=timezone.utc)
+                end_time = min(now, session_exp) if session_exp else now
+                total_used_mins = int(max(0, (end_time - used_at).total_seconds() / 60.0))
+            else:
+                total_used_mins = 0
+
+        detailed_report.append({
+            "mac": mac,
+            "phone_number": phone_number,
+            "voucher_code": code,
+            "time_label": format_time_window(start_time, now),
+            "time_raw": start_time.strftime("%Y%m%d%H%M%S") if start_time else "0",
+            "duration_formatted": f"{duration_mins} Mins",
+            "session_used_mins": f"{session_used_mins}",
+            "total_used_ddhhmm": format_dd_hh_mm(total_used_mins),
+            "offline_policy": "PAUSE (OFF)" if pause_offline else "CONTINUE (ON)",
+            "visited_sites": ", ".join(log.get("visited_sites", ["google.com"]))
+        })
 
     today_rev_agg = list(vouchers_col.aggregate([
         {"$match": {"status": "USED", "used_at": {"$gte": start_of_today}}},
@@ -559,20 +622,19 @@ def admin_dashboard():
     ]))
     monthly_revenue = month_rev_agg[0]['total'] if month_rev_agg else 0.0
 
-    # Dummy settings object to prevent template crash if removed from db
     settings = {"gw_address": DEFAULT_GW_ADDRESS, "gw_port": "2060", "gw_id": "Gateway"}
 
     return render_template(
         'admin.html',
         packages=packages,
         vouchers=vouchers,
-        search_query=search_query,  # Pass search query back to view
+        search_query=search_query,
         active_sessions=active_sessions_cursor,
         user_summary=user_summary,
         detailed_report=detailed_report,
         today_revenue=f"{today_revenue:,.0f}",
         monthly_revenue=f"{monthly_revenue:,.0f}",
-        total_data_consumed=format_bytes(total_bytes_consumed),
+        total_data_consumed=format_bytes(0),  # Not actively aggregated across system here
         online_users_count=len(active_sessions_map),
         active_vouchers_count=active_vouchers_count,
         settings=settings
@@ -587,11 +649,13 @@ def create_package():
     duration_unit = request.form.get('unit', 'hours')
     badge = request.form.get('badge', '').strip()
     description = request.form.get('description', '').strip()
+    pause_policy = request.form.get('pause_on_user_offline') == 'true'
 
     package_doc = {
         "name": name, "price": price, "duration_value": duration_value,
         "duration_unit": duration_unit, "duration_minutes": calculate_duration_minutes(duration_value, duration_unit),
-        "badge": badge, "description": description, "created_at": datetime.now(timezone.utc)
+        "badge": badge, "description": description, "pause_on_user_offline": pause_policy, 
+        "created_at": datetime.now(timezone.utc)
     }
     packages_col.insert_one(package_doc)
     return redirect('/admin#packages')
@@ -599,6 +663,8 @@ def create_package():
 @app.route('/admin/packages/edit/<pkg_id>', methods=['POST'])
 def edit_package(pkg_id):
     if not session.get('admin'): return redirect('/admin/login')
+    pause_policy = request.form.get('pause_on_user_offline') == 'true'
+    
     packages_col.update_one(
         {"_id": ObjectId(pkg_id)},
         {"$set": {
@@ -608,7 +674,8 @@ def edit_package(pkg_id):
             "duration_unit": request.form.get('unit', 'hours'),
             "duration_minutes": calculate_duration_minutes(request.form.get('duration', 1), request.form.get('unit', 'hours')),
             "badge": request.form.get('badge', '').strip(),
-            "description": request.form.get('description', '').strip()
+            "description": request.form.get('description', '').strip(),
+            "pause_on_user_offline": pause_policy
         }}
     )
     return redirect('/admin#packages')
@@ -632,6 +699,7 @@ def generate_vouchers():
     duration_minutes = pkg['duration_minutes'] if pkg else 360
     price = pkg['price'] if pkg else 500.0
     package_name = pkg['name'] if pkg else "Custom"
+    pause_policy = pkg.get('pause_on_user_offline', False) if pkg else False
     expire_at = datetime.fromisoformat(expire_at_str).replace(tzinfo=timezone.utc) if expire_at_str else None
 
     existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
@@ -645,6 +713,7 @@ def generate_vouchers():
             "price": price,
             "status": "UNUSED",
             "note": note,
+            "pause_on_user_offline": pause_policy,
             "expire_at": expire_at,
             "created_at": datetime.now(timezone.utc)
         }
@@ -679,11 +748,10 @@ def toggle_revoke_voucher(code):
 
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
-    voucher = db.vouchers.find_one({"code": code})
+    voucher = vouchers_col.find_one({"code": code})
     if voucher and voucher.get("status") == "REVOKED":
         # Restore usage and allow internet access
-        db.vouchers.update_one({"code": code}, {"$set": {"status": "USED"}})
-        reauthorize_router_user(voucher.get("used_by_mac"))
+        vouchers_col.update_one({"code": code}, {"$set": {"status": "USED"}})
     return redirect('/admin#vouchers')
                         
 if __name__ == '__main__':
