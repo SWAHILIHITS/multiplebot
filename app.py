@@ -233,8 +233,9 @@ def captive_login_page():
                             "created_at": now
                         })
                         
+                        # Instant Server 302 Redirect (Fast Auto-Grant)
                         auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-                        return redirect(auth_action_url)
+                        return redirect(auth_action_url, code=302)
                         
         except Exception as e:
             logger.error(f"Error checking active session during portal load: {str(e)}")
@@ -320,7 +321,6 @@ def process_login():
     )
     
     # Only update the database if the voucher was brand new (UNUSED)
-    # If it was USED, we don't want to overwrite the original used_at time!
     if voucher.get("status") == "UNUSED":
         vouchers_col.update_one(
             {"code": code},
@@ -636,16 +636,9 @@ def admin_dashboard():
     detailed_report = []
     all_logs = list(connection_logs_col.find().sort("start_time", -1).limit(300))
     
-    seen_macs = set() # Track MAC addresses to prevent duplicate rows
-
+    # REMOVED: seen_macs deduplication. Now EVERY session log generates a new row.
     for log in all_logs:
         mac = log.get("mac")
-        
-        # Deduplicate: Skip if we have already added this MAC address
-        if mac in seen_macs:
-            continue
-        seen_macs.add(mac)
-        
         code = log.get("code")
         start_time = log.get("start_time")
         session_used_mins = log.get("session_used_minutes", 0)
