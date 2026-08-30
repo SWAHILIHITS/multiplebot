@@ -636,13 +636,30 @@ def admin_dashboard():
     detailed_report = []
     all_logs = list(connection_logs_col.find().sort("start_time", -1).limit(300))
     
-    # REMOVED: seen_macs deduplication. Now EVERY session log generates a new row.
+    seen_vouchers = {}
+    
     for log in all_logs:
         mac = log.get("mac")
         code = log.get("code")
         start_time = log.get("start_time")
-        session_used_mins = log.get("session_used_minutes", 0)
         
+        if not code:
+            continue
+            
+        if start_time and start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=timezone.utc)
+            
+        # Deduplication rule: If the time window between logs of the same voucher is less than 1 min, delete the older one
+        if code in seen_vouchers:
+            latest_time = seen_vouchers[code]
+            if latest_time and start_time:
+                diff_seconds = (latest_time - start_time).total_seconds()
+                if diff_seconds < 60:
+                    connection_logs_col.delete_one({"_id": log.get("_id")})
+                    continue
+        else:
+            seen_vouchers[code] = start_time
+            
         voucher = vouchers_col.find_one({"code": code})
         if not voucher: 
             continue
@@ -650,6 +667,7 @@ def admin_dashboard():
         phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
         duration_mins = voucher.get("duration_minutes", 0)
         pause_offline = voucher.get("pause_on_user_offline", False)
+        session_used_mins = log.get("session_used_minutes", 0)
         
         total_used_mins = calculate_voucher_consumed_minutes(voucher, db, now)
 
