@@ -115,16 +115,9 @@ def get_client_mac():
     return f"UNKNOWN:{secrets.token_hex(4).upper()}"
 
 def calculate_voucher_consumed_minutes(voucher, db, now):
-    """
-    Calculates total consumed minutes for a voucher based on its package policy:
-    - pause_on_user_offline = True: Sums up active session logs when user & router are online.
-    - pause_on_user_offline = False: Continuous wall-clock time from first use, 
-      automatically freezing if the router itself is offline (power/internet outage).
-    """
     code = voucher.get("code")
     package_id = voucher.get("package_id")
     
-    # Fetch pause_on_user_offline policy dynamically from the package table
     pause_offline = False
     if package_id:
         pkg = db.packages.find_one({"_id": package_id})
@@ -133,7 +126,6 @@ def calculate_voucher_consumed_minutes(voucher, db, now):
             
     connection_logs_col = db.connection_logs
     
-    # Check Router Uptime / Gateway Heartbeat (Threshold: 3 minutes without ping = router offline)
     heartbeat_doc = db.system_status.find_one({"_id": "gateway_heartbeat"})
     effective_now = now
     if heartbeat_doc and heartbeat_doc.get("last_seen"):
@@ -141,7 +133,7 @@ def calculate_voucher_consumed_minutes(voucher, db, now):
         if last_seen.tzinfo is None:
             last_seen = last_seen.replace(tzinfo=timezone.utc)
         if (now - last_seen).total_seconds() > 180:
-            effective_now = last_seen  # Freeze effective time at the moment router went offline
+            effective_now = last_seen  
 
     if pause_offline:
         voucher_logs = list(connection_logs_col.find({"code": code}))
@@ -152,6 +144,13 @@ def calculate_voucher_consumed_minutes(voucher, db, now):
             return 0
         if used_at.tzinfo is None:
             used_at = used_at.replace(tzinfo=timezone.utc)
+            
+        # FREEZE TIME VISUALLY IF CURRENTLY REVOKED
+        if voucher.get("status") == "REVOKED" and voucher.get("revoked_at"):
+            revoked_at = voucher.get("revoked_at")
+            if revoked_at.tzinfo is None: revoked_at = revoked_at.replace(tzinfo=timezone.utc)
+            return int(max(0, (revoked_at - used_at).total_seconds() / 60.0))
+            
         return int(max(0, (effective_now - used_at).total_seconds() / 60.0))
 
 @app.route('/api/log-domain', methods=['POST'])
@@ -164,12 +163,10 @@ def log_domain():
     
     db = vouchers_col.database
     
-    # Find the user's active session or connection log and add the domain
     active_session = sessions_col.find_one({"_id": mac})
     if active_session and active_session.get("current_log_id"):
         log_id = active_session.get("current_log_id")
         
-        # Push domain to visited_sites array if it's not already logged recently
         db.connection_logs.update_one(
             {"_id": log_id},
             {"$addToSet": {"visited_sites": domain}}
@@ -206,12 +203,10 @@ def captive_login_page():
             db = vouchers_col.database
             voucher_code = None
             
-            # 1. Check if they have an active running session
             active_session = sessions_col.find_one({"_id": mac})
             if active_session:
                 voucher_code = active_session.get("code")
             else:
-                # 2. If no active session, check for a valid USED voucher
                 recent_voucher = vouchers_col.find_one(
                     {"used_by_mac": mac, "status": "USED"}, 
                     sort=[("used_at", -1)]
@@ -227,7 +222,7 @@ def captive_login_page():
                     consumed = calculate_voucher_consumed_minutes(voucher, db, now)
                     duration = voucher.get("duration_minutes", 0)
                     
-                    if consumed < duration:
+                    if consumed < duration and voucher.get("status") != "REVOKED":
                         logger.info(f"Valid time remaining for MAC: {mac}. Triggering auto-reconnect.")
                         
                         connection_logs_col = db.connection_logs
@@ -271,11 +266,9 @@ def captive_login_page():
 
     return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl), 200
 
-
 @app.route('/favicon.ico')
 def favicon():
     return Response(status=204)
-
 
 @app.route('/login', methods=['POST'])
 def process_login():
@@ -398,10 +391,8 @@ def process_login():
 def extract_byte_count(req):
     incoming = 0
     outgoing = 0
-
     download_keys = ['incoming', 'incoming_bytes', 'download', 'bytes_in', 'rx_bytes', 'bytes-in', 'rx', 'down']
     upload_keys = ['outgoing', 'outgoing_bytes', 'upload', 'bytes_out', 'tx_bytes', 'bytes-out', 'tx', 'up']
-
     payload = req.values.to_dict()
     if payload.get('stage') == 'counters' or any(k in payload for k in download_keys):
         logger.info(f"Telemetry Payload Received: {payload}")
@@ -423,12 +414,10 @@ def extract_byte_count(req):
                 if outgoing > 0: break
             except ValueError:
                 continue
-
     return incoming + outgoing
 
 def update_session_data_usage(mac, total_bytes, session_doc):
-    if total_bytes <= 0:
-        return
+    if total_bytes <= 0: return
 
     current_session_bytes = session_doc.get("current_session_bytes", 0)
     accumulated_bytes = session_doc.get("accumulated_bytes", 0)
@@ -495,6 +484,12 @@ def wifidog_auth_check():
         voucher = vouchers_col.find_one({"code": voucher_code})
         
         if voucher:
+            # STOP INTERNET IMMEDIATELY IF REVOKED
+            if voucher.get("status") == "REVOKED":
+                sessions_col.delete_one({"_id": mac})
+                tokens_col.delete_many({"mac": mac})
+                return Response("Auth: 0\n", mimetype='text/plain')
+                
             duration_minutes = voucher.get("duration_minutes", 0)
             total_used_mins = calculate_voucher_consumed_minutes(voucher, db, now)
 
@@ -592,6 +587,8 @@ def admin_logout():
 
 def cleanup_expired_vouchers():
     now = datetime.now(timezone.utc)
+    # This ONLY deletes completely UNUSED vouchers that have passed their creation expiry.
+    # USED vouchers that have ran out of time (EXPIRED) will NOT be deleted here.
     vouchers_col.delete_many({
         "status": "UNUSED",
         "expire_at": {"$ne": None, "$lte": now}
@@ -635,7 +632,6 @@ def admin_dashboard():
         status = v.get("status", "UNUSED")
         used_by_mac = v.get("used_by_mac")
         
-        # Dynamically resolve package name using package_id
         pkg_id = v.get("package_id")
         pkg = packages_map.get(str(pkg_id)) if pkg_id else None
         v["computed_package_name"] = pkg.get("name", "Custom") if pkg else "Custom"
@@ -696,7 +692,6 @@ def admin_dashboard():
         if not voucher: 
             continue
             
-        # Dynamically fetch package name and pause policy from packages table using package_id
         pkg_id = voucher.get("package_id")
         pkg = packages_map.get(str(pkg_id)) if pkg_id else None
         package_name = pkg.get("name", "Custom") if pkg else "Custom"
@@ -704,7 +699,9 @@ def admin_dashboard():
             
         phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
         duration_mins = voucher.get("duration_minutes", 0)
-        session_used_mins = log.get("session_used_mins", 0)
+        
+        # FIXED: Bug was looking for session_used_mins, but it's saved as session_used_minutes
+        session_used_mins = log.get("session_used_minutes", 0)
         
         total_used_mins = calculate_voucher_consumed_minutes(voucher, db, now)
 
@@ -794,7 +791,6 @@ def edit_package(pkg_id):
     )
     return redirect('/admin#packages')
 
-
 @app.route('/admin/packages/delete/<pkg_id>')
 def delete_package(pkg_id):
     if not session.get('admin'): return redirect('/admin/login')
@@ -851,18 +847,59 @@ def delete_voucher(code):
 
 @app.route('/admin/vouchers/revoke/<code>')
 def toggle_revoke_voucher(code):
+    if not session.get('admin'): return redirect('/admin/login')
     voucher = vouchers_col.find_one({"code": code})
     if voucher and voucher.get("status") in ["USED", "REVOKED"]:
-        new_status = "USED" if voucher.get("status") == "REVOKED" else "REVOKED"
-        vouchers_col.update_one({"code": code}, {"$set": {"status": new_status}})
+        now = datetime.now(timezone.utc)
+        current_status = voucher.get("status")
+        db = vouchers_col.database
+        
+        if current_status == "USED" or current_status == "ACTIVE":
+            # SET TO REVOKED
+            vouchers_col.update_one(
+                {"code": code}, 
+                {"$set": {"status": "REVOKED", "revoked_at": now}}
+            )
+            
+            # IMMEDIATELY STOP TIME COUNTING & DISCONNECT USER
+            macs_to_disconnect = sessions_col.find({"code": code})
+            for m in macs_to_disconnect:
+                mac_id = m["_id"]
+                log_id = m.get("current_log_id")
+                if log_id:
+                    log_doc = db.connection_logs.find_one({"_id": log_id})
+                    if log_doc:
+                        start_time = log_doc.get("start_time", now)
+                        if start_time.tzinfo is None: start_time = start_time.replace(tzinfo=timezone.utc)
+                        elapsed_mins = max(0, int((now - start_time).total_seconds() / 60.0))
+                        db.connection_logs.update_one(
+                            {"_id": log_id},
+                            {"$set": {"last_active": now, "session_used_minutes": elapsed_mins}}
+                        )
+                sessions_col.delete_one({"_id": mac_id})
+                tokens_col.delete_many({"mac": mac_id})
+                
+        elif current_status == "REVOKED":
+            # RESTORE EVERYTHING UPON UNREVOKING (SHIFT USED TIME)
+            revoked_at = voucher.get("revoked_at")
+            used_at = voucher.get("used_at")
+            update_data = {"status": "USED", "revoked_at": None}
+            
+            if revoked_at and used_at:
+                if revoked_at.tzinfo is None: revoked_at = revoked_at.replace(tzinfo=timezone.utc)
+                if used_at.tzinfo is None: used_at = used_at.replace(tzinfo=timezone.utc)
+                
+                # Figure out how much time they lost while revoked and shift start time
+                time_lost = now - revoked_at
+                update_data["used_at"] = used_at + time_lost
+                
+            vouchers_col.update_one({"code": code}, {"$set": update_data})
+            
     return redirect('/admin#vouchers')
 
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
-    voucher = vouchers_col.find_one({"code": code})
-    if voucher and voucher.get("status") == "REVOKED":
-        vouchers_col.update_one({"code": code}, {"$set": {"status": "USED"}})
-    return redirect('/admin#vouchers')
+    return toggle_revoke_voucher(code)
                         
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
