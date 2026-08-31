@@ -36,7 +36,45 @@
         .sidebar-menu { list-style: none; padding: 20px 0; flex: 1; }
         .sidebar-menu li a { display: flex; align-items: center; gap: 12px; padding: 14px 24px; color: #94a3b8; text-decoration: none; font-weight: 500; font-size: 15px; transition: all 0.2s ease; border-left: 3px solid transparent; }
         .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(255,255,255,0.05); color: #fff; border-left: 3px solid var(--accent-color); }
+        /* Modern Collapsing Floating Sidebar */
+.sidebar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    height: calc(100vh - 40px);
+    width: 70px; /* Minimized width showing just icons */
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    overflow: hidden;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+}
 
+.sidebar:hover {
+    width: 250px; /* Expanded width on hover */
+}
+
+/* Hide text in sidebar until hovered */
+.sidebar .nav-text {
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.sidebar:hover .nav-text {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Adjust Main Content to make room for floating sidebar */
+.main-content, .dashboard-container {
+    margin-left: 90px !important; 
+    transition: margin-left 0.3s;
+    padding: 20px;
+}
         .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; width: calc(100% - var(--sidebar-width)); }
         .tab-panel { display: none; animation: fadeIn 0.3s ease; }
         .tab-panel.active { display: block; }
@@ -450,12 +488,6 @@
                             onkeyup="searchMoreDetailsTable()" 
                             placeholder="🔍 Search Voucher Code or MAC Address..." 
                             style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; width: 300px; font-size: 14px;"
-                        >
-                        <div style="display: flex; gap: 8px;">
-                            <button onclick="filterUsers('all', this)" class="btn btn-primary btn-sm user-filter-btn">All Users</button>
-                            <button onclick="filterUsers('online', this)" class="btn btn-secondary btn-sm user-filter-btn">Online</button>
-                            <button onclick="filterUsers('offline', this)" class="btn btn-secondary btn-sm user-filter-btn">Offline</button>
-                        </div>
                     </div>
 
                     <div class="table-responsive">
@@ -739,5 +771,28 @@
             });
         });
     </script>
+    <script>
+    // Automatically poll the backend for updates every 10 seconds
+    setInterval(function() {
+        // Fetch the newest version of this page in the background
+        fetch(window.location.href)
+        .then(response => response.text())
+        .then(html => {
+            // Parse the background HTML
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, "text/html");
+            
+            // Assuming your main dashboard content is wrapped in a div with id="dashboard-main"
+            const currentDashboard = document.getElementById('dashboard-main');
+            const newDashboard = newDoc.getElementById('dashboard-main');
+            
+            if (currentDashboard && newDashboard) {
+                // Update the dashboard HTML seamlessly without a page reload
+                currentDashboard.innerHTML = newDashboard.innerHTML;
+            }
+        })
+        .catch(error => console.error('Error auto-updating dashboard:', error));
+    }, 10000); // 10000ms = 10 seconds
+</script>
 </body>
 </html>
