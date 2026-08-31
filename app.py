@@ -122,7 +122,15 @@ def calculate_voucher_consumed_minutes(voucher, db, now):
       automatically freezing if the router itself is offline (power/internet outage).
     """
     code = voucher.get("code")
-    pause_offline = voucher.get("pause_on_user_offline", False)
+    package_id = voucher.get("package_id")
+    
+    # Fetch pause_on_user_offline policy dynamically from the package table
+    pause_offline = False
+    if package_id:
+        pkg = db.packages.find_one({"_id": package_id})
+        if pkg:
+            pause_offline = pkg.get("pause_on_user_offline", False)
+            
     connection_logs_col = db.connection_logs
     
     # Check Router Uptime / Gateway Heartbeat (Threshold: 3 minutes without ping = router offline)
@@ -203,7 +211,7 @@ def captive_login_page():
             if active_session:
                 voucher_code = active_session.get("code")
             else:
-                # 2. If no active session (e.g. idle timeout), check for a valid USED voucher
+                # 2. If no active session, check for a valid USED voucher
                 recent_voucher = vouchers_col.find_one(
                     {"used_by_mac": mac, "status": "USED"}, 
                     sort=[("used_at", -1)]
@@ -236,7 +244,6 @@ def captive_login_page():
                         
                         session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
                         
-                        # Re-create or update the active session so the router grants access
                         sessions_col.replace_one(
                             {"_id": mac},
                             {
@@ -256,7 +263,6 @@ def captive_login_page():
                             "created_at": now
                         })
                         
-                        # Instant Server 302 Redirect (Fast Auto-Grant)
                         auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
                         return redirect(auth_action_url, code=302)
                         
@@ -289,7 +295,6 @@ def process_login():
         logger.error(f"Database error while checking voucher {code}: {str(e)}")
         voucher = None
 
-    # Check if voucher is valid (Either brand new OR a returning valid user)
     is_valid = False
     if voucher:
         if voucher.get("status") == "UNUSED":
@@ -343,7 +348,6 @@ def process_login():
         upsert=True
     )
     
-    # Only update the database if the voucher was brand new (UNUSED)
     if voucher.get("status") == "UNUSED":
         vouchers_col.update_one(
             {"code": code},
@@ -531,7 +535,6 @@ def wifidog_ping():
     now = datetime.now(timezone.utc)
     db = vouchers_col.database
     
-    # Track Gateway Heartbeat (Router uptime signal)
     db.system_status.update_one(
         {"_id": "gateway_heartbeat"},
         {"$set": {"last_seen": now}},
@@ -612,8 +615,7 @@ def admin_dashboard():
                 {"code": {"$regex": search_query, "$options": "i"}},
                 {"used_by_mac": {"$regex": search_query, "$options": "i"}},
                 {"phone_number": {"$regex": search_query, "$options": "i"}},
-                {"note": {"$regex": search_query, "$options": "i"}},
-                {"package_name": {"$regex": search_query, "$options": "i"}}
+                {"note": {"$regex": search_query, "$options": "i"}}
             ]
         }
 
@@ -621,7 +623,10 @@ def admin_dashboard():
     active_sessions_map = {s["_id"]: s for s in active_sessions_cursor}
     start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    
     packages = list(packages_col.find().sort("created_at", -1))
+    packages_map = {str(p["_id"]): p for p in packages}
+    
     vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
     active_vouchers_count = 0
@@ -629,6 +634,11 @@ def admin_dashboard():
     for v in vouchers:
         status = v.get("status", "UNUSED")
         used_by_mac = v.get("used_by_mac")
+        
+        # Dynamically resolve package name using package_id
+        pkg_id = v.get("package_id")
+        pkg = packages_map.get(str(pkg_id)) if pkg_id else None
+        v["computed_package_name"] = pkg.get("name", "Custom") if pkg else "Custom"
         
         if not used_by_mac or status == "UNUSED":
             v["computed_status"] = "UNUSED"
@@ -672,7 +682,6 @@ def admin_dashboard():
         if start_time and start_time.tzinfo is None:
             start_time = start_time.replace(tzinfo=timezone.utc)
             
-        # Deduplication rule: If the time window between logs of the same voucher is less than 1 min, delete the older one
         if code in seen_vouchers:
             latest_time = seen_vouchers[code]
             if latest_time and start_time:
@@ -687,10 +696,15 @@ def admin_dashboard():
         if not voucher: 
             continue
             
+        # Dynamically fetch package name and pause policy from packages table using package_id
+        pkg_id = voucher.get("package_id")
+        pkg = packages_map.get(str(pkg_id)) if pkg_id else None
+        package_name = pkg.get("name", "Custom") if pkg else "Custom"
+        pause_offline = pkg.get("pause_on_user_offline", False) if pkg else False
+            
         phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
         duration_mins = voucher.get("duration_minutes", 0)
-        pause_offline = voucher.get("pause_on_user_offline", False)
-        session_used_mins = log.get("session_used_minutes", 0)
+        session_used_mins = log.get("session_used_mins", 0)
         
         total_used_mins = calculate_voucher_consumed_minutes(voucher, db, now)
 
@@ -698,6 +712,7 @@ def admin_dashboard():
             "mac": mac,
             "phone_number": phone_number,
             "voucher_code": code,
+            "package_name": package_name,
             "time_label": format_time_window(start_time, now),
             "time_raw": start_time.strftime("%Y%m%d%H%M%S") if start_time else "0",
             "duration_formatted": f"{duration_mins} Mins",
@@ -764,21 +779,6 @@ def edit_package(pkg_id):
     pause_policy = request.form.get('pause_on_user_offline') == 'true'
     new_name = request.form.get('name', '').strip()
     
-    # 1. Fetch the old package to find associated vouchers
-    old_pkg = packages_col.find_one({"_id": ObjectId(pkg_id)})
-    
-    # 2. Update existing vouchers tied to this package
-    if old_pkg:
-        old_name = old_pkg.get("name")
-        vouchers_col.update_many(
-            {"package_name": old_name},
-            {"$set": {
-                "pause_on_user_offline": pause_policy,
-                "package_name": new_name  # Keep the name in sync
-            }}
-        )
-    
-    # 3. Update the package itself
     packages_col.update_one(
         {"_id": ObjectId(pkg_id)},
         {"$set": {
@@ -813,8 +813,6 @@ def generate_vouchers():
     pkg = packages_col.find_one({"_id": ObjectId(pkg_id)}) if pkg_id else None
     duration_minutes = pkg['duration_minutes'] if pkg else 360
     price = pkg['price'] if pkg else 500.0
-    package_name = pkg['name'] if pkg else "Custom"
-    pause_policy = pkg.get('pause_on_user_offline', False) if pkg else False
     expire_at = datetime.fromisoformat(expire_at_str).replace(tzinfo=timezone.utc) if expire_at_str else None
 
     existing_codes = set(v["code"] for v in vouchers_col.find({}, {"code": 1}))
@@ -823,12 +821,11 @@ def generate_vouchers():
     def make_voucher_doc(code_val):
         return {
             "code": code_val,
-            "package_name": package_name,
+            "package_id": ObjectId(pkg_id) if pkg_id else None,
             "duration_minutes": duration_minutes,
             "price": price,
             "status": "UNUSED",
             "note": note,
-            "pause_on_user_offline": pause_policy,
             "expire_at": expire_at,
             "created_at": datetime.now(timezone.utc)
         }
