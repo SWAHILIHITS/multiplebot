@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Admin Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --sidebar-width: 260px;
@@ -33,7 +34,7 @@
         .sidebar-brand { padding: 30px 24px; font-size: 22px; font-weight: 800; color: #fff; border-bottom: 1px solid rgba(255,255,255,0.05); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
         .sidebar-brand span { color: var(--accent-color); }
         .sidebar-menu { list-style: none; padding: 20px 0; flex: 1; }
-        .sidebar-menu li a { display: flex; align-items: center; padding: 14px 24px; color: #94a3b8; text-decoration: none; font-weight: 500; font-size: 15px; transition: all 0.2s ease; border-left: 3px solid transparent; }
+        .sidebar-menu li a { display: flex; align-items: center; gap: 12px; padding: 14px 24px; color: #94a3b8; text-decoration: none; font-weight: 500; font-size: 15px; transition: all 0.2s ease; border-left: 3px solid transparent; }
         .sidebar-menu li a:hover, .sidebar-menu li a.active { background: rgba(255,255,255,0.05); color: #fff; border-left: 3px solid var(--accent-color); }
 
         .main-content { margin-left: var(--sidebar-width); flex: 1; padding: 40px; width: calc(100% - var(--sidebar-width)); }
@@ -105,17 +106,17 @@
 
     <div class="mobile-header">
         <div style="font-weight: 800; color: #fff; font-size: 20px;">HANS<span>WIFI</span></div>
-        <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+        <button class="toggle-btn" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
     </div>
 
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-brand">HANS<span>WIFI</span></div>
+        <div class="sidebar-brand"><i class="fa-solid fa-wifi"></i> HANS<span>WIFI</span></div>
         <ul class="sidebar-menu">
-            <li><a href="#dashboard" class="active" onclick="switchTab('dashboard', event)">📊 Dashboard</a></li>
-            <li><a href="#packages" onclick="switchTab('packages', event)">📦 Packages</a></li>
-            <li><a href="#vouchers" onclick="switchTab('vouchers', event)">🎟️ Vouchers</a></li>
-            <li><a href="#users" onclick="switchTab('users', event)">👥 Connected Users</a></li>
-            <li><a href="#settings" onclick="switchTab('settings', event)">⚙️ Gateway Settings</a></li>
+            <li><a href="#dashboard" class="active" onclick="switchTab('dashboard', event)"><i class="fa-solid fa-chart-pie"></i> Dashboard</a></li>
+            <li><a href="#packages" onclick="switchTab('packages', event)"><i class="fa-solid fa-boxes-stacked"></i> Packages</a></li>
+            <li><a href="#vouchers" onclick="switchTab('vouchers', event)"><i class="fa-solid fa-ticket"></i> Vouchers</a></li>
+            <li><a href="#users" onclick="switchTab('users', event)"><i class="fa-solid fa-users"></i> Connected Users</a></li>
+            <li><a href="#settings" onclick="switchTab('settings', event)"><i class="fa-solid fa-gears"></i> Gateway Settings</a></li>
         </ul>
     </div>
 
@@ -136,13 +137,17 @@
                     <h3>Active Users Online</h3>
                     <div class="value" style="color: var(--success-color);">{{ online_users_count }}</div>
                 </div>
+                <div class="stat-card">
+                    <h3>Active Vouchers</h3>
+                    <div class="value">{{ active_vouchers_count }}</div>
+                </div>
             </div>
 
             <div class="box">
-                <div class="box-title" style="margin-bottom: 20px;">🚀 Quick Actions</div>
+                <div class="box-title" style="margin-bottom: 20px;"><i class="fa-solid fa-bolt"></i> Quick Actions</div>
                 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="switchTab('vouchers'); toggleForm('new-voucher-box');">+ Generate Voucher</button>
-                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');">+ Add New Package</button>
+                    <button class="btn btn-primary" onclick="switchTab('vouchers'); toggleForm('new-voucher-box');"><i class="fa-solid fa-plus"></i> Generate Voucher</button>
+                    <button class="btn btn-secondary" onclick="switchTab('packages'); toggleForm('new-package-box');"><i class="fa-solid fa-box-open"></i> Add New Package</button>
                 </div>
             </div>
         </div>
@@ -155,7 +160,7 @@
                         <div class="box-title">Internet Packages</div>
                         <p style="font-size: 14px; color: var(--text-sub); margin-top: 6px;">Manage the plans visible on your captive portal.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-package-box')">+ Create Package</button>
+                    <button class="btn btn-primary" onclick="toggleForm('new-package-box')"><i class="fa-solid fa-plus"></i> Create Package</button>
                 </div>
 
                 <div id="new-package-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
@@ -218,8 +223,13 @@
                         <div>
                             <div class="package-price">TZS {{ "{:,.0f}".format(p.price) }}</div>
                             <div class="package-duration">{{ p.duration_value }} {{ p.duration_unit }} of access</div>
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">Offline Policy: 
+                                <strong style="color: {{ 'var(--success-color)' if p.pause_on_user_offline else 'var(--accent-color)' }};">
+                                    {{ 'PAUSE ON OFFLINE' if p.pause_on_user_offline else 'CONTINUE' }}
+                                </strong>
+                            </div>
                             <div style="display: flex; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 20px;">
-                                <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="openEditModal('{{ p._id }}', '{{ p.name | escape }}', '{{ p.price }}', '{{ p.duration_value }}', '{{ p.duration_unit }}', '{{ (p.badge or '') | escape }}', '{{ (p.description or '') | escape }}')">Edit</button>
+                                <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="openEditModal('{{ p._id }}', '{{ p.name | escape }}', '{{ p.price }}', '{{ p.duration_value }}', '{{ p.duration_unit }}', '{{ 'true' if p.pause_on_user_offline else 'false' }}', '{{ (p.badge or '') | escape }}', '{{ (p.description or '') | escape }}')">Edit</button>
                                 <a href="/admin/packages/delete/{{ p._id }}" class="btn btn-outline btn-sm" style="flex: 1; color: var(--danger-color); justify-content: center;" onclick="return confirm('Delete this package?');">Delete</a>
                             </div>
                         </div>
@@ -285,11 +295,11 @@
             <div class="box">
                 <div class="box-header">
                     <div class="box-title">Vouchers Management</div>
-                    <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')">+ Generate Vouchers</button>
+                    <button class="btn btn-primary" onclick="toggleForm('new-voucher-box')"><i class="fa-solid fa-plus"></i> Generate Vouchers</button>
                 </div>
 
                 <div id="new-voucher-box" class="box hidden" style="background: #f8fafc; border: 2px dashed var(--border-color); box-shadow: none;">
-                    <form action="/admin/generate" method="POST">
+                    <form action="/admin/generate" method="POST" target="_blank">
                         <div class="form-grid">
                             <div class="form-group">
                                 <label>Select Package</label>
@@ -357,7 +367,7 @@
                             {% for v in vouchers %}
                             <tr data-status="{{ v.computed_status | lower }}">
                                 <td style="font-weight: 700; font-family: monospace; font-size: 16px;">{{ v.code }}</td>
-                                <td>{{ v.package_name or 'Custom' }}</td>
+                                <td>{{ v.computed_package_name or v.package_name or 'Custom' }}</td>
                                 <td>
                                     <span class="badge st-{{ 'active' if v.computed_status == 'ACTIVE' else (v.computed_status | lower) }}">
                                         {{ v.computed_status }}
@@ -376,12 +386,10 @@
                                 <td>
                                     {% if v.computed_status == 'UNUSED' %}
                                         <a href="/admin/vouchers/delete/{{ v.code }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete voucher {{ v.code }} permanently?');">Delete</a>
-                                    {% elif v.computed_status == 'ACTIVE' %}
-                                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-danger btn-sm">Revoke</a>
+                                    {% elif v.computed_status == 'ACTIVE' or v.computed_status == 'EXPIRED' %}
+                                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-secondary btn-sm">Revoke</a>
                                     {% elif v.computed_status == 'REVOKED' %}
-                                        <a href="/admin/vouchers/revoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
-                                    {% elif v.computed_status == 'EXPIRED' %}
-                                        <span style="color: var(--text-sub); font-size: 13px;">-</span>
+                                        <a href="/admin/voucher/unrevoke/{{ v.code }}" class="btn btn-success btn-sm">Unrevoke</a>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -400,7 +408,7 @@
                     <div class="box-title">Connected Users Insights</div>
                     <div style="display: flex; gap: 8px;">
                         <button id="btn-fewer" class="btn btn-primary btn-sm" onclick="toggleUserView('fewer')">Fewer Details</button>
-                        <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details</button>
+                        <button id="btn-more" class="btn btn-secondary btn-sm" onclick="toggleUserView('more')">More Details & Logs</button>
                     </div>
                 </div>
 
@@ -457,9 +465,10 @@
                                     <th class="sortable" onclick="sortTable('userAnalyticsTable', 0)">MAC Address ↕</th>
                                     <th>Phone Number</th>
                                     <th>Voucher Code</th>
+                                    <th>Package</th>
                                     <th class="sortable" onclick="sortTable('userAnalyticsTable', 4)">Time Window (Date) ↕</th>
                                     <th>Duration</th>
-                                    <th>Used Time (mins) / Time Window</th>
+                                    <th>Used Time (mins)</th>
                                     <th>Total Used Time (dd:hh:mm)</th>
                                     <th>Offline Policy</th>
                                     <th>Sites Visited Logs</th>
@@ -471,6 +480,7 @@
                                     <td style="font-family: monospace;"><b>{{ item.mac }}</b></td>
                                     <td><b>{{ item.phone_number }}</b></td>
                                     <td><span class="badge st-unused">{{ item.voucher_code }}</span></td>
+                                    <td>{{ item.package_name }}</td>
                                     <td data-sort="{{ item.time_raw }}">{{ item.time_label }}</td>
                                     <td>{{ item.duration_formatted }}</td>
                                     <td style="font-weight: 700; color: var(--accent-color);">{{ item.session_used_mins }}</td>
@@ -481,7 +491,7 @@
                                     </td>
                                 </tr>
                                 {% else %}
-                                <tr><td colspan="9" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
+                                <tr><td colspan="10" style="text-align: center; color: var(--text-sub); padding: 30px;">No detailed usage reports available.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -494,7 +504,7 @@
         <!-- SETTINGS TAB -->
         <div id="tab-settings" class="tab-panel">
             <div class="box">
-                <div class="box-title" style="margin-bottom: 24px;">⚙️ Gateway Configuration</div>
+                <div class="box-title" style="margin-bottom: 24px;"><i class="fa-solid fa-gears"></i> Gateway Configuration</div>
                 <form action="/admin/settings/update" method="POST">
                     <div class="form-grid">
                         <div class="form-group">
@@ -534,18 +544,20 @@
             
             const activeLink = document.querySelector(`.sidebar-menu a[href="#${tabId}"]`);
             if(activeLink) activeLink.classList.add('active');
+            window.location.hash = tabId;
         }
 
         function toggleForm(id) { 
             document.getElementById(id).classList.toggle('hidden'); 
         }
 
-        function openEditModal(id, name, price, duration, unit, badge, desc) {
+        function openEditModal(id, name, price, duration, unit, pauseOffline, badge, desc) {
             document.getElementById('edit-package-form').action = '/admin/packages/edit/' + id;
             document.getElementById('edit-name').value = name;
             document.getElementById('edit-price').value = price;
             document.getElementById('edit-duration').value = duration;
             document.getElementById('edit-unit').value = unit;
+            document.getElementById('edit-pause-offline').value = pauseOffline;
             document.getElementById('edit-badge').value = badge;
             document.getElementById('edit-description').value = desc;
             document.getElementById('edit-package-modal').classList.remove('hidden');
