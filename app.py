@@ -603,16 +603,21 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-@app.route('/admin/login', methods=['POST'])
+@app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def login():
-    password_attempt = request.form.get('password')
-    # Securely compare the hash, not the plain text
-    if check_password_hash(ADMIN_PASSWORD_HASH, password_attempt):
-        session['admin_logged_in'] = True
-        return redirect(url_for('admin_dashboard'))
-    else:
-        return render_template('admin_login.html', error="Invalid credentials")
+    if request.method == 'POST':
+        password_attempt = request.form.get('password')
+        
+        # Verify credentials
+        if check_password_hash(ADMIN_PASSWORD_HASH, password_attempt):
+            session['admin'] = True  # Matches session.get('admin') check in admin_dashboard
+            return redirect('/admin')
+        else:
+            return render_template('admin_login.html', error="Invalid credentials")
+
+    # Render the login template on GET requests
+    return render_template('admin_login.html')
 
 @app.route('/admin/logout')
 def admin_logout():
