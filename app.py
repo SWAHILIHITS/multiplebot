@@ -24,9 +24,10 @@ def get_real_client_ip():
 # --- LOGGING INITIALIZATION ---
 LOG_CONFIG_FILE = "logging.conf"
 limiter = Limiter(
-    get_remote_address,
     app=app,
-    default_limits=["300 per day", "70 per hour"]
+    key_func=get_real_client_ip,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://" # or your redis uri if using redis
 )
 
 if os.path.exists(LOG_CONFIG_FILE):
