@@ -6,6 +6,11 @@ import logging.config
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
 from flask import Flask, render_template, request, redirect, session, Response, render_template_string
+from werkzeug.security import generate_password_hash, check_password_hash
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_limiter import Limiter
+from flask_limiter.errors import RateLimitExceeded
+from flask_limiter.util import get_remote_address
 # Import MongoDB collection objects
 from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
@@ -571,7 +576,17 @@ def wifidog_ping():
                 
     return Response("Pong\n", mimetype='text/plain')
 
-
+@app.errorhandler(RateLimitExceeded)
+def handle_rate_limit(e):
+    return render_template(
+        'portal.html', 
+        error="Too many attempts from your device. Please wait a minute before trying again.",
+        mac=request.form.get('mac', ''),
+        gw_address=request.form.get('gw_address', ''),
+        gw_port=request.form.get('gw_port', ''),
+        gw_id=request.form.get('gw_id', ''),
+        userurl=request.form.get('userurl', '')
+    ), 429
 @app.errorhandler(404)
 def handle_404(e):
     path = request.path.lower()
@@ -585,9 +600,6 @@ def handle_404(e):
 # ==========================================
 # ADMIN DASHBOARD ROUTES
 # ==========================================
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 limiter = Limiter(
     get_remote_address,
@@ -982,7 +994,6 @@ def add_security_headers(response):
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
     return toggle_revoke_voucher(code)
-from apscheduler.schedulers.background import BackgroundScheduler
 
 def background_cleanup_job():
     try:
