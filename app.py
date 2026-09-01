@@ -18,7 +18,11 @@ app = Flask(__name__)
 
 # --- LOGGING INITIALIZATION ---
 LOG_CONFIG_FILE = "logging.conf"
-
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["300 per day", "70 per hour"]
+)
 
 if os.path.exists(LOG_CONFIG_FILE):
     logging.config.fileConfig(LOG_CONFIG_FILE, disable_existing_loggers=False)
@@ -614,12 +618,6 @@ def handle_404(e):
 # ==========================================
 # ADMIN DASHBOARD ROUTES
 # ==========================================
-
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    default_limits=["200 per day", "50 per hour"]
-)
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
