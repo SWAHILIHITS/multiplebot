@@ -585,15 +585,7 @@ def handle_404(e):
 # ==========================================
 # ADMIN DASHBOARD ROUTES
 # ==========================================
-
 from werkzeug.security import generate_password_hash, check_password_hash
-
-# When setting/creating the admin password (run this once to generate the hash)
-# hashed_pwd = generate_password_hash("your_super_secret_password")
-# Store this hashed_pwd in your database or environment variable.
-
-ADMIN_PASSWORD_HASH = "scrypt:32768:8:1$..." # Example hash
-
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -606,23 +598,65 @@ limiter = Limiter(
 @app.route('/admin/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
 def login():
-    if request.method == 'POST':
-        password_attempt = request.form.get('password')
-        
-        # Verify credentials
-        if check_password_hash(ADMIN_PASSWORD_HASH, password_attempt):
-            session['admin'] = True  # Matches session.get('admin') check in admin_dashboard
-            return redirect('/admin')
-        else:
-            return render_template('admin_login.html', error="Invalid credentials")
+    db = vouchers_col.database
+    # Check if we have an admin password in the database
+    admin_doc = db.system_status.find_one({"_id": "admin_credentials"})
+    has_password = admin_doc is not None and "password_hash" in admin_doc
 
-    # Render the login template on GET requests
-    return render_template('admin_login.html')
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        # SETUP MODE: Creating the first password
+        if action == 'setup' and not has_password:
+            new_password = request.form.get('password')
+            hashed = generate_password_hash(new_password)
+            db.system_status.update_one(
+                {"_id": "admin_credentials"},
+                {"$set": {"password_hash": hashed}},
+                upsert=True
+            )
+            session['admin'] = True
+            return redirect('/admin')
+            
+        # LOGIN MODE: Authenticating existing password
+        elif action == 'login' and has_password:
+            password_attempt = request.form.get('password')
+            if check_password_hash(admin_doc["password_hash"], password_attempt):
+                session['admin'] = True
+                return redirect('/admin')
+            else:
+                return render_template('admin_login.html', error="Invalid credentials", setup_mode=False)
+
+    # Render login page (pass setup_mode=True if no password exists yet)
+    return render_template('admin_login.html', setup_mode=not has_password)
 
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
     return redirect('/admin/login')
+
+# NEW ROUTE: Change Password from Settings
+@app.route('/admin/settings/password', methods=['POST'])
+def update_password():
+    if not session.get('admin'): 
+        return redirect('/admin/login')
+    
+    db = vouchers_col.database
+    admin_doc = db.system_status.find_one({"_id": "admin_credentials"})
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    
+    # Verify the current password matches the hash before allowing a change
+    if admin_doc and check_password_hash(admin_doc.get("password_hash", ""), current_password):
+        new_hashed = generate_password_hash(new_password)
+        db.system_status.update_one(
+            {"_id": "admin_credentials"},
+            {"$set": {"password_hash": new_hashed}}
+        )
+        return redirect('/admin?pwd_msg=success#settings')
+    else:
+        return redirect('/admin?pwd_msg=error#settings')
 
 def cleanup_expired_vouchers():
     now = datetime.now(timezone.utc)
