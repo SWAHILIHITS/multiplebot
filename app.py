@@ -29,7 +29,6 @@ app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
 
-
 # --- HELPER FUNCTIONS ---
 def get_param(key, default=""):
     return request.form.get(key) or request.args.get(key) or default
@@ -627,7 +626,7 @@ def admin_dashboard():
     packages = list(packages_col.find().sort("created_at", -1))
     packages_map = {str(p["_id"]): p for p in packages}
     
-    vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1).limit(100))
+    vouchers = list(vouchers_col.find(voucher_filter).sort("_id", -1))
     used_vouchers = list(vouchers_col.find({"used_by_mac": {"$ne": None}}).sort("used_at", -1))
     active_vouchers_count = 0
     
@@ -902,10 +901,36 @@ def toggle_revoke_voucher(code):
             
     return redirect('/admin#vouchers')
 
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Prevent captive portal pages from being aggressively cached by captive portal mini-browsers
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return response
+
 @app.route('/admin/voucher/unrevoke/<code>')
 def unrevoke_voucher(code):
     return toggle_revoke_voucher(code)
-                        
+from apscheduler.schedulers.background import BackgroundScheduler
+
+def background_cleanup_job():
+    try:
+        now = datetime.now(timezone.utc)
+        result = vouchers_col.delete_many({
+            "status": "UNUSED",
+            "expire_at": {"$ne": None, "$lte": now}
+        })
+        if result.deleted_count > 0:
+            logger.info(f"Background job cleaned up {result.deleted_count} expired vouchers.")
+    except Exception as e:
+        logger.error(f"Error in background cleanup job: {e}")
+
+# Initialize and start scheduler when app boots up
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=background_cleanup_job, trigger="interval", hours=6)
+scheduler.start()                       
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
