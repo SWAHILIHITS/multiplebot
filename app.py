@@ -290,11 +290,28 @@ def process_login():
 
     is_valid = False
     if voucher:
+        duration_minutes = voucher['duration_minutes']
+        session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
+
         if voucher.get("status") == "UNUSED":
-            is_valid = True
+            # ATOMIC VOUCHER CLAIM TO PREVENT RACE CONDITIONS
+            claimed = vouchers_col.find_one_and_update(
+                {"code": code, "status": "UNUSED"},
+                {"$set": {
+                    "status": "USED",
+                    "used_by_mac": mac,
+                    "used_at": now,
+                    "session_expire_date": session_expire_date,
+                    "expire_at": None
+                }},
+                return_document=True
+            )
+            if claimed:
+                is_valid = True
+                voucher = claimed
         elif voucher.get("status") == "USED" and voucher.get("used_by_mac") == mac:
             consumed = calculate_voucher_consumed_minutes(voucher, db, now)
-            if consumed < voucher.get("duration_minutes", 0):
+            if consumed < duration_minutes:
                 is_valid = True
 
     if not is_valid:
@@ -340,18 +357,6 @@ def process_login():
         },
         upsert=True
     )
-    
-    if voucher.get("status") == "UNUSED":
-        vouchers_col.update_one(
-            {"code": code},
-            {"$set": {
-                "status": "USED",
-                "used_by_mac": mac,
-                "used_at": now,
-                "session_expire_date": session_expire_date,
-                "expire_at": None
-            }}
-        )
 
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
 
@@ -587,8 +592,6 @@ def admin_logout():
 
 def cleanup_expired_vouchers():
     now = datetime.now(timezone.utc)
-    # This ONLY deletes completely UNUSED vouchers that have passed their creation expiry.
-    # USED vouchers that have ran out of time (EXPIRED) will NOT be deleted here.
     vouchers_col.delete_many({
         "status": "UNUSED",
         "expire_at": {"$ne": None, "$lte": now}
@@ -700,9 +703,7 @@ def admin_dashboard():
         phone_number = voucher.get("phone_number") or active_sessions_map.get(mac, {}).get("phone_number", "-")
         duration_mins = voucher.get("duration_minutes", 0)
         
-        # FIXED: Bug was looking for session_used_mins, but it's saved as session_used_minutes
         session_used_mins = log.get("session_used_minutes", 0)
-        
         total_used_mins = calculate_voucher_consumed_minutes(voucher, db, now)
 
         detailed_report.append({
@@ -880,12 +881,16 @@ def toggle_revoke_voucher(code):
                 tokens_col.delete_many({"mac": mac_id})
                 
         elif current_status == "REVOKED":
-            # RESTORE EVERYTHING UPON UNREVOKING (SHIFT USED TIME)
+            # RESTORE EVERYTHING UPON UNREVOKING (SHIFT USED TIME ONLY FOR CONTINUE-TIMER PACKAGES)
             revoked_at = voucher.get("revoked_at")
             used_at = voucher.get("used_at")
             update_data = {"status": "USED", "revoked_at": None}
             
-            if revoked_at and used_at:
+            pkg_id = voucher.get("package_id")
+            pkg = packages_col.find_one({"_id": pkg_id}) if pkg_id else None
+            pause_offline = pkg.get("pause_on_user_offline", False) if pkg else False
+            
+            if revoked_at and used_at and not pause_offline:
                 if revoked_at.tzinfo is None: revoked_at = revoked_at.replace(tzinfo=timezone.utc)
                 if used_at.tzinfo is None: used_at = used_at.replace(tzinfo=timezone.utc)
                 
