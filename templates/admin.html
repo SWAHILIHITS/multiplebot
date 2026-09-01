@@ -783,8 +783,8 @@
             const newDoc = parser.parseFromString(html, "text/html");
             
             // Assuming your main dashboard content is wrapped in a div with id="dashboard-main"
-            const currentDashboard = document.getElementById('dashboard-main');
-            const newDashboard = newDoc.getElementById('dashboard-main');
+            const currentDashboard = document.querySelector('.main-content');
+            const newDashboard = newDoc.querySelector('.main-content');
             
             if (currentDashboard && newDashboard) {
                 // Update the dashboard HTML seamlessly without a page reload
