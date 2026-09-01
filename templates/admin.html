@@ -789,7 +789,15 @@
                 </div>
             `;
         }
-
+        // Check for password update URL parameters and show alerts
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('pwd_msg') === 'success') {
+            document.getElementById('pwd-alert-success').classList.remove('hidden');
+            setTimeout(() => { window.history.replaceState({}, document.title, window.location.pathname + "#settings"); }, 2000);
+        } else if (urlParams.get('pwd_msg') === 'error') {
+            document.getElementById('pwd-alert-error').classList.remove('hidden');
+            setTimeout(() => { window.history.replaceState({}, document.title, window.location.pathname + "#settings"); }, 2000);
+        }
         document.addEventListener("DOMContentLoaded", function() {
             const hash = window.location.hash.replace('#', '') || 'dashboard';
             switchTab(hash);
