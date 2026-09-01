@@ -579,9 +579,22 @@ def wifidog_ping():
 
 @app.errorhandler(RateLimitExceeded)
 def handle_rate_limit(e):
+    # Check if the rate limit was hit on an admin route
+    if request.path.startswith('/admin'):
+        db = vouchers_col.database
+        admin_doc = db.system_status.find_one({"_id": "admin_credentials"})
+        has_password = admin_doc is not None and "password_hash" in admin_doc
+        
+        return render_template(
+            'admin_login.html', 
+            error="Too many "Umeingiza password zaid ya mara moja,tafdhali subir baada ya dakika moja kisha jaribu tena",
+            setup_mode=not has_password
+        ), 429
+
+    # Default fallback for captive portal / user login routes
     return render_template(
         'portal.html', 
-        error="Too many attempts from your device. Please wait a minute before trying again.",
+        error="Umeingiza voucher zaid ya mara saba,tafdhali subir baada ya dakika moja kisha jaribu tena",
         mac=request.form.get('mac', ''),
         gw_address=request.form.get('gw_address', ''),
         gw_port=request.form.get('gw_port', ''),
