@@ -96,6 +96,46 @@
             <div class="mac-info">Device MAC: {{ mac }}</div>
         </div>
     </div>
+    {% if error %}
+<div id="rate-limit-box" style="background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; font-weight: 600; text-align: center;">
+    <i class="fa-solid fa-triangle-exclamation"></i> 
+    <span id="error-text">{{ error }}</span> 
+    <span id="countdown-timer" {% if not retry_after %}style="display:none;"{% endif %}>
+        (Subiri sekunde <span id="secs">{{ retry_after or 60 }}</span>)
+    </span>
+</div>
+
+<script>
+    let timeLeft = {{ retry_after | default(60) }};
+    const timerSpan = document.getElementById('secs');
+    const timerContainer = document.getElementById('countdown-timer');
+    const errorText = document.getElementById('error-text');
+
+    if (timeLeft > 0) {
+        // Optionally disable submit button during rate limit
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
+        const countdownInterval = setInterval(() => {
+            timeLeft--;
+            if (timerSpan) timerSpan.innerText = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(countdownInterval);
+                if (timerContainer) timerContainer.style.display = 'none';
+                
+                // Change error message to "Enter now"
+                if (errorText) {
+                    errorText.innerHTML = "Muda wa kusubiri umekwisha. <strong>Enter now! (Jaribu tena)</strong>";
+                }
+                
+                // Re-enable submit button
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        }, 1000);
+    }
+</script>
+{% endif %}
 
     <!-- Client-side input handling -->
     <script>
