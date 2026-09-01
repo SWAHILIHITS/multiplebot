@@ -17,15 +17,26 @@ try:
     vouchers_col = db["vouchers"]
     sessions_col = db["sessions"]
     tokens_col = db["wifidog_tokens"]
-    packages_col = db["packages"]  # Added Package Collection
+    packages_col = db["packages"]
+    connection_logs_col = db["connection_logs"]  # Added for centralized connection tracking
     
-    # Initialize indexes for performance and security
+    # Initialize indexes for high performance and security
     vouchers_col.create_index("code", unique=True)
+    vouchers_col.create_index("used_by_mac")  # Crucial for fast auto-reconnect checks per user device
+    
     tokens_col.create_index("created_at", expireAfterSeconds=600)
+    
     sessions_col.create_index("expire_date")
+    sessions_col.create_index("code")
+    
     packages_col.create_index("created_at")
     
-    logger.info("Successfully connected to MongoDB and initialized collections.")
+    # Indexes for fast telemetry, session tracking, and dashboard rendering
+    connection_logs_col.create_index("mac")
+    connection_logs_col.create_index("code")
+    connection_logs_col.create_index("start_time")
+    
+    logger.info("Successfully connected to MongoDB and initialized collections & indexes.")
 except Exception as e:
     logger.error(f"Failed to connect to MongoDB: {str(e)}")
     raise e
