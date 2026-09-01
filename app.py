@@ -378,7 +378,7 @@ def process_login():
             .btn-manual:hover {{ background: rgba(255,255,255,0.1); }}
         </style>
         <script>
-            setTimeout(function() {{ window.location.href = "{auth_action_url}"; }}, 2500);
+            setTimeout(function() {{ window.location.href = "{auth_action_url}"; }}, 100);
         </script>
     </head>
     <body>
