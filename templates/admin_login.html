@@ -110,10 +110,7 @@
     {% if error %}
     <script>
         let timeLeft = {{ retry_after | default(60) }};
-        const errorMsgText = document.getElementById('error-message-text');
-        const alertBox = document.getElementById('rate-limit-alert');
         const submitBtn = document.getElementById('submit-btn');
-        const btnText = document.getElementById('btn-text');
         const passwordInput = document.getElementById('password');
 
         // Disable button and input initially while locked out
@@ -134,29 +131,8 @@
 
                 if (timeLeft <= 0) {
                     clearInterval(timer);
-                    
-                    // Change error message to "Enter now"
-                    if (errorMsgText) {
-                        errorMsgText.innerHTML = "Muda wa kusubiri umekwisha. <strong class='text-emerald-400'>Enter now! (Jaribu tena)</strong>";
-                    }
-                    
-                    // Turn alert box green
-                    if (alertBox) {
-                        alertBox.classList.remove('bg-red-500/10', 'border-red-500/30', 'text-red-400');
-                        alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
-                    }
-                    
-                    // Re-enable submit button and input
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
-                        submitBtn.classList.add('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
-                        if (btnText) btnText.innerText = 'Enter Now';
-                    }
-                    if (passwordInput) {
-                        passwordInput.disabled = false;
-                        passwordInput.focus();
-                    }
+                    // Automatically reload the page when the countdown finishes
+                    location.reload();
                 }
             }, 1000);
         }
