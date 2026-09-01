@@ -42,10 +42,18 @@
             {% endif %}
 
             <!-- Login Form -->
+            <!-- Login / Setup Form -->
             <form action="/admin/login" method="POST" class="space-y-6">
+                <!-- Hidden input to tell backend which action is happening -->
+                <input type="hidden" name="action" value="{{ 'setup' if setup_mode else 'login' }}">
+                
                 <div>
                     <label for="password" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
-                        Admin Security PIN / Password
+                        {% if setup_mode %}
+                            <span class="text-emerald-400"><i class="fa-solid fa-plus-circle"></i> Create Initial Admin Password</span>
+                        {% else %}
+                            Admin Security PIN / Password
+                        {% endif %}
                     </label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -70,13 +78,16 @@
                             <i id="toggle-icon" class="fa-solid fa-eye"></i>
                         </button>
                     </div>
+                    {% if setup_mode %}
+                        <p class="text-xs text-slate-400 mt-2">Welcome! Please create a strong password for your first time logging in. It will be securely hashed and saved.</p>
+                    {% endif %}
                 </div>
 
                 <button 
                     type="submit" 
                     class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-200 flex items-center justify-center space-x-2 group focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
                 >
-                    <span>Authenticate Session</span>
+                    <span>{{ 'Save & Initialize Dashboard' if setup_mode else 'Authenticate Session' }}</span>
                     <i class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
                 </button>
             </form>
