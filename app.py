@@ -286,6 +286,7 @@ def favicon():
     return Response(status=204)
 
 @app.route('/login', methods=['POST'])
+@limiter.limit("7 per minute")
 def process_login():
     code = request.form.get('voucher', '').strip()
     mac = clean_mac(get_client_mac())
