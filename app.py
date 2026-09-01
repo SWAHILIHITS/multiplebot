@@ -14,6 +14,7 @@ app = Flask(__name__)
 # --- LOGGING INITIALIZATION ---
 LOG_CONFIG_FILE = "logging.conf"
 
+
 if os.path.exists(LOG_CONFIG_FILE):
     logging.config.fileConfig(LOG_CONFIG_FILE, disable_existing_loggers=False)
     logger = logging.getLogger("appLogger")
@@ -28,7 +29,17 @@ else:
 app.secret_key = os.getenv("SECRET_KEY", secrets.token_hex(32))
 ADMIN_PW = os.getenv("ADMIN_PASSWORD", "admin123")
 DEFAULT_GW_ADDRESS = os.getenv("DEFAULT_GW_ADDRESS", "192.168.0.46")
+# Make the session expire after 30 minutes of inactivity
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
+# Prevent JavaScript from reading the session cookie (XSS protection)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+# Ensure cookies are only sent over HTTPS (Enable this in production!)
+# app.config['SESSION_COOKIE_SECURE'] = True 
+
+# Prevent cookies from being sent in cross-site requests (CSRF protection)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # --- HELPER FUNCTIONS ---
 def get_param(key, default=""):
     return request.form.get(key) or request.args.get(key) or default
@@ -575,14 +586,33 @@ def handle_404(e):
 # ADMIN DASHBOARD ROUTES
 # ==========================================
 
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    if request.method == 'POST':
-        if request.form.get('password') == ADMIN_PW:
-            session['admin'] = True
-            return redirect('/admin')
-        return render_template('admin_login.html', error="Nenosiri sio sahihi!")
-    return render_template('admin_login.html')
+from werkzeug.security import generate_password_hash, check_password_hash
+
+# When setting/creating the admin password (run this once to generate the hash)
+# hashed_pwd = generate_password_hash("your_super_secret_password")
+# Store this hashed_pwd in your database or environment variable.
+
+ADMIN_PASSWORD_HASH = "scrypt:32768:8:1$..." # Example hash
+
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
+
+@app.route('/admin/login', methods=['POST'])
+@limiter.limit("5 per minute")
+def login():
+    password_attempt = request.form.get('password')
+    # Securely compare the hash, not the plain text
+    if check_password_hash(ADMIN_PASSWORD_HASH, password_attempt):
+        session['admin_logged_in'] = True
+        return redirect(url_for('admin_dashboard'))
+    else:
+        return render_template('admin_login.html', error="Invalid credentials")
 
 @app.route('/admin/logout')
 def admin_logout():
