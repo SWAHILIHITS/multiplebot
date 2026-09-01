@@ -587,7 +587,7 @@ def handle_rate_limit(e):
         
         return render_template(
             'admin_login.html', 
-            error="Too many "Umeingiza password zaid ya mara moja,tafdhali subir baada ya dakika moja kisha jaribu tena",
+            error="Umeingiza password zaid ya mara moja,tafdhali subir baada ya dakika moja kisha jaribu tena",
             setup_mode=not has_password
         ), 429
 
