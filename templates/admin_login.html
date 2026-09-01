@@ -7,9 +7,9 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cloudflare.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Inter Font -->
-    <link href="https://googleapis.com" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
@@ -33,12 +33,15 @@
                 <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Authorized Personnel Only</p>
             </div>
 
-            <!-- Rate Limit / Error Notification Alert -->
+            <!-- Error Notification Alert -->
             {% if error %}
             <div id="rate-limit-alert" class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center space-x-3 text-red-400 text-sm transition-all duration-300">
                 <i class="fa-solid fa-triangle-exclamation text-lg shrink-0"></i>
                 <span id="error-message-text" class="font-medium">
-                    {{ error }} (Subiri sekunde <span id="countdown-secs">{{ retry_after | default(60) }}</span>)
+                    {{ error }}
+                    {% if retry_after %}
+                        (Subiri sekunde <span id="countdown-secs">{{ retry_after }}</span>)
+                    {% endif %}
                 </span>
             </div>
             {% endif %}
@@ -106,15 +109,15 @@
         </p>
     </div>
 
-    <!-- Live Countdown & Rate Limit Script -->
-    {% if error %}
+    <!-- Live Countdown & Rate Limit Script (Runs ONLY when rate-limited) -->
+    {% if error and retry_after %}
     <script>
-        let displayTime = {{ retry_after | default(60) }};
+        let displayTime = {{ retry_after }};
         const errorMsgText = document.getElementById('error-message-text');
         const submitBtn = document.getElementById('submit-btn');
         const passwordInput = document.getElementById('password');
 
-        // Disable button and input initially while locked out
+        // Disable button and input while locked out
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.classList.remove('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
@@ -133,12 +136,10 @@
                 if (displayTime <= 0) {
                     clearInterval(timer);
                     
-                    // Show refreshing status text cleanly
                     if (errorMsgText) {
                         errorMsgText.innerHTML = "Inafungua upya... (Refreshing)";
                     }
                     
-                    // Wait a 3-second buffer to let the server-side lock window completely expire, then reload
                     setTimeout(() => {
                         location.reload();
                     }, 3000);
