@@ -772,26 +772,27 @@
         });
     </script>
     <script>
-    // Automatically poll the backend for updates every 10 seconds
     setInterval(function() {
-        // 1. Skip refresh if the user is currently typing or interacting with an input/form
+        // Skip if interacting with inputs or if modals are open
         const activeEl = document.activeElement;
         const isInteracting = activeEl && (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName));
-        
-        // Skip if any modal or create form is currently open
         const isEditModalOpen = !document.getElementById('edit-package-modal').classList.contains('hidden');
         const isNewPkgOpen = !document.getElementById('new-package-box').classList.contains('hidden');
         const isNewVoucherOpen = !document.getElementById('new-voucher-box').classList.contains('hidden');
 
         if (isInteracting || isEditModalOpen || isNewPkgOpen || isNewVoucherOpen) {
-            return; // Skip this tick so user input or open modals are untouched
+            return;
         }
 
-        // 2. Capture the currently active tab before updating content
+        // Capture current state before refreshing
         const activePanel = document.querySelector('.tab-panel.active');
         const currentTabId = activePanel ? activePanel.id.replace('tab-', '') : 'dashboard';
+        
+        // Save current pages and filters
+        const voucherTable = document.getElementById('vouchers-table');
+        const currentVoucherPage = voucherTable ? voucherTable.getAttribute('data-current-page') : 1;
+        const voucherFilterVal = document.getElementById('voucher-status-filter') ? document.getElementById('voucher-status-filter').value : 'all';
 
-        // 3. Fetch the newest version of this page in the background
         fetch(window.location.href)
             .then(response => response.text())
             .then(html => {
@@ -802,21 +803,31 @@
                 const newDashboard = newDoc.querySelector('.main-content');
                 
                 if (currentDashboard && newDashboard) {
-                    // Seamlessly update content
                     currentDashboard.innerHTML = newDashboard.innerHTML;
                     
-                    // Restore the exact tab you were looking at
+                    // Restore tab
                     switchTab(currentTabId);
                     
-                    // Re-initialize tables and pagination state
+                    // Restore voucher filter and page
+                    const newFilterSelect = document.getElementById('voucher-status-filter');
+                    if (newFilterSelect) {
+                        newFilterSelect.value = voucherFilterVal;
+                        filterVouchers();
+                    }
+
+                    // Re-initialize tables and keep page if possible
                     document.querySelectorAll('table.paginated-table').forEach(t => {
-                        t.setAttribute('data-current-page', 1);
+                        let targetPage = 1;
+                        if (t.id === 'vouchers-table') {
+                            targetPage = parseInt(currentVoucherPage) || 1;
+                        }
+                        t.setAttribute('data-current-page', targetPage);
                         paginateTable(t);
                     });
                 }
             })
             .catch(error => console.error('Error auto-updating dashboard:', error));
-    }, 10000); // 10000ms = 10 seconds
+    }, 10000);
 </script>
 </body>
 </html>
