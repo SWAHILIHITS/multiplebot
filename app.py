@@ -583,7 +583,14 @@ def wifidog_ping():
 
 @app.errorhandler(RateLimitExceeded)
 def handle_rate_limit(e):
-    # Check if the rate limit was hit on an admin route
+    # Safely extract retry_after from Flask-Limiter, default to 60 seconds
+    retry_after_secs = 60
+    try:
+        if hasattr(e, 'retry_after') and e.retry_after:
+            retry_after_secs = int(e.retry_after)
+    except Exception:
+        pass
+
     if request.path.startswith('/admin'):
         db = vouchers_col.database
         admin_doc = db.system_status.find_one({"_id": "admin_credentials"})
@@ -591,14 +598,15 @@ def handle_rate_limit(e):
         
         return render_template(
             'admin_login.html', 
-            error="Umeingiza password zaid ya mara moja,tafdhali subir baada ya dakika moja kisha jaribu tena",
+            error="Umeingiza password zaid ya mara moja, tafadhali subir baada ya dakika moja kisha jaribu tena",
+            retry_after=retry_after_secs,
             setup_mode=not has_password
         ), 429
 
-    # Default fallback for captive portal / user login routes
     return render_template(
         'portal.html', 
-        error="Umeingiza voucher zaid ya mara saba,tafdhali subir baada ya dakika moja kisha jaribu tena",
+        error="Umeingiza voucher zaidi ya mara saba, tafadhali subiri kidogo.",
+        retry_after=retry_after_secs,
         mac=request.form.get('mac', ''),
         gw_address=request.form.get('gw_address', ''),
         gw_port=request.form.get('gw_port', ''),
