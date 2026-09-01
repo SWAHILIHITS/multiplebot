@@ -15,7 +15,12 @@ from flask_limiter.util import get_remote_address
 from templates.database import vouchers_col, sessions_col, tokens_col, packages_col
 
 app = Flask(__name__)
-
+def get_real_client_ip():
+    forwarded_for = request.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        # Take the first IP in the comma-separated chain
+        return forwarded_for.split(',')[0].strip()
+    return get_remote_address()
 # --- LOGGING INITIALIZATION ---
 LOG_CONFIG_FILE = "logging.conf"
 limiter = Limiter(
