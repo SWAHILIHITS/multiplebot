@@ -12,35 +12,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.15; transform: scale(1); }
+            50% { opacity: 0.25; transform: scale(1.05); }
+        }
+        .ambient-glow-1 { animation: pulse-slow 8s ease-in-out infinite; }
+        .ambient-glow-2 { animation: pulse-slow 10s ease-in-out infinite reverse; }
     </style>
 </head>
-<body class="h-full flex items-center justify-center p-4 relative overflow-hidden bg-slate-950 text-slate-100">
+<body class="h-full flex items-center justify-center p-4 relative overflow-hidden bg-slate-950 text-slate-100 selection:bg-blue-500 selection:text-white">
 
-    <!-- Ambient Glowing Background Accent -->
-    <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Ultra-modern Ambient Glowing Background Orbs -->
+    <div class="absolute -top-32 -left-32 w-[30rem] h-[30rem] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none ambient-glow-1"></div>
+    <div class="absolute -bottom-32 -right-32 w-[30rem] h-[30rem] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none ambient-glow-2"></div>
 
     <div class="w-full max-w-md z-10">
-        <!-- Main Login Card -->
-        <div class="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 rounded-2xl shadow-2xl p-8 transition-all">
+        <!-- Glassmorphism Main Card -->
+        <div class="bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] p-8 sm:p-10 transition-all duration-300">
             
             <!-- Secure Shield Header -->
             <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-4 shadow-inner">
-                    <i class="fa-solid font-bold fa-shield-halved text-3xl"></i>
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 text-blue-400 mb-4 shadow-lg shadow-blue-500/10">
+                    <i class="fa-solid font-bold fa-shield-halved text-2xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold tracking-tight text-white">Admin Dashboard</h1>
-                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Authorized Personnel Only</p>
+                <p class="text-xs text-slate-400 mt-1.5 uppercase tracking-widest font-medium">Authorized Personnel Only</p>
             </div>
 
             <!-- Error Notification Alert -->
             {% if error %}
-            <div id="rate-limit-alert" class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center space-x-3 text-red-400 text-sm transition-all duration-300">
+            <div id="rate-limit-alert" class="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center space-x-3 text-red-400 text-sm backdrop-blur-md animate-fade-in transition-all duration-300">
                 <i class="fa-solid fa-triangle-exclamation text-lg shrink-0"></i>
-                <span id="error-message-text" class="font-medium">
+                <span id="error-message-text" class="font-medium leading-relaxed">
                     {{ error }}
                     {% if retry_after %}
-                        (Subiri sekunde <span id="countdown-secs">{{ retry_after }}</span>)
+                        (Subiri sekunde <span id="countdown-secs" class="font-bold underline">{{ retry_after }}</span>)
                     {% endif %}
                 </span>
             </div>
@@ -52,16 +58,16 @@
                 <input type="hidden" name="action" value="{{ 'setup' if setup_mode else 'login' }}">
                 
                 <div>
-                    <label for="password" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                    <label for="password" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2.5">
                         {% if setup_mode %}
-                            <span class="text-emerald-400"><i class="fa-solid fa-plus-circle"></i> Create Initial Admin Password</span>
+                            <span class="text-emerald-400 flex items-center gap-1"><i class="fa-solid fa-plus-circle"></i> Create Initial Admin Password</span>
                         {% else %}
                             Admin Security PIN / Password
                         {% endif %}
                     </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                            <i class="fa-solid fa-key"></i>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-blue-400 transition-colors">
+                            <i class="fa-solid fa-key text-sm"></i>
                         </div>
                         <input 
                             type="password" 
@@ -70,41 +76,41 @@
                             required 
                             autofocus
                             placeholder="••••••••••••"
-                            class="w-full pl-10 pr-12 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                            class="w-full pl-11 pr-12 py-3.5 bg-slate-950/60 border border-slate-800/80 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-sm shadow-inner"
                         >
                         <!-- Password Toggle Eye Button -->
                         <button 
                             type="button" 
                             onclick="togglePasswordVisibility()" 
-                            class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                            class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
                             title="Toggle Password Visibility"
                         >
-                            <i id="toggle-icon" class="fa-solid fa-eye"></i>
+                            <i id="toggle-icon" class="fa-solid fa-eye text-sm"></i>
                         </button>
                     </div>
                     {% if setup_mode %}
-                        <p class="text-xs text-slate-400 mt-2">Welcome! Please create a strong password for your first time logging in. It will be securely hashed and saved.</p>
+                        <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">Welcome! Please create a strong password for your first time logging in. It will be securely hashed and saved.</p>
                     {% endif %}
                 </div>
 
                 <button 
                     type="submit" 
                     id="submit-btn"
-                    class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-200 flex items-center justify-center space-x-2 group focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                    class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-2xl shadow-xl shadow-blue-600/20 active:scale-[0.98] transition-all duration-200 flex items-center justify-center space-x-2 group focus:ring-4 focus:ring-blue-500/20"
                 >
                     <span id="btn-text">{{ 'Save & Initialize Dashboard' if setup_mode else 'Authenticate Session' }}</span>
-                    <i id="btn-icon" class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
+                    <i id="btn-icon" class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
                 </button>
             </form>
 
             <!-- Encrypted Footer Note -->
-            <div class="mt-8 pt-6 border-t border-slate-800/80 text-center flex items-center justify-center space-x-2 text-xs text-slate-500">
-                <i class="fa-solid fa-lock text-emerald-500"></i>
+            <div class="mt-8 pt-6 border-t border-slate-800/60 text-center flex items-center justify-center space-x-2 text-xs text-slate-500 font-medium">
+                <i class="fa-solid fa-lock text-emerald-400"></i>
                 <span>256-bit Encrypted Session Connection</span>
             </div>
         </div>
 
-        <p class="text-center text-xs text-slate-600 mt-6">
+        <p class="text-center text-xs text-slate-600 mt-6 font-medium">
             &copy; HANS WIFI Captive Portal Architecture
         </p>
     </div>
@@ -120,11 +126,12 @@
         // Disable button and input while locked out
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.classList.remove('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
-            submitBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+            submitBtn.classList.remove('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/20', 'active:scale-[0.98]');
+            submitBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed', 'shadow-none');
         }
         if (passwordInput) {
             passwordInput.disabled = true;
+            passwordInput.classList.add('cursor-not-allowed', 'opacity-50');
         }
 
         if (displayTime > 0) {
@@ -142,7 +149,7 @@
                     
                     setTimeout(() => {
                         location.reload();
-                    }, 3000);
+                    }, 2000);
                 }
             }, 1000);
         } else {
