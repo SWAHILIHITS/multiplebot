@@ -928,9 +928,10 @@ def background_cleanup_job():
         logger.error(f"Error in background cleanup job: {e}")
 
 # Initialize and start scheduler when app boots up
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=background_cleanup_job, trigger="interval", hours=6)
-scheduler.start()                       
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=background_cleanup_job, trigger="interval", hours=6)
+    scheduler.start()                    
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
