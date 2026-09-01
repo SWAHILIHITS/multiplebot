@@ -1,141 +1,170 @@
 <!DOCTYPE html>
-<html lang="sw">
+<html lang="sw" class="h-full bg-slate-950">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Admin Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>HANS WIFI - Security Admin Login</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #0f172a; 
-            margin: 0; 
-            padding: 20px;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 90vh;
-        }
-        .container { width: 100%; max-width: 380px; }
-        .box { 
-            background: #1e293b; 
-            padding: 35px 25px; 
-            border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.1); 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
-            text-align: center; 
-            box-sizing: border-box;
-            color: #f8fafc;
-        }
-        h2 { margin: 0; color: #fff; font-size: 24px; font-weight: 800; }
-        h2 span { color: #3b82f6; }
-        p { color: #94a3b8; font-size: 14px; margin-top: 6px; margin-bottom: 24px; }
-        label { font-weight: 600; font-size: 13px; color: #cbd5e1; display: block; margin-bottom: 8px; text-align: left; }
-        
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-        input[type="password"], input[type="text"] { 
-            width: 100%; 
-            padding: 14px 45px 14px 16px; 
-            font-size: 15px; 
-            border: 1px solid #334155; 
-            background: #0f172a;
-            color: #fff;
-            border-radius: 10px; 
-            box-sizing: border-box; 
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-        
-        .toggle-password {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-            font-size: 16px;
-            padding: 0;
-            width: auto;
-        }
-        .toggle-password:hover { color: #cbd5e1; }
-
-        button[type="submit"] { 
-            width: 100%; 
-            padding: 14px; 
-            background: #3b82f6; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: 700; 
-            font-size: 15px; 
-            cursor: pointer; 
-            transition: background 0.2s, transform 0.1s;
-        }
-        button[type="submit"]:hover { background: #2563eb; transform: translateY(-1px); }
-        
-        .error { 
-            color: #fca5a5; 
-            background: rgba(239, 68, 68, 0.1); 
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 12px; 
-            border-radius: 8px; 
-            font-size: 13px; 
-            margin-bottom: 20px; 
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .back-link { display: block; margin-top: 20px; font-size: 13px; color: #94a3b8; text-decoration: none; }
-        .back-link:hover { color: #3b82f6; }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="box">
-            <h2>HANS<span>WIFI</span></h2>
-            <p>Ingia kwenye Dashibodi ya Msimamizi</p>
+<body class="h-full flex items-center justify-center p-4 relative overflow-hidden bg-slate-950 text-slate-100">
+
+    <!-- Ambient Glowing Background Accent -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-md z-10">
+        <!-- Main Login Card -->
+        <div class="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 rounded-2xl shadow-2xl p-8 transition-all">
             
-            {% if error %}
-                <div id="rate-limit-alert" class="error">
-                    <i class="fa-solid fa-triangle-exclamation" style="flex-shrink: 0;"></i>
-                    <span id="error-message-text">
-                        {{ error }} {% if retry_after %}(Subiri sekunde <span id="countdown-secs">{{ retry_after }}</span>){% endif %}
-                    </span>
+            <!-- Secure Shield Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-4 shadow-inner">
+                    <i class="fa-solid font-bold fa-shield-halved text-3xl"></i>
                 </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Admin Dashboard</h1>
+                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Authorized Personnel Only</p>
+            </div>
+
+            <!-- Rate Limit / Error Notification Alert -->
+            {% if error %}
+            <div id="rate-limit-alert" class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center space-x-3 text-red-400 text-sm transition-all duration-300">
+                <i class="fa-solid fa-triangle-exclamation text-lg shrink-0"></i>
+                <span id="error-message-text" class="font-medium">
+                    {{ error }} (Subiri sekunde <span id="countdown-secs">{{ retry_after | default(60) }}</span>)
+                </span>
+            </div>
             {% endif %}
 
-            <form action="/admin/login" method="POST">
-                <label for="password">Nenosiri la Admin:</label>
-                <div class="input-group">
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        placeholder="Weka nenosiri..." 
-                        required 
-                        autofocus
-                    >
-                    <button type="button" class="toggle-password" onclick="togglePasswordVisibility()">
-                        <i id="toggle-icon" class="fa-solid fa-eye"></i>
-                    </button>
+            <!-- Login / Setup Form -->
+            <form action="/admin/login" method="POST" class="space-y-6">
+                <!-- Hidden input to tell backend which action is happening -->
+                <input type="hidden" name="action" value="{{ 'setup' if setup_mode else 'login' }}">
+                
+                <div>
+                    <label for="password" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
+                        {% if setup_mode %}
+                            <span class="text-emerald-400"><i class="fa-solid fa-plus-circle"></i> Create Initial Admin Password</span>
+                        {% else %}
+                            Admin Security PIN / Password
+                        {% endif %}
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            autofocus
+                            placeholder="••••••••••••"
+                            class="w-full pl-10 pr-12 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                        >
+                        <!-- Password Toggle Eye Button -->
+                        <button 
+                            type="button" 
+                            onclick="togglePasswordVisibility()" 
+                            class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
+                            title="Toggle Password Visibility"
+                        >
+                            <i id="toggle-icon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                    {% if setup_mode %}
+                        <p class="text-xs text-slate-400 mt-2">Welcome! Please create a strong password for your first time logging in. It will be securely hashed and saved.</p>
+                    {% endif %}
                 </div>
-                <button type="submit" id="submit-btn">INGIA ADMIN</button>
+
+                <button 
+                    type="submit" 
+                    id="submit-btn"
+                    class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-200 flex items-center justify-center space-x-2 group focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                >
+                    <span id="btn-text">{{ 'Save & Initialize Dashboard' if setup_mode else 'Authenticate Session' }}</span>
+                    <i id="btn-icon" class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
+                </button>
             </form>
 
-            <a href="/portal" class="back-link"><i class="fa-solid fa-arrow-left"></i> Rudi kwenye Ukurasa wa Kuunganisha</a>
+            <!-- Encrypted Footer Note -->
+            <div class="mt-8 pt-6 border-t border-slate-800/80 text-center flex items-center justify-center space-x-2 text-xs text-slate-500">
+                <i class="fa-solid fa-lock text-emerald-500"></i>
+                <span>256-bit Encrypted Session Connection</span>
+            </div>
         </div>
+
+        <p class="text-center text-xs text-slate-600 mt-6">
+            &copy; HANS WIFI Captive Portal Architecture
+        </p>
     </div>
 
+    <!-- Live Countdown & Rate Limit Script -->
+    {% if error %}
     <script>
-        // Toggle Password Visibility
+        let timeLeft = {{ retry_after | default(60) }};
+        const errorMsgText = document.getElementById('error-message-text');
+        const alertBox = document.getElementById('rate-limit-alert');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const passwordInput = document.getElementById('password');
+
+        // Disable button and input initially while locked out
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.classList.remove('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
+            submitBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+        }
+        if (passwordInput) {
+            passwordInput.disabled = true;
+        }
+
+        if (timeLeft > 0) {
+            const timer = setInterval(() => {
+                timeLeft--;
+                const secsSpan = document.getElementById('countdown-secs');
+                if (secsSpan) secsSpan.innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    
+                    // Change error message to "Enter now"
+                    if (errorMsgText) {
+                        errorMsgText.innerHTML = "Muda wa kusubiri umekwisha. <strong class='text-emerald-400'>Enter now! (Jaribu tena)</strong>";
+                    }
+                    
+                    // Turn alert box green
+                    if (alertBox) {
+                        alertBox.classList.remove('bg-red-500/10', 'border-red-500/30', 'text-red-400');
+                        alertBox.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+                    }
+                    
+                    // Re-enable submit button and input
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+                        submitBtn.classList.add('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
+                        if (btnText) btnText.innerText = 'Enter Now';
+                    }
+                    if (passwordInput) {
+                        passwordInput.disabled = false;
+                        passwordInput.focus();
+                    }
+                }
+            }, 1000);
+        }
+    </script>
+    {% endif %}
+
+    <!-- Password Eye Toggle Script -->
+    <script>
         function togglePasswordVisibility() {
             const pwdInput = document.getElementById('password');
             const icon = document.getElementById('toggle-icon');
@@ -148,31 +177,6 @@
                 icon.classList.remove('fa-eye-slash');
                 icon.classList.add('fa-eye');
             }
-        }
-
-        // Rate Limit Countdown Timer (if retry_after is provided by Flask-Limiter)
-        let timeLeft = {{ retry_after | default(0) }};
-        if (timeLeft > 0) {
-            const alertBox = document.getElementById('rate-limit-alert');
-            const submitBtn = document.getElementById('submit-btn');
-            
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
-            submitBtn.style.cursor = 'not-allowed';
-
-            const timer = setInterval(() => {
-                timeLeft--;
-                const secsSpan = document.getElementById('countdown-secs');
-                if (secsSpan) secsSpan.innerText = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    if (alertBox) alertBox.style.display = 'none';
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
-                }
-            }, 1000);
         }
     </script>
 </body>
