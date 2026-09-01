@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HANS WIFI - Security Admin Login</title>
+    <title>HANS WIFI - Admin Dashboard</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -14,146 +14,195 @@
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="h-full flex items-center justify-center p-4 relative overflow-hidden bg-slate-950 text-slate-100">
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col min-h-screen">
 
-    <!-- Ambient Glowing Background Accent -->
-    <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
-
-    <div class="w-full max-w-md z-10">
-        <!-- Main Login Card -->
-        <div class="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 rounded-2xl shadow-2xl p-8 transition-all">
-            
-            <!-- Secure Shield Header -->
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500 mb-4 shadow-inner">
-                    <i class="fa-solid font-bold fa-shield-halved text-3xl"></i>
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center">
+                    <i class="fa-solid fa-wifi"></i>
                 </div>
-                <h1 class="text-2xl font-bold tracking-tight text-white">Admin Dashboard</h1>
-                <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Authorized Personnel Only</p>
-            </div>
-
-            <!-- Rate Limit / Error Notification Alert -->
-            {% if error %}
-            <div id="rate-limit-alert" class="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center space-x-3 text-red-400 text-sm transition-all duration-300">
-                <i class="fa-solid fa-triangle-exclamation text-lg shrink-0"></i>
-                <span id="error-message-text" class="font-medium">
-                    {{ error }} (Subiri sekunde <span id="countdown-secs">{{ retry_after | default(60) }}</span>)
-                </span>
-            </div>
-            {% endif %}
-
-            <!-- Login / Setup Form -->
-            <form action="/admin/login" method="POST" class="space-y-6">
-                <!-- Hidden input to tell backend which action is happening -->
-                <input type="hidden" name="action" value="{{ 'setup' if setup_mode else 'login' }}">
-                
                 <div>
-                    <label for="password" class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">
-                        {% if setup_mode %}
-                            <span class="text-emerald-400"><i class="fa-solid fa-plus-circle"></i> Create Initial Admin Password</span>
-                        {% else %}
-                            Admin Security PIN / Password
-                        {% endif %}
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                            <i class="fa-solid fa-key"></i>
-                        </div>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            name="password" 
-                            required 
-                            autofocus
-                            placeholder="••••••••••••"
-                            class="w-full pl-10 pr-12 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
-                        >
-                        <!-- Password Toggle Eye Button -->
-                        <button 
-                            type="button" 
-                            onclick="togglePasswordVisibility()" 
-                            class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 transition-colors focus:outline-none"
-                            title="Toggle Password Visibility"
-                        >
-                            <i id="toggle-icon" class="fa-solid fa-eye"></i>
-                        </button>
-                    </div>
-                    {% if setup_mode %}
-                        <p class="text-xs text-slate-400 mt-2">Welcome! Please create a strong password for your first time logging in. It will be securely hashed and saved.</p>
-                    {% endif %}
+                    <span class="font-bold text-lg tracking-tight text-white">HANS WIFI</span>
+                    <span class="text-xs text-slate-400 block font-medium">Captive Portal Admin</span>
                 </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <span class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span> System Online
+                </span>
+                <a href="/admin/logout" class="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+    </header>
 
-                <button 
-                    type="submit" 
-                    id="submit-btn"
-                    class="w-full py-3.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/25 transition-all duration-200 flex items-center justify-center space-x-2 group focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
-                >
-                    <span id="btn-text">{{ 'Save & Initialize Dashboard' if setup_mode else 'Authenticate Session' }}</span>
-                    <i id="btn-icon" class="fa-solid fa-arrow-right text-sm group-hover:translate-x-1 transition-transform"></i>
-                </button>
-            </form>
+    <!-- Main Dashboard Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        <!-- Flash Messages / Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="p-4 rounded-xl border flex items-center space-x-3 text-sm {{ 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' if category == 'success' else 'bg-red-500/10 border-red-500/30 text-red-400' }}">
+                    <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-triangle-exclamation' }} text-lg shrink-0"></i>
+                    <span class="font-medium">{{ message }}</span>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-            <!-- Encrypted Footer Note -->
-            <div class="mt-8 pt-6 border-t border-slate-800/80 text-center flex items-center justify-center space-x-2 text-xs text-slate-500">
-                <i class="fa-solid fa-lock text-emerald-500"></i>
-                <span>256-bit Encrypted Session Connection</span>
+        <!-- Quick Stats Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Stat 1 -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Sessions</p>
+                        <h3 class="text-2xl font-bold text-white mt-1">{{ active_sessions_count | default(0) }}</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat 2 -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Today's Revenue</p>
+                        <h3 class="text-2xl font-bold text-white mt-1">Tsh {{ today_revenue | default(0) | format_currency }}</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-wallet"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat 3 -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Vouchers</p>
+                        <h3 class="text-2xl font-bold text-white mt-1">{{ total_vouchers | default(0) }}</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-ticket"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stat 4 -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Data Consumed</p>
+                        <h3 class="text-2xl font-bold text-white mt-1">{{ total_data | default('0 MB') }}</h3>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-600/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <p class="text-center text-xs text-slate-600 mt-6">
-            &copy; HANS WIFI Captive Portal Architecture
-        </p>
-    </div>
+        <!-- Two Column Section: Generate Vouchers & Package Management -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Generate Vouchers Form -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl lg:col-span-1">
+                <h2 class="text-lg font-bold text-white mb-4 flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-blue-500"></i>
+                    <span>Generate Vouchers</span>
+                </h2>
+                
+                <form action="/admin/generate_vouchers" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">Select Package</label>
+                        <select name="package_id" required class="w-full py-3 px-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            {% for pkg in packages %}
+                            <option value="{{ pkg._id }}">{{ pkg.name }} - Tsh {{ pkg.price }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-    <!-- Live Countdown & Rate Limit Script -->
-    {% if error %}
-    <script>
-        let timeLeft = {{ retry_after | default(60) }};
-        const submitBtn = document.getElementById('submit-btn');
-        const passwordInput = document.getElementById('password');
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 uppercase tracking-wider mb-2">Quantity</label>
+                        <input type="number" name="quantity" min="1" max="100" value="1" required class="w-full py-3 px-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
 
-        // Disable button and input initially while locked out
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.classList.remove('from-blue-600', 'to-indigo-600', 'hover:from-blue-500', 'hover:to-indigo-500', 'shadow-blue-600/25');
-            submitBtn.classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
-        }
-        if (passwordInput) {
-            passwordInput.disabled = true;
-        }
+                    <button type="submit" class="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/25 transition-all text-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Generate Vouchers</span>
+                    </button>
+                </form>
+            </div>
 
-        if (timeLeft > 0) {
-            const timer = setInterval(() => {
-                timeLeft--;
-                const secsSpan = document.getElementById('countdown-secs');
-                if (secsSpan) secsSpan.innerText = timeLeft;
+            <!-- Active Sessions Management Table -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-6 shadow-xl lg:col-span-2">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-network-wired text-emerald-500"></i>
+                        <span>Active Network Sessions</span>
+                    </h2>
+                    <span class="text-xs text-slate-400">Live Client Monitor</span>
+                </div>
 
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    // Automatically reload the page when the countdown finishes
-                    location.reload();
-                }
-            }, 1000);
-        }
-    </script>
-    {% endif %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-xs text-slate-400 uppercase tracking-wider">
+                                <th class="py-3 px-4">Client MAC / IP</th>
+                                <th class="py-3 px-4">Voucher Used</th>
+                                <th class="py-3 px-4">Data Usage</th>
+                                <th class="py-3 px-4 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/60">
+                            {% if sessions %}
+                                {% for session in sessions %}
+                                <tr class="hover:bg-slate-800/40 transition-colors">
+                                    <td class="py-3 px-4">
+                                        <span class="font-medium text-white block">{{ session.mac }}</span>
+                                        <span class="text-xs text-slate-500">{{ session.ip }}</span>
+                                    </td>
+                                    <td class="py-3 px-4 text-slate-300">{{ session.voucher_code }}</td>
+                                    <td class="py-3 px-4 text-slate-300">{{ session.data_used | default('0 MB') }}</td>
+                                    <td class="py-3 px-4 text-right">
+                                        <form action="/admin/revoke_session" method="POST" class="inline">
+                                            <input type="hidden" name="session_id" value="{{ session._id }}">
+                                            <button type="submit" class="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-colors">
+                                                Disconnect
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="py-8 text-center text-slate-500 text-sm">
+                                        No active sessions currently connected.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-    <!-- Password Eye Toggle Script -->
-    <script>
-        function togglePasswordVisibility() {
-            const pwdInput = document.getElementById('password');
-            const icon = document.getElementById('toggle-icon');
-            if (pwdInput.type === 'password') {
-                pwdInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                pwdInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-    </script>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 border-t border-slate-800 text-center text-xs text-slate-600">
+        &copy; 2026 HANS WIFI Captive Portal Architecture &bull; Secured System
+    </footer>
+
 </body>
 </html>
