@@ -625,32 +625,5 @@
             if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('active'); });
         })();
     </script>
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const form = document.querySelector("form"); // Badilisha hii iwe kitambulisho chako cha fomu kama kina id, mfano #loginForm
-        const voucherInput = document.querySelector("input[name='voucher']");
-        const submitButton = document.querySelector("button[type='submit']");
-        
-        // Tafuta sehemu au tengeneza ya kuonyesha ujumbe (kama haipo kwenye HTML)
-        let errorContainer = document.querySelector(".error-message"); 
-        if (!errorContainer) {
-            errorContainer = document.createElement("div");
-            errorContainer.className = "error-message";
-            if (form) form.prepend(errorContainer);
-        }
-
-        if (form) {
-            form.addEventListener("submit", function(e) {
-                // Kama unataka kufanya hivi pale tu fomu inapowasilishwa na si kwenye error ya awali pekee:
-                voucherInput.disabled = true;
-                if (submitButton) submitButton.disabled = true;
-                
-                // Badilisha ujumbe uonekane kwenye eneo la ujumbe
-                errorContainer.style.color = "green"; // Unaweza kuweka rangi ya mafanikio
-                errorContainer.innerText = "Voucher imekubaliwa, subiri kama sec 15 tukiwa tunakuruhusu kupata mtandao...";
-            });
-        }
-    });
-</script>
 </body>
 </html>
