@@ -577,7 +577,7 @@
                     // AUTO-SUBMIT: Connect instantly when 5 digits are entered
                     if (this.value.length === 5 && !submitBtn.disabled) {
                         // Slight 150ms delay for UI smoothness before locking the field
-                        setTimeout(triggerConnection, 150); 
+                        triggerConnection();
                     }
                 });
             }
