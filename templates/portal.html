@@ -422,23 +422,23 @@
             </div>
             
             <!-- Dynamic Error & Rate Limit Alert Box -->
-            {% if error %}
-            <div id="rate-limit-alert" class="alert-error">
+            <div id="rate-limit-alert" class="alert-error" {% if not error %}style="display: none;"{% endif %}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="8" x2="12" y2="12"></line>
                     <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
                 <div id="error-message-text">
-                    <strong>{{ error }}</strong>
-                    {% if retry_after %}
-                        <div style="margin-top: 4px; font-size: 11.5px; opacity: 0.9;">
-                            Subiri sekunde <strong id="countdown-secs" style="font-size: 13px;">{{ retry_after }}</strong> kabla ya kujaribu tena...
-                        </div>
+                    {% if error %}
+                        <strong>{{ error }}</strong>
+                        {% if retry_after %}
+                            <div style="margin-top: 4px; font-size: 11.5px; opacity: 0.9;">
+                                Subiri sekunde <strong id="countdown-secs" style="font-size: 13px;">{{ retry_after }}</strong> kabla ya kujaribu tena...
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
 
             <!-- Voucher submission form -->
             <form id="login-form" action="/login" method="POST">
@@ -545,7 +545,7 @@
         </div>
     </div>
 
-    <!-- Client-side script handling auto-submit, rate limit countdown and safe offline logic -->
+    <!-- Client-side script handling auto-submit, rate limit countdown, and loading states -->
     <script>
         (function() {
             var voucherInput = document.getElementById('voucher');
@@ -557,6 +557,7 @@
             function triggerConnection() {
                 if (submitBtn.classList.contains('loading')) return; // Prevent double firing
                 
+                voucherInput.disabled = true;
                 submitBtn.disabled = true;
                 submitBtn.classList.add('loading');
                 submitBtn.innerHTML = `
@@ -565,34 +566,47 @@
                     </svg>
                     <span>INAUNGANISHA...</span>
                 `;
-                form.submit();
+
+                // Show success / connecting state in alert box
+                if (alertBox) {
+                    alertBox.style.display = 'flex';
+                    alertBox.style.background = '#f0fdf4';
+                    alertBox.style.borderColor = '#bbf7d0';
+                    alertBox.style.color = '#15803d';
+                    var errorText = document.getElementById('error-message-text');
+                    if (errorText) {
+                        errorText.innerHTML = '<strong>Voucher imekubaliwa!</strong><div style="margin-top: 4px; font-size: 11.5px;">Subiri kama sekunde 15 tukiwa tunakuruhusu kupata mtandao...</div>';
+                    }
+                }
+
+                // Slight delay for UI smoothness before submitting form
+                setTimeout(function() {
+                    form.submit();
+                }, 400);
             }
 
             // 1. Auto-Submit & Numeric Filtering
             if (voucherInput) {
                 voucherInput.addEventListener('input', function(e) {
-                    // Strip non-numbers and limit to 5
                     this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
                     
-                    // AUTO-SUBMIT: Connect instantly when 5 digits are entered
                     if (this.value.length === 5 && !submitBtn.disabled) {
-                        // Slight 150ms delay for UI smoothness before locking the field
                         triggerConnection();
                     }
                 });
             }
 
-            // 2. Handle manual form submission (pressing Enter)
+            // 2. Handle manual form submission (pressing Enter or clicking button)
             if (form) {
                 form.addEventListener('submit', function(e) {
-                    e.preventDefault(); // Stop default to apply UI changes first
+                    e.preventDefault(); 
                     if (voucherInput.value.length === 5) {
                         triggerConnection();
                     }
                 });
             }
 
-            // 3. Safe Rate Limit Countdown handling (Preserved for security)
+            // 3. Safe Rate Limit Countdown handling
             var rawRetry = "{{ retry_after }}";
             var timeLeft = parseInt(rawRetry, 10);
 
@@ -625,32 +639,5 @@
             if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('active'); });
         })();
     </script>
-    <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const form = document.querySelector("form"); // Badilisha hii iwe kitambulisho chako cha fomu kama kina id, mfano #loginForm
-        const voucherInput = document.querySelector("input[name='voucher']");
-        const submitButton = document.querySelector("button[type='submit']");
-        
-        // Tafuta sehemu au tengeneza ya kuonyesha ujumbe (kama haipo kwenye HTML)
-        let errorContainer = document.querySelector(".error-message"); 
-        if (!errorContainer) {
-            errorContainer = document.createElement("div");
-            errorContainer.className = "error-message";
-            if (form) form.prepend(errorContainer);
-        }
-
-        if (form) {
-            form.addEventListener("submit", function(e) {
-                // Kama unataka kufanya hivi pale tu fomu inapowasilishwa na si kwenye error ya awali pekee:
-                voucherInput.disabled = true;
-                if (submitButton) submitButton.disabled = true;
-                
-                // Badilisha ujumbe uonekane kwenye eneo la ujumbe
-                errorContainer.style.color = "green"; // Unaweza kuweka rangi ya mafanikio
-                errorContainer.innerText = "Voucher imekubaliwa, subiri kama sec 15 tukiwa tunakuruhusu kupata mtandao...";
-            });
-        }
-    });
-</script>
 </body>
 </html>
