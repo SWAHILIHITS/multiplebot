@@ -1,99 +1,80 @@
 <!DOCTYPE html>
-<html lang="sw">
+<html lang="sw" class="antialiased">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HANS WIFI - Connect</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: {
+                        blob: "blob 7s infinite",
+                    },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            background-color: #f4f6f8; 
-            margin: 0; 
-            padding: 20px;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 90vh;
-        }
-        .container { width: 100%; max-width: 350px; }
-        .box { 
-            background: white; 
-            padding: 30px 22px; 
-            border-radius: 16px; 
-            border: 1px solid #e1e4e8; 
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06); 
-            text-align: center; 
-            box-sizing: border-box;
-        }
-        h2 { margin: 0; color: #0052cc; font-size: 24px; }
-        p { color: #5e6c84; font-size: 14px; margin-top: 6px; margin-bottom: 20px; }
-        label { font-weight: bold; font-size: 13px; color: #172b4d; display: block; margin-bottom: 8px; text-align: left; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
         
-        input[type="text"] { 
-            width: 100%; 
-            padding: 14px; 
-            font-size: 24px; 
-            border: 2px solid #dfe1e6; 
-            border-radius: 8px; 
-            box-sizing: border-box; 
-            margin-bottom: 18px; 
-            text-align: center; 
-            letter-spacing: 6px; 
-            font-weight: bold; 
-            color: #0052cc;
+        /* Prevent layout shift when entering voucher */
+        input[type="text"] {
+            font-variant-numeric: tabular-nums;
         }
-        input[type="text"]:focus { border-color: #0052cc; outline: none; }
-        
-        button[type="submit"] { 
-            width: 100%; 
-            padding: 14px; 
-            background: #0052cc; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            font-size: 16px; 
-            cursor: pointer; 
-            transition: background 0.2s, opacity 0.2s;
-        }
-        button[type="submit"]:hover { background: #0065ff; }
-        
-        .error { 
-            background: rgba(239, 68, 68, 0.1); 
-            border: 1px solid rgba(239, 68, 68, 0.3); 
-            color: #de350b; 
-            padding: 12px 16px; 
-            border-radius: 8px; 
-            font-size: 13px; 
-            margin-bottom: 20px; 
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .mac-info { font-size: 11px; color: #888; margin-top: 15px; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="box">
-            <h2>HANS WIFI</h2>
-            <p>Ingiza namba ya vocha kuunganisha intaneti</p>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden text-slate-800 selection:bg-blue-200">
+
+    <!-- Animated Background Blobs -->
+    <div class="absolute top-0 -left-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob pointer-events-none"></div>
+    <div class="absolute top-0 -right-4 w-72 h-72 bg-cyan-300 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-2000 pointer-events-none"></div>
+    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-4000 pointer-events-none"></div>
+
+    <div class="relative w-full max-w-sm z-10">
+        <!-- Glassmorphism Card Container -->
+        <div class="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white p-8 sm:p-10">
+            
+            <!-- Header section -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 mb-5 shadow-sm border border-blue-100/50">
+                    <i class="fa-solid fa-wifi text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">HANS WIFI</h2>
+                <p class="text-sm text-slate-500 mt-2 font-medium">Ingiza namba ya vocha kuunganisha intaneti</p>
+            </div>
             
             <!-- Dynamic Error & Rate Limit Alert Box -->
             {% if error %}
-            <div id="rate-limit-alert" class="error">
-                <i class="fa-solid fa-triangle-exclamation" style="font-size: 16px; flex-shrink: 0;"></i>
-                <span id="error-message-text">
-                    {{ error }} {% if retry_after %}(Subiri sekunde <span id="countdown-secs">{{ retry_after }}</span>){% endif %}
+            <div id="rate-limit-alert" class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start space-x-3 text-red-600 text-sm transition-all duration-300">
+                <i class="fa-solid fa-circle-exclamation mt-0.5 shrink-0"></i>
+                <span id="error-message-text" class="font-medium leading-relaxed">
+                    {{ error }} 
+                    {% if retry_after %}
+                        <br><span class="text-red-500/80 text-xs mt-1 block">Subiri sekunde <span id="countdown-secs" class="font-bold text-red-600">{{ retry_after }}</span>...</span>
+                    {% endif %}
                 </span>
             </div>
             {% endif %}
 
             <!-- Voucher submission form -->
-            <form action="/login" method="POST">
+            <form action="/login" method="POST" class="space-y-6">
                 <!-- Hidden inputs preserve Access Point parameters for session creation -->
                 <input type="hidden" name="mac" value="{{ mac }}">
                 <input type="hidden" name="gw_address" value="{{ gw_address }}">
@@ -101,22 +82,41 @@
                 <input type="hidden" name="gw_id" value="{{ gw_id }}">
                 <input type="hidden" name="userurl" value="{{ userurl }}">
                 
-                <label for="voucher">Namba ya Vocha (Digits 5):</label>
-                <input 
-                    type="text" 
-                    id="voucher" 
-                    name="voucher" 
-                    maxlength="5" 
-                    pattern="\d{5}" 
-                    placeholder="12345" 
-                    inputmode="numeric"
-                    required 
-                    autofocus
+                <div class="space-y-2">
+                    <label for="voucher" class="block text-xs font-bold text-slate-400 uppercase tracking-widest text-center">
+                        Namba ya Vocha (Digits 5)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="voucher" 
+                        name="voucher" 
+                        maxlength="5" 
+                        pattern="\d{5}" 
+                        placeholder="•••••" 
+                        inputmode="numeric"
+                        required 
+                        autofocus
+                        class="w-full text-center py-4 text-3xl font-extrabold tracking-[0.5em] text-slate-800 bg-slate-100/50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:font-medium shadow-inner"
+                    >
+                </div>
+
+                <button 
+                    type="submit" 
+                    id="submit-btn"
+                    class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2.5 group"
                 >
-                <button type="submit" id="submit-btn">CONNECT INTERNET</button>
+                    <span>CONNECT INTERNET</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket text-sm group-hover:translate-x-1 transition-transform"></i>
+                </button>
             </form>
 
-            <div class="mac-info">Device MAC: {{ mac }}</div>
+            <!-- Footer Details -->
+            <div class="mt-8 pt-6 border-t border-slate-100/80 text-center">
+                <div class="inline-flex items-center justify-center space-x-2 text-xs text-slate-400 font-mono bg-slate-100/50 px-3 py-1.5 rounded-lg border border-slate-100">
+                    <i class="fa-solid fa-mobile-screen"></i>
+                    <span>MAC: {{ mac }}</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -134,9 +134,10 @@
         const submitBtn = document.getElementById('submit-btn');
 
         if (submitBtn && timeLeft > 0) {
+            // Apply disabled styles
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.6';
-            submitBtn.style.cursor = 'not-allowed';
+            submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'active:scale-[0.98]', 'shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]');
+            submitBtn.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
 
             const timer = setInterval(() => {
                 timeLeft--;
@@ -146,15 +147,16 @@
                 if (timeLeft <= 0) {
                     clearInterval(timer);
                     
-                    // Completely hide/clear the error banner once time ends
+                    // Hide the error banner smoothly
                     if (alertBox) {
-                        alertBox.style.display = 'none';
+                        alertBox.style.opacity = '0';
+                        setTimeout(() => { alertBox.style.display = 'none'; }, 300);
                     }
                     
                     // Re-enable the submit button
                     submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'active:scale-[0.98]', 'shadow-[0_4px_14px_0_rgba(37,99,235,0.39)]');
+                    submitBtn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
                 }
             }, 1000);
         }
