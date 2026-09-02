@@ -302,7 +302,6 @@ def process_login():
     mac = clean_mac(get_client_mac())
     gw_address = get_gateway_address()
     gw_port = get_param('gw_port', '2060')
-    gw_id = get_param('gw_id', 'Gateway')
     userurl = get_param('userurl') or get_param('url') or 'http://www.google.com'
 
     now = datetime.now(timezone.utc)
@@ -320,7 +319,6 @@ def process_login():
         session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
 
         if voucher.get("status") == "UNUSED":
-            # ATOMIC VOUCHER CLAIM TO PREVENT RACE CONDITIONS
             claimed = vouchers_col.find_one_and_update(
                 {"code": code, "status": "UNUSED"},
                 {"$set": {
@@ -350,7 +348,7 @@ def process_login():
             elif voucher.get("status") == "USED":
                 error_msg = "Muda wa vocha hii umekwisha."
                 
-        return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, gw_id=gw_id, userurl=userurl, error=error_msg)
+        return render_template('portal.html', mac=mac, gw_address=gw_address, gw_port=gw_port, userurl=userurl, error=error_msg)
 
     duration_minutes = voucher['duration_minutes']
     session_expire_date = voucher.get("session_expire_date") or (now + timedelta(days=365))
@@ -384,40 +382,9 @@ def process_login():
         upsert=True
     )
 
+    # DIRECT REDIRECT (Instantly hand off to WiFiDog gateway without loading HTML)
     auth_action_url = f"http://{gw_address}:{gw_port}/wifidog/auth?token={token}"
-
-    success_html = f"""
-    <!DOCTYPE html>
-    <html lang="sw">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Connecting...</title>
-        <style>
-            body {{ background: #0f172a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }}
-            .loader {{ border: 4px solid rgba(255,255,255,0.1); border-left-color: #10b981; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px; }}
-            @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
-            .card {{ background: #1e293b; padding: 40px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-width: 90%; width: 400px; }}
-            h2 {{ margin-top: 0; color: #34d399; font-size: 24px; }}
-            p {{ color: #94a3b8; font-size: 15px; margin-bottom: 30px; line-height: 1.5; }}
-            .btn-manual {{ display: inline-block; padding: 10px 20px; background: rgba(255,255,255,0.05); color: #cbd5e1; border-radius: 8px; text-decoration: none; font-size: 14px; transition: background 0.2s; }}
-            .btn-manual:hover {{ background: rgba(255,255,255,0.1); }}
-        </style>
-        <script>
-            setTimeout(function() {{ window.location.href = "{auth_action_url}"; }}, 100);
-        </script>
-    </head>
-    <body>
-        <div class="card">
-            <div class="loader"></div>
-            <h2>Imekubali! 🚀</h2>
-            <p>Vocha yako ni sahihi.<br>Tafadhali subiri kidogo tunakuunganisha na mtandao...</p>
-            <a href="{auth_action_url}" class="btn-manual">Bofya hapa kama inachelewa</a>
-        </div>
-    </body>
-    </html>
-    """
-    return render_template_string(success_html)
+    return redirect(auth_action_url, code=302)
 
 def extract_byte_count(req):
     incoming = 0
