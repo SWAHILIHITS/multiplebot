@@ -284,7 +284,7 @@
             100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
         }
 
-        /* 15-SECOND SUCCESS ACTIVATION SCREEN */
+        /* 5-SECOND SUCCESS ACTIVATION SCREEN */
         .success-screen {
             display: none;
             animation: fadeIn 0.3s ease-out;
@@ -655,7 +655,7 @@
                 </div>
             </div>
 
-            <!-- 2. SUCCESS & 15-SECOND WAIT VIEW (SHOWN AFTER VOUCHER ACCEPTANCE) -->
+            <!-- 2. SUCCESS & 5-SECOND WAIT VIEW (SHOWN AFTER VOUCHER ACCEPTANCE) -->
             <div id="success-view" class="success-screen">
                 <div class="header">
                     <div class="icon-circle success">
@@ -667,21 +667,21 @@
                     <p class="subtitle" id="success-package-title">Intaneti yako inawashwa sasa...</p>
                 </div>
 
-                <!-- 15-Second Radial Countdown -->
+                <!-- 5-Second Radial Countdown -->
                 <div class="countdown-circle-wrapper">
                     <svg class="countdown-svg" viewBox="0 0 110 110">
                         <circle class="countdown-svg-bg" cx="55" cy="55" r="50"></circle>
                         <circle id="countdown-progress" class="countdown-svg-progress" cx="55" cy="55" r="50"></circle>
                     </svg>
                     <div style="text-align: center;">
-                        <div id="success-seconds" class="countdown-number">15</div>
+                        <div id="success-seconds" class="countdown-number">5</div>
                         <div class="countdown-unit">Sekunde</div>
                     </div>
                 </div>
 
                 <!-- Guidance Prompt -->
                 <div class="success-prompt-box">
-                    <div class="success-prompt-title">Tafadhali subiri sekunde 15</div>
+                    <div class="success-prompt-title">Tafadhali subiri sekunde 5</div>
                     <div class="success-prompt-desc">
                         Kifaa chako kinaruhusiwa kwenye router ya HANS WIFI. Usifunge ukurasa huu wala kuzima WiFi.
                     </div>
@@ -748,7 +748,7 @@
         </div>
     </div>
 
-    <!-- Client-side script: TEXTBOX LOCK + 15-SEC ACTIVATION COUNTDOWN -->
+    <!-- Client-side script: TEXTBOX LOCK + 5-SEC ACTIVATION COUNTDOWN -->
     <script>
     (function() {
         var voucherInput = document.getElementById('voucher');
@@ -810,7 +810,7 @@
             }, true);
         });
 
-        function trigger15SecSuccess(authRedirectUrl, packageName) {
+        function triggerSuccessCountdown(authRedirectUrl, packageName) {
             loginView.style.display = 'none';
             successView.classList.add('active');
             
@@ -821,8 +821,8 @@
                 redirectBtn.href = authRedirectUrl;
             }
 
-            var totalSecs = 15;
-            var currentSecs = 15;
+            var totalSecs = 5;
+            var currentSecs = 5;
             var totalCircumference = 314;
 
             if (successSeconds) successSeconds.innerText = currentSecs;
@@ -937,7 +937,7 @@
                     var gwAddr = document.getElementById('input-gw-address').value || '192.168.0.46';
                     var gwPort = document.getElementById('input-gw-port').value || '2060';
                     var targetUrl = data.redirect_url || ('http://' + gwAddr + ':' + gwPort + '/wifidog/auth');
-                    trigger15SecSuccess(targetUrl, data.package_name || 'HANS WIFI Unlimited');
+                    triggerSuccessCountdown(targetUrl, data.package_name || 'HANS WIFI Unlimited');
                 } else {
                     isSubmitting = false;
                     
@@ -962,7 +962,7 @@
             .catch(function(err) {
                 var gwAddr = document.getElementById('input-gw-address').value || '192.168.0.46';
                 var gwPort = document.getElementById('input-gw-port').value || '2060';
-                trigger15SecSuccess('http://' + gwAddr + ':' + gwPort + '/wifidog/auth', 'HANS WIFI');
+                triggerSuccessCountdown('http://' + gwAddr + ':' + gwPort + '/wifidog/auth', 'HANS WIFI');
             });
         }
 
