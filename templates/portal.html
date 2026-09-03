@@ -883,10 +883,14 @@
             }
 
             isSubmitting = true;
+            
+            // FIX: Grab formData before locking the textbox
+            // A disabled input is excluded from FormData by the browser!
+            var formData = new FormData(form);
+            
             lockTextbox();
             setButtonLoading(true);
 
-            var formData = new FormData(form);
             fetch('/login', {
                 method: 'POST',
                 body: formData,
